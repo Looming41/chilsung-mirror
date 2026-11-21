@@ -125,6 +125,15 @@ def show_validation():
                     .update_yaxes(tickformat=".0%"), width="stretch")
     st.dataframe(met.style.format({"평균 오차(%p)": "{:.1f}", "차이 재현 r": "{:.2f}", "차이 기울기": "{:.2f}"}),
                  width="stretch")
+    st.subheader("백테스트: 실제 출시 실적과 비교 (성인 전체, 광고만, 익숙한 맛·클래식 1,700원)")
+    from mirror import backtest as B
+    sd, rows = st.cache_data(B.report, show_spinner="백테스트 중…")()
+    bt = pd.DataFrame(rows)
+    bt["판정"] = np.where((bt._lo <= bt["보정 후"]) & (bt["보정 후"] <= bt._hi), "✅ 범위 안", "❌ 범위 밖")
+    st.dataframe(bt.drop(columns=["_lo", "_hi"]).style.format({"보정 전(say_do 0.35)": "{:.1%}", "보정 후": "{:.1%}"}),
+                 width="stretch", hide_index=True)
+    st.caption(f"펩시 제로 라임으로 말→실구매 전환율을 보정(={sd:.3f}, 기본값 0.35와 거의 같음)하고, 밀키스 제로는 보지 않고 예측. "
+               "판매 개수→시용률은 1인당 구매 개수 가정(범위)으로 변환. 두 제품이 요인공간에서 같아 제품 간 차이는 검증 못 함.")
     st.caption("차이 재현 r·기울기: 집단 간 차이의 방향·크기를 얼마나 맞히는지(1이 이상적). "
                "LLM 단독은 순서는 맞혀도 수준을 크게 부풀리는 경향 — 그래서 수준은 실기록이, 반응 문장은 LLM이 맡는다.")
 
