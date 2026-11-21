@@ -43,3 +43,19 @@ for m in stats viral consumer sim; do .venv/bin/python -m mirror.$m; done
 - Zhao et al. (2015), *SEISMIC: A Self-Exciting Point Process Model for Predicting Tweet Popularity*
 - Bass (1969), *A New Product Growth Model for Consumer Durables*
 - NVIDIA, *Nemotron-Personas-Korea* (CC BY 4.0)
+
+## 실데이터 앵커 (기록 앵커 시민)
+페르소나마다 **같은 성별·나이(±3세)·시도의 실제 응답자 기록**을 hot-deck 통계적 매칭으로 붙인다.
+출처: 한국농촌경제연구원 [2025 식품소비행태조사](https://krei.re.kr/foodSurvey/page/460) 성인가구원 원자료(n=5,874, 가중치 포함). 처음 실행 시 자동 다운로드(`mirror/records.py`).
+
+- 성향 척도(실측 상관으로 구성, Cronbach α): 새로움 추구 .68 · 알뜰 계획형 .75 · 건강 관심 .60 · SNS 활용 .85
+- ML: '제로음료 월 2회 이상' 가중 로지스틱 회귀, 5겹 CV AUC 0.741 (인구통계만 0.722)
+- 검증(보지 않은 실제 응답자 절반, 연령대×성별 12집단 제로음료 이용률):
+
+| 방법 | 평균 오차 | 집단 차이 재현 r |
+|---|---|---|
+| 시뮬레이터(실기록 매칭) | **3.6%p** | 0.95 |
+| 전체 평균 복사 | 11.1%p | — |
+| LLM 단독(Gemini 3.5 Flash Lite) | 33.6%p | 0.91 (2~3배 과대) |
+
+근거: LLM 페르소나는 집단 차이를 고정관념으로 채우고 수준을 왜곡한다(Pew 2026, Twin-2K-500, digital-citizens 등). 그래서 수준·성향은 실기록이, 반응 문장은 LLM 이 맡는다.

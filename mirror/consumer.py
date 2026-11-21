@@ -11,16 +11,11 @@ import re
 import numpy as np
 import pandas as pd
 
+from .records import record_text
+
 AGE_BINS = [0, 19, 29, 39, 49, 59, 200]
 AGE_LABELS = ["10대", "20대", "30대", "40대", "50대", "60대+"]
 
-KW = {
-    "health": r"건강|다이어트|운동|헬스|요가|필라테스|러닝|조깅|혈당|당 수치|칼로리|저당|제로|식단",
-    "trend": r"인스타|SNS|유튜브|틱톡|핫플|신상|트렌드|팝업|맛집 탐방|카페 투어|인증|숏폼|릴스",
-    "drink": r"탄산|콜라|사이다|음료|에이드|디저트|카페|커피|달콤|단 음식|간식|편의점",
-    "thrift": r"알뜰|가성비|절약|할인|저렴|아끼|생활비|빠듯",
-}
-TEXT_COLS = ["culinary_persona", "sports_persona", "hobbies_and_interests", "persona", "career_goals_and_ambitions"]
 
 
 def fetch_personas(path, n=30000):
@@ -31,20 +26,16 @@ def fetch_personas(path, n=30000):
     pd.read_parquet(src).sample(n, random_state=0).to_parquet(path)
 
 
-def load_pool(path="data/personas.parquet"):
-    if not os.path.exists(path):
-        fetch_personas(path)
-    df = pd.read_parquet(path)
-    text = df[TEXT_COLS].fillna("").agg(" ".join, axis=1)
-    for k, pat in KW.items():
-        cnt = text.str.count(pat)
-        df[k] = 1 - np.exp(-cnt / 1.5)                 # 0~1 포화 점수
-    young = np.clip((45 - df.age) / 30, 0, 1)
-    df["trend"] = np.clip(0.6 * df.trend + 0.4 * young, 0, 1)
-    student = df.occupation.fillna("").str.contains("학생|무직|구직")
-    df["thrift"] = np.clip(df.thrift + 0.3 * student + 0.2 * (df.age >= 65), 0, 1)
+def load_pool(path="data/personas.parquet", cache="data/personas_rec.parquet"):
+    """Nemotron 페르소나(서사) + KREI 실응답자 기록(성향·음료습관)을 hot-deck 매칭으로 붙인 모집단."""
+    from . import records as R
+    if not os.path.exists(cache) or os.path.getmtime(cache) < os.path.getmtime(R.__file__):
+        if not os.path.exists(path):
+            fetch_personas(path)
+        R.attach(pd.read_parquet(path)).to_parquet(cache)
+    df = pd.read_parquet(cache)
     df["age_group"] = pd.cut(df.age, AGE_BINS, labels=AGE_LABELS)
-    return df.reset_index(drop=True)
+    return df
 
 
 def stratified_sample(pool, n, ages=(15, 80), sexes=("남자", "여자"), seed=0):
@@ -61,14 +52,16 @@ def stratified_sample(pool, n, ages=(15, 80), sexes=("남자", "여자"), seed=0
 # ---------- rule 모드 ----------
 def utility(p, sc):
     """효용과 항목별 기여도. sc: 시나리오 dict."""
+    # 성향은 모두 KREI 실응답 기록에서 온다(records.py). 제로 수용성은 실데이터로 학습한 로지스틱 모델 확률.
     novelty = 1.0 if sc["flavor"] == "새로운 맛" else 0.2
     contrib = {
-        "기본": np.full(len(p), -1.3),
-        "음료 선호": 1.2 * p.drink.values,
-        "제로 슈거×건강관심": 1.1 * p.health.values * sc["zero"],
-        "새로운 맛×트렌드": 0.8 * p.trend.values * novelty,
+        "기본": np.full(len(p), -1.0),
+        "탄산 선호(실기록)": 1.2 * p.drink.values,
+        "제로 수용성(실데이터 학습)": 3.0 * (p.zero_aff.values - 0.2) * sc["zero"],
+        "제로 거부: 맛·감미료 불신(실기록)": -0.8 * p.zero_reject.values * sc["zero"],
+        "새로운 맛×새로움 추구": 0.9 * (p.novelty.values - 0.4) * novelty,
         "새로운 맛×고연령 거부감": -0.6 * (p.age.values >= 55) * novelty,
-        "비주얼 패키지×트렌드": 0.7 * p.trend.values * (sc["package"] == "비주얼(숏폼형)"),
+        "비주얼 패키지×SNS 활용": 0.8 * p.social.values * (sc["package"] == "비주얼(숏폼형)"),
         "문구 적합": np.where(sc["copy"] == "건강", 0.5 * p.health.values, 0.5 * p.trend.values),
         "가격 부담": -0.9 * (0.3 + p.thrift.values) * (sc["price"] - 1500) / 500,
     }
@@ -83,8 +76,9 @@ def likert_pmf(u, cuts=(-2.0, -0.7, 0.6, 1.8)):
 
 
 def satisfaction(p, sc):
-    """마셔본 뒤 만족 확률: 제로 슈거는 건강 무관심층에서 대체감미료 불만."""
-    return np.clip(0.85 - 0.3 * sc["zero"] * (1 - p.health.values) - 0.1 * (sc["price"] > 2000), 0.2, 0.95)
+    """마셔본 뒤 만족 확률: 제로 맛·감미료를 싫어한다고 실제로 답한 사람은 불만(부정 후기) 쪽."""
+    return np.clip(0.85 - 0.35 * sc["zero"] * p.zero_reject.values - 0.15 * sc["zero"] * (1 - p.health.values)
+                   - 0.1 * (sc["price"] > 2000), 0.2, 0.95)
 
 
 def post_rate(p, sc):
@@ -263,7 +257,9 @@ def concept_text(concept, sc):
 
 def persona_prompt(row):
     return (f"당신은 {row.age}세 {row.sex}, {row.province} {row.district} 거주, 직업 {row.occupation}입니다.\n"
-            f"{row.persona}\n식생활: {row.culinary_persona}\n취미: {row.hobbies_and_interests}")
+            f"{row.persona}\n식생활: {row.culinary_persona}\n취미: {row.hobbies_and_interests}\n"
+            f"{record_text(row)}\n(서사와 설문 기록이 다르면 설문 기록 쪽이 실제 행동입니다.)")
+
 
 
 SYSTEM_TAIL = ("\n이 사람으로서 솔직하게, 실제 이 사람이 쓸 법한 말투로 2~3문장만 답하세요. "

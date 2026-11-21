@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from mirror import consumer as C
-from mirror import sim, stats as S
+from mirror import records as R, sim, stats as S
 
 st.set_page_config(page_title="칠성 미러마켓", page_icon="🥤", layout="wide")
 
@@ -94,6 +94,41 @@ if sb.button("▶ 실험 실행", type="primary", width="stretch", disabled=n_sc
         st.error(f"실행 실패: {type(e).__name__}: {str(e)[:500]}")
     bar.empty()
 
+
+def show_validation():
+    """실데이터 검증: KREI 2025 식품소비행태조사(실제 성인 5,874명)로 채점."""
+    from mirror import records as R
+    k = st.cache_data(R.load, show_spinner=False)()
+    _, rep = st.cache_data(R.zero_model, show_spinner=False)()
+    st.markdown("페르소나마다 **같은 성별·나이·시도의 실제 응답자 기록**(KREI 2025 식품소비행태조사, 성인 5,874명)을 "
+                "통계적 매칭(hot-deck)으로 붙였습니다. 성향 점수와 음료 습관은 모두 이 실기록에서 나옵니다.")
+    c = st.columns(3)
+    c[0].metric("실제 응답자", f"{len(k):,}명", "KREI 2025 원자료", delta_color="off")
+    c[1].metric("제로 수용성 모델 AUC", f"{rep['auc']['성향+인구통계']:.3f}",
+                f"인구통계만 {rep['auc']['인구통계만']:.3f} (5겹 교차검증)", delta_color="off")
+    c[2].metric("척도 신뢰도 Cronbach α", " / ".join(f"{v:.2f}" for v in k.attrs["alpha"].values()),
+                "새로움·가격·건강·SNS", delta_color="off")
+    st.caption("ML 계수(제로음료 월 2회 이상, 가중 로지스틱 회귀): " +
+               ", ".join(f"{n} {v:+.2f}" for n, v in rep["coef"].items()))
+    st.subheader("채점: 보지 않은 실제 응답자 절반의 집단별 제로음료 이용률을 맞히기")
+    vm = "gemini-3.5-flash-lite" if C.GEMINI_KEY else (model if mode == "llm" else None)
+    use_llm = st.checkbox("LLM 단독 추정도 비교 (호출 1회, 결과 캐시)", value=bool(vm), disabled=not vm)
+    try:
+        tab, met = st.cache_data(R.validate, show_spinner="채점 중…")(vm if use_llm else None)
+    except Exception as e:
+        st.warning(f"LLM 비교 실패({type(e).__name__}) — 시뮬레이터만 채점합니다.")
+        tab, met = st.cache_data(R.validate, show_spinner="채점 중…")(None)
+    long = tab.reset_index(names="집단").melt("집단", var_name="방법", value_name="비율")
+    st.plotly_chart(px.bar(long, x="집단", y="비율", color="방법", barmode="group", height=360,
+                           color_discrete_map={"정답(실제 응답자)": "#222", "시뮬레이터": "#E60012",
+                                               "기준선(전체평균)": "#bbb", "LLM 단독": "#5b8def"})
+                    .update_yaxes(tickformat=".0%"), width="stretch")
+    st.dataframe(met.style.format({"평균 오차(%p)": "{:.1f}", "차이 재현 r": "{:.2f}", "차이 기울기": "{:.2f}"}),
+                 width="stretch")
+    st.caption("차이 재현 r·기울기: 집단 간 차이의 방향·크기를 얼마나 맞히는지(1이 이상적). "
+               "LLM 단독은 순서는 맞혀도 수준을 크게 부풀리는 경향 — 그래서 수준은 실기록이, 반응 문장은 LLM이 맡는다.")
+
+
 res = st.session_state.get("res")
 if res is None:
     st.title("칠성 미러마켓")
@@ -104,6 +139,8 @@ if res is None:
 - **확산**: 멱법칙 팔로우 네트워크 위 4주 일 단위 확산, 게시물 영향력 지수 감쇠, 부정 후기는 전환을 깎음
 - **통계**: 부트스트랩 95% CI, 두 비율 z검정 + Holm 보정, 베이지안 1등 확률, 반복별 승률, Bass 모형 적합
 """)
+    st.header("🔬 실데이터 검증")
+    show_validation()
     st.stop()
 
 tb = res["table"]
@@ -135,7 +172,8 @@ c[1].metric("승률 (4주 구매 1위 빈도)", pct(top.승률))
 c[2].metric("4주 구매율", pct(top["4주구매율"]), f"95% CI {pct(top.구매_하한)}~{pct(top.구매_상한)}", delta_color="off")
 c[3].metric("바이럴 확률 (n*>1)", pct(top.바이럴확률), f"분기비 {top.분기비:.2f}", delta_color="off")
 
-t1, t2, t3, t4, t5 = st.tabs(["📊 시나리오 순위", "🧪 통계 검정", "📈 바이럴 확산", "👥 세그먼트", "💬 페르소나"])
+t1, t2, t3, t4, t5, t6 = st.tabs(["📊 시나리오 순위", "🧪 통계 검정", "📈 바이럴 확산", "👥 세그먼트", "💬 페르소나",
+                                  "🔬 실데이터 검증"])
 
 with t1:
     show = tb.head(15)
@@ -244,8 +282,9 @@ with t4:
                               labels=dict(color="구매의향"), title="연령대 × 성별 설문 구매의향 (4~5점 확률)"),
                     width="stretch")
     j = res["labels"].index(lb)
-    trait = res["base"][["health", "trend", "drink", "thrift"]].assign(의향=res["p_base"][j])
-    corr = trait.corr()["의향"].drop("의향").rename({"health": "건강 관심", "trend": "트렌드 민감", "drink": "음료 선호", "thrift": "가격 민감"})
+    trait = res["base"][["health", "novelty", "social", "drink", "thrift", "zero_aff"]].assign(의향=res["p_base"][j])
+    corr = trait.corr()["의향"].drop("의향").rename({"health": "건강 관심", "novelty": "새로움 추구", "social": "SNS 활용",
+                                                   "drink": "탄산 선호", "thrift": "가격 민감", "zero_aff": "제로 수용성(ML)"})
     st.plotly_chart(px.bar(corr, orientation="h", title="성향 점수와 구매의향의 상관", height=280)
                     .update_layout(showlegend=False, xaxis_title="피어슨 r", yaxis_title=None), width="stretch")
 
@@ -254,7 +293,8 @@ with t5:
     j = res["labels"].index(lb)
     base = res["base"]
     view = base[["age", "sex", "province", "occupation", "persona"]].assign(
-        구매의향=res["p_base"][j], 반응=res["texts"].get(lb, [""] * len(base)))
+        구매의향=res["p_base"][j], 반응=res["texts"].get(lb, [""] * len(base)),
+        실기록=base.fav + " · 제로 " + base.zero_code.map(R.ZERO_FREQ))
     which = st.radio("보기", ["안 살 사람", "살 사람"], horizontal=True)
     view = view.sort_values("구매의향", ascending=which == "안 살 사람").head(30)
     st.dataframe(view.rename(columns={"age": "나이", "sex": "성별", "province": "지역", "occupation": "직업", "persona": "소개"})
@@ -270,3 +310,6 @@ with t5:
         else:
             st.chat_message("assistant").write(f"(규칙 기반 근거) {res['texts'][lb][i]}")
             st.caption("Claude에 로그인하면 이 페르소나가 직접 대답합니다.")
+
+with t6:
+    show_validation()
