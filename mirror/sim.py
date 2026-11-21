@@ -71,10 +71,13 @@ def run(pool, levels, *, n=1000, reps=20, ages=(19, 80), sexes=("남자", "여�
                 pmf = C.likert_pmf(u)
             p_top2 = pmf[:, 3:].sum(1)
             top2[j, r] = (rng.random(n) < p_top2).mean()
-            if r == 0:
-                p_base[j] = p_top2
+            if r == 0:                                  # r=0 의 idx 는 순열 → 원표본(base) 순서로 되돌려 저장
+                p_base[j][idx] = p_top2
                 if mode == "rule":
-                    texts[label(sc)] = [C.reasons(contrib, i) for i in range(n)]
+                    tx = [""] * n
+                    for i in range(n):
+                        tx[idx[i]] = C.reasons(contrib, i)
+                    texts[label(sc)] = tx
             out = V.simulate(p_top2 * say_do, C.post_rate(P, sc), C.satisfaction(P, sc), nbrs, deg,
                              days=days, ad_reach=ad_reach, influencer_seed=sc["influencer"],
                              shortform=1.4 if sc["package"].startswith("비주얼") else 1.0,

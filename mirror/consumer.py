@@ -132,9 +132,9 @@ def gemini_models(key):
     ids = [m.id.removeprefix("models/") for m in OpenAI(api_key=key, base_url=GEMINI_URL).models.list()]
     ids = [i for i in ids if i.startswith("gemini") and ("flash" in i or "pro" in i)
            and not any(x in i for x in ("image", "tts", "audio", "live", "embedding"))]
-    def rank(i):   # 최신 버전 flash 정식판이 맨 위
+    def rank(i):   # 최신 flash-lite 정식판이 맨 위: 무료 등급 일일 한도가 가장 넉넉함(flash 는 하루 20회)
         m = re.search(r"gemini-(\d+(?:\.\d+)?)", i)
-        return (-float(m.group(1)) if m else 0, "lite" in i, "pro" in i, "preview" in i or "exp" in i, i)
+        return ("lite" not in i, "pro" in i, "preview" in i or "exp" in i, -float(m.group(1)) if m else 0, i)
     return sorted(set(ids), key=rank)
 
 
@@ -151,12 +151,26 @@ EST_TOKENS = (700, 300)            # 호출당 입력·출력(사고 포함) 추
 USAGE = {"calls": 0, "in": 0, "out": 0}
 
 import threading
+import time
 _lock = threading.Lock()
 
 
 def cost(model, tin, tout):
     pi, po = PRICES.get(model, (0, 0))
     return (tin * pi + tout * po) / 1e6
+
+
+GEMINI_RPM = 14                    # 무료 등급 flash-lite 분당 15회보다 살짝 낮게
+_rl = {"last": 0.0}
+
+
+def _throttle():
+    """전역 호출 간격 유지(스레드 공유)."""
+    with _lock:
+        wait = _rl["last"] + 60 / GEMINI_RPM - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _rl["last"] = time.time()
 
 
 def _track(tin, tout):
@@ -166,8 +180,35 @@ def _track(tin, tout):
         USAGE["out"] += tout
 
 
+CACHE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "llm_cache.jsonl")
+_cache = None
+
+
 def chat(system, user, model):
-    """한 번의 페르소나 응답. 모델 이름으로 공급자를 고른다."""
+    """디스크 캐시를 거친 페르소나 응답. 같은 (모델, 프롬프트)는 다시 호출하지 않아 무료 한도를 아낀다."""
+    import hashlib
+    global _cache
+    key = hashlib.sha1(f"{model}\x00{system}\x00{user}".encode()).hexdigest()
+    with _lock:
+        if _cache is None:
+            _cache = {}
+            if os.path.exists(CACHE_PATH):
+                for line in open(CACHE_PATH):
+                    d = json.loads(line)
+                    _cache[d["k"]] = d["v"]
+        if key in _cache:
+            return _cache[key]
+    out = _chat_raw(system, user, model)
+    with _lock:
+        _cache[key] = out
+        os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
+        with open(CACHE_PATH, "a") as f:
+            f.write(json.dumps({"k": key, "m": model, "v": out}, ensure_ascii=False) + "\n")
+    return out
+
+
+def _chat_raw(system, user, model):
+    """한 번의 실제 API 호출. 모델 이름으로 공급자를 고른다."""
     if model.startswith("claude"):
         import anthropic
         cl = _clients.setdefault("claude", anthropic.Anthropic())
@@ -181,15 +222,29 @@ def chat(system, user, model):
         if r.stop_reason == "refusal":
             return "(응답 거절)"
         return "".join(b.text for b in r.content if b.type == "text").strip()
-    from openai import OpenAI
+    from openai import OpenAI, RateLimitError, InternalServerError, APITimeoutError, APIConnectionError
     if model.startswith("gemini"):
-        # 무료 등급은 분당 한도가 낮아 429가 잦다 → 재시도 넉넉히
         cl = _clients.get(("gemini", GEMINI_KEY)) or _clients.setdefault(
-            ("gemini", GEMINI_KEY), OpenAI(api_key=GEMINI_KEY, base_url=GEMINI_URL, max_retries=8))
+            ("gemini", GEMINI_KEY), OpenAI(api_key=GEMINI_KEY, base_url=GEMINI_URL, timeout=60))
     else:
         cl = _clients.setdefault("openai", OpenAI())
-    r = cl.chat.completions.create(model=model, messages=[{"role": "system", "content": system},
-                                                         {"role": "user", "content": user}])
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    for attempt in range(6):
+        if model.startswith("gemini"):
+            _throttle()
+        try:
+            r = cl.with_options(max_retries=0).chat.completions.create(model=model, messages=msgs)
+            break
+        except RateLimitError as e:
+            body = str(getattr(e, "body", e))
+            if "per day" in body:
+                raise RuntimeError(f"{model} 무료 등급 하루 한도를 다 썼습니다. 다른 모델(예: flash-lite)을 고르거나 내일 다시 하세요.") from None
+            m = re.search(r"retry in ([\d.]+)s", body)      # 분당 한도: 구글이 알려준 만큼 기다렸다 재시도
+            time.sleep(float(m.group(1)) + 1 if m else 20)
+        except (InternalServerError, APITimeoutError, APIConnectionError):
+            time.sleep(5 * (attempt + 1))                   # 503 과부하·끊김: 점점 길게 기다렸다 재시도
+    else:
+        raise RuntimeError(f"{model} 호출이 계속 실패합니다(한도 또는 서버 과부하). 잠시 뒤 다시 하세요.")
     _track(r.usage.prompt_tokens, r.usage.completion_tokens)
     return r.choices[0].message.content.strip()
 
@@ -212,7 +267,8 @@ def persona_prompt(row):
 
 
 SYSTEM_TAIL = ("\n이 사람으로서 솔직하게, 실제 이 사람이 쓸 법한 말투로 2~3문장만 답하세요. "
-               "광고 문구처럼 말하지 말고, 관심 없으면 관심 없다고 하세요. 대부분의 신제품은 그냥 지나칩니다.")
+               "광고 문구처럼 말하지 말고, 끌리면 끌린다고, 관심 없으면 관심 없다고 하세요.")
+# 주의: "대부분 그냥 지나친다" 같은 기저율 암시는 응답을 전부 부정·획일화시킴(실측 평균 1.9점, 문장 반복) → 넣지 않는다
 
 
 def llm_respond(personas, concept, sc, model, workers=8, tick=None):
@@ -228,20 +284,54 @@ def llm_respond(personas, concept, sc, model, workers=8, tick=None):
                 for i, row in enumerate(personas.itertuples())}
         texts = [None] * len(futs)
         for f in as_completed(futs):       # 메인 스레드에서 진행 표시(Streamlit 은 다른 스레드에서 못 그림)
-            texts[futs[f]] = f.result()
+            try:
+                texts[futs[f]] = f.result()
+            except RuntimeError as e:
+                if "하루 한도" in str(e):   # 하루 한도는 나머지도 다 실패하므로 즉시 중단
+                    ex.shutdown(cancel_futures=True)
+                    raise
+                print(f"[llm] 페르소나 {futs[f]} 실패: {e}", flush=True)
             if tick:
                 tick()
-    return ssr(texts), texts
+    ok = [i for i, t in enumerate(texts) if t]
+    if len(ok) < 0.8 * len(texts):
+        raise RuntimeError(f"응답 실패가 너무 많습니다({len(texts) - len(ok)}/{len(texts)}). 잠시 뒤 다시 하세요.")
+    pmf = np.empty((len(texts), len(ANCHORS)))
+    pmf[ok] = ssr([texts[i] for i in ok])
+    pmf[[i for i in range(len(texts)) if i not in ok]] = pmf[ok].mean(0)   # 실패자는 응답자 평균으로 대체
+    return pmf, [t or "(응답 실패 — 평균으로 대체)" for t in texts]
 
 
 def ping(model):
     """모델이 실제로 응답하는지 1회 시험. 성공 시 응답 문자열, 실패 시 예외."""
-    return chat("짧게 답하세요.", "안녕? 한 단어로.", model)
+    return _chat_raw("짧게 답하세요.", "안녕? 한 단어로.", model)   # 캐시 우회: 지금 실제로 되는지 확인
 
 
-def ssr(texts, temp=0.05):
+def embed(texts):
+    """Gemini 키가 있으면 gemini-embedding-001(입장 구분이 됨), 없으면 로컬 모델.
+    로컬 mpnet 은 '안 살래요'도 주제가 같으면 '사겠다'에 붙여서 SSR 용으로는 부정확함(실측)."""
+    if GEMINI_KEY:
+        from openai import OpenAI, RateLimitError
+        cl = OpenAI(api_key=GEMINI_KEY, base_url=GEMINI_URL, max_retries=0, timeout=60)
+        out, i = [], 0
+        while i < len(texts):                               # 무료 등급: 문장 1개 = 요청 1회, 분당 100회
+            try:
+                out += [d.embedding for d in cl.embeddings.create(model="gemini-embedding-001", input=texts[i:i + 90]).data]
+                i += 90
+            except RateLimitError as e:
+                body = str(getattr(e, "body", e))
+                if "per day" in body:
+                    raise RuntimeError("Gemini 임베딩 무료 하루 한도를 다 썼습니다. 내일 다시 하세요.") from None
+                m = re.search(r"retry in ([\d.]+)s", body)
+                time.sleep(float(m.group(1)) + 1 if m else 30)
+        return np.array(out), 0.01                          # 유사도 폭이 좁아 온도를 낮춤
+    return np.array(list(_embedder().embed(texts))), 0.05
+
+
+def ssr(texts, temp=None):
     """Semantic Similarity Rating (Maier et al. 2025): 응답과 기준 문장 5개의 코사인 유사도 → 분포."""
-    v = np.array(list(_embedder().embed(ANCHORS + list(texts))))
+    v, t = embed(ANCHORS + list(texts))
+    temp = temp or t
     v /= np.linalg.norm(v, axis=1, keepdims=True)
     sims = v[len(ANCHORS):] @ v[: len(ANCHORS)].T
     z = (sims - sims.max(1, keepdims=True)) / temp
