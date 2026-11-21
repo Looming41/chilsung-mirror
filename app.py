@@ -1,0 +1,222 @@
+"""칠성 미러마켓 대시보드.  실행: .venv/bin/streamlit run app.py"""
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
+
+from mirror import consumer as C
+from mirror import sim, stats as S
+
+st.set_page_config(page_title="칠성 미러마켓", page_icon="🥤", layout="wide")
+
+
+@st.cache_resource
+def pool():
+    return C.load_pool()
+
+
+# ---------------- 사이드바: 실험 설계 ----------------
+sb = st.sidebar
+sb.title("🥤 칠성 미러마켓")
+sb.caption("가상 소비자 시장에 신제품을 먼저 출시해 보는 시뮬레이터")
+concept = sb.text_area("제품 콘셉트", "자두맛 탄산음료. 새콤달콤한 자두 향에 톡 쏘는 탄산, 500ml 페트.")
+
+sb.subheader("타깃")
+ages = sb.slider("연령", 19, 80, (20, 39))
+sexes = sb.multiselect("성별", ["남자", "여자"], ["여자"])
+
+sb.subheader("시나리오 변수 (요인설계)")
+prices = sb.multiselect("가격(원)", [1500, 1800, 2000, 2200, 2500], [1500, 1800, 2200])
+zero = sb.multiselect("당", ["제로 슈거", "일반"], ["제로 슈거"])
+flavor = sb.multiselect("맛 포지션", ["새로운 맛", "익숙한 맛"], ["새로운 맛"])
+package = sb.multiselect("패키지", ["비주얼(숏폼형)", "클래식"], ["비주얼(숏폼형)", "클래식"])
+copy = sb.multiselect("광고 문구 톤", ["재미", "건강"], ["재미", "건강"])
+infl = sb.multiselect("인플루언서 협업", ["협업", "광고만"], ["협업", "광고만"])
+
+sb.subheader("시뮬레이션")
+n = sb.slider("페르소나 수 (n)", 200, 3000, 1000, 100)
+sb.caption(f"±3%p·95% 신뢰 기준 필요 표본 = {S.sample_size():,}명 · 현재 오차한계 ≈ ±{100 * 1.96 * np.sqrt(0.25 / n):.1f}%p")
+reps = sb.slider("반복 횟수 (몬테카를로)", 5, 100, 30, 5)
+say_do = sb.slider("말-행동 전환율 (설문 의향 → 실제 구매)", 0.1, 1.0, 0.35, 0.05,
+                   help="설문에서 '사겠다'고 한 사람이 실제 노출 시 구매하는 비율. 출시 데이터로 보정하는 값.")
+ad_reach = sb.slider("일일 광고 도달률", 0.0, 0.05, 0.01, 0.005)
+llm_ok = C.llm_available()
+mode = sb.radio("응답 엔진", ["rule", "llm"], format_func=lambda m: {"rule": "규칙 기반 (빠름)", "llm": "LLM + SSR"}[m],
+                disabled=not llm_ok, help=None if llm_ok else "OPENAI_API_KEY 환경변수가 있어야 켜집니다.")
+model = sb.text_input("LLM 모델", "gpt-5-mini") if mode == "llm" else "gpt-5-mini"
+
+levels = dict(price=prices, zero=[1 if z == "제로 슈거" else 0 for z in zero], flavor=flavor,
+              package=package, copy=copy, influencer=[i == "협업" for i in infl])
+n_sc = int(np.prod([len(v) for v in levels.values()]))
+sb.caption(f"시나리오 {n_sc}개 × 반복 {reps}회 = 시뮬레이션 {n_sc * reps:,}번")
+if mode == "llm":
+    sb.warning(f"LLM 호출 약 {n * n_sc // max(1, len(infl)):,}회. n을 200 이하로 줄이길 권장.")
+
+if sb.button("▶ 실험 실행", type="primary", width="stretch", disabled=n_sc == 0 or not sexes):
+    bar = st.progress(0.0, "시작")
+    st.session_state.res = sim.run(pool(), levels, n=n, reps=reps, ages=ages, sexes=tuple(sexes), say_do=say_do,
+                                   ad_reach=ad_reach, mode=mode, concept=concept, model=model,
+                                   progress=lambda f, t: bar.progress(min(f, 1.0), t))
+    st.session_state.concept = concept
+    bar.empty()
+
+res = st.session_state.get("res")
+if res is None:
+    st.title("칠성 미러마켓")
+    st.info("왼쪽에서 콘셉트와 시나리오 변수를 정하고 **▶ 실험 실행**을 누르세요.")
+    st.markdown("""
+- **페르소나**: NVIDIA Nemotron-Personas-Korea(통계청 분포 기반 합성 한국인) 3만 명 풀에서 연령×성별 **층화추출**
+- **응답**: 규칙 기반 효용 모델 또는 LLM 자유 서술 → **SSR**(의미 유사도)로 5점 척도 분포
+- **확산**: 멱법칙 팔로우 네트워크 위 4주 일 단위 확산, 게시물 영향력 지수 감쇠, 부정 후기는 전환을 깎음
+- **통계**: 부트스트랩 95% CI, 두 비율 z검정 + Holm 보정, 베이지안 1등 확률, 반복별 승률, Bass 모형 적합
+""")
+    st.stop()
+
+tb = res["table"]
+pct = lambda x: f"{100 * x:.1f}%"
+top = tb.iloc[0]
+
+st.title("실험 결과")
+st.caption(f"페르소나 {res['n']:,}명 × 반복 {res['reps']}회 · 콘셉트: {st.session_state.get('concept', '')[:60]}")
+c = st.columns(4)
+c[0].metric("🏆 1위 시나리오", top.시나리오.split("·")[0], top.시나리오, delta_color="off")
+c[1].metric("승률 (4주 구매 1위 빈도)", pct(top.승률))
+c[2].metric("4주 구매율", pct(top["4주구매율"]), f"95% CI {pct(top.구매_하한)}~{pct(top.구매_상한)}", delta_color="off")
+c[3].metric("바이럴 확률 (n*>1)", pct(top.바이럴확률), f"분기비 {top.분기비:.2f}", delta_color="off")
+
+t1, t2, t3, t4, t5 = st.tabs(["📊 시나리오 순위", "🧪 통계 검정", "📈 바이럴 확산", "👥 세그먼트", "💬 페르소나"])
+
+with t1:
+    show = tb.head(15)
+    fig = go.Figure()
+    fig.add_bar(y=show.시나리오, x=show.승률, orientation="h", marker_color="#E60012",
+                text=[pct(v) for v in show.승률], textposition="outside")
+    fig.update_layout(title="시나리오별 승률 — 같은 난수 조건에서 4주 구매 1위를 한 비율", height=80 + 28 * len(show),
+                      yaxis=dict(autorange="reversed"), xaxis=dict(tickformat=".0%"), margin=dict(l=10, r=10, t=50, b=10))
+    st.plotly_chart(fig, width="stretch")
+
+    fig = go.Figure()
+    for col, lo, hi, name, color in [("구매의향", "의향_하한", "의향_상한", "설문 구매의향 (4~5점)", "#9AA0A6"),
+                                     ("4주구매율", "구매_하한", "구매_상한", "4주 실제 구매율", "#E60012")]:
+        fig.add_scatter(y=show.시나리오, x=show[col], mode="markers", name=name, marker=dict(size=10, color=color),
+                        error_x=dict(type="data", symmetric=False, array=show[hi] - show[col], arrayminus=show[col] - show[lo]))
+    fig.update_layout(title="말 vs 행동 — 95% 부트스트랩 신뢰구간", height=80 + 28 * len(show),
+                      yaxis=dict(autorange="reversed"), xaxis=dict(tickformat=".0%"), margin=dict(l=10, r=10, t=50, b=10))
+    st.plotly_chart(fig, width="stretch")
+
+    st.dataframe(tb[["시나리오", "승률", "4주구매율", "구매_하한", "구매_상한", "구매의향", "의향1등확률",
+                     "바이럴확률", "분기비", "부정비율"]].style.format(
+        {k: "{:.1%}" for k in ["승률", "4주구매율", "구매_하한", "구매_상한", "구매의향", "의향1등확률", "바이럴확률", "부정비율"]}
+        | {"분기비": "{:.2f}"}), width="stretch", hide_index=True)
+
+    # 요인별 주효과
+    eff = []
+    for f, name in [("price", "가격"), ("zero", "당"), ("flavor", "맛"), ("package", "패키지"), ("copy", "문구"), ("influencer", "인플루언서")]:
+        g = tb.groupby(f)["4주구매율"].mean()
+        if len(g) > 1:
+            eff += [{"요인": name, "수준": str(k), "4주구매율": v} for k, v in g.items()]
+    if eff:
+        fig = px.bar(pd.DataFrame(eff), x="수준", y="4주구매율", facet_col="요인", color="요인",
+                     title="요인별 주효과 (다른 변수 평균)", height=320)
+        fig.update_xaxes(matches=None, title=None).update_yaxes(tickformat=".1%")
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        st.plotly_chart(fig, width="stretch")
+
+with t2:
+    a, b = st.columns([1, 2])
+    with a:
+        st.subheader("표본 크기 계산기")
+        e = st.number_input("허용 오차(%p)", 1.0, 10.0, 3.0, 0.5)
+        conf = st.selectbox("신뢰수준", [0.90, 0.95, 0.99], 1)
+        st.metric("필요 표본 수", f"{S.sample_size(e / 100, conf):,}명")
+        st.caption("n = z²·p(1−p)/e², p=0.5(최대 분산) 가정")
+    with b:
+        st.subheader("베이지안 1등 확률 (설문 구매의향)")
+        pb = tb.sort_values("의향1등확률", ascending=False).head(8)
+        st.plotly_chart(px.bar(pb, x="의향1등확률", y="시나리오", orientation="h", height=300)
+                        .update_layout(yaxis=dict(autorange="reversed"), xaxis=dict(tickformat=".0%")),
+                        width="stretch")
+        st.caption("각 시나리오 의향률에 Beta(1+k, 1+n−k) 사후분포 → 2만 번 추출해 1위 빈도")
+    st.subheader(f"쌍별 검정: 설문 1위 「{res['best_label']}」 vs 나머지")
+    st.caption("두 비율 z검정(양측), 다중비교는 Holm 보정. 효과크기 Cohen h: 0.2 작음 · 0.5 중간 · 0.8 큼")
+    if len(res["tests"]):
+        st.dataframe(res["tests"].style.format({"1위 의향": "{:.1%}", "대상 의향": "{:.1%}", "차이(%p)": "{:.1f}",
+                                                "Cohen h": "{:.3f}", "p": "{:.4f}", "Holm 보정 p": "{:.4f}"}),
+                     width="stretch", hide_index=True)
+    st.info("⚠️ LLM/규칙 페르소나는 독립 표본이 아니므로 이 신뢰구간은 '시뮬레이션 내부의 불확실성'입니다. "
+            "실제 출시 데이터와의 백테스트로 '말-행동 전환율' 등을 보정해야 현실 오차를 말할 수 있습니다.")
+
+with t3:
+    pick = st.multiselect("비교할 시나리오", res["labels"], list(tb.시나리오.head(3)))
+    days = np.arange(1, res["curves"]["buy"].shape[2] + 1)
+    fig = go.Figure()
+    colors = px.colors.qualitative.Set1
+    for i, lb in enumerate(pick):
+        j = res["labels"].index(lb)
+        cum = res["curves"]["buy"][j].cumsum(1) / res["n"]
+        lo, mid, hi = np.quantile(cum, [0.1, 0.5, 0.9], axis=0)
+        col = colors[i % len(colors)]
+        fig.add_scatter(x=np.r_[days, days[::-1]], y=np.r_[hi, lo[::-1]], fill="toself", line=dict(width=0),
+                        fillcolor=col, opacity=0.15, showlegend=False, hoverinfo="skip")
+        fig.add_scatter(x=days, y=mid, name=lb, line=dict(color=col, width=3))
+    fig.update_layout(title="누적 구매율 (중앙값, 음영 = 반복 간 10~90%)", xaxis_title="출시 후 일", yaxis=dict(tickformat=".1%"), height=380)
+    st.plotly_chart(fig, width="stretch")
+
+    fig = go.Figure()
+    for i, lb in enumerate(pick):
+        j = res["labels"].index(lb)
+        col = colors[i % len(colors)]
+        fig.add_scatter(x=days, y=res["curves"]["pos"][j].mean(0), name=f"긍정 · {lb[:18]}", line=dict(color=col))
+        fig.add_scatter(x=days, y=res["curves"]["neg"][j].mean(0), name=f"부정 · {lb[:18]}", line=dict(color=col, dash="dot"))
+    fig.update_layout(title="일별 SNS 언급량 (실선 긍정 / 점선 부정, 반복 평균)", xaxis_title="출시 후 일", height=360)
+    st.plotly_chart(fig, width="stretch")
+
+    a, b = st.columns(2)
+    with a:
+        rows = [{"시나리오": lb, "혁신계수 p (외부 유입)": f[0], "모방계수 q (입소문)": f[1], "q/p": f[1] / f[0]}
+                for lb in pick if (f := res["bass"].get(lb))]
+        st.subheader("Bass 확산 모형 적합")
+        st.caption("q/p가 클수록 광고보다 입소문이 확산을 이끈다")
+        if rows:
+            st.dataframe(pd.DataFrame(rows).style.format(precision=3), hide_index=True, width="stretch")
+    with b:
+        st.subheader("누가 먼저 샀나 (초기 구매자 20명)")
+        sp = res["spreaders"][res["spreaders"].시나리오.isin(pick)].copy()
+        sp["팔로워 규모"] = pd.cut(sp.팔로워, [0, 5, 20, 60, 10**6], labels=["~5", "6~20", "21~60", "60+ (인플루언서급)"])
+        st.plotly_chart(px.histogram(sp, x="팔로워 규모", color="시나리오", barmode="group", height=300)
+                        .update_layout(showlegend=False), width="stretch")
+
+with t4:
+    lb = st.selectbox("시나리오", res["labels"], res["labels"].index(top.시나리오))
+    seg = res["segs"][lb]
+    st.plotly_chart(px.imshow(seg, text_auto=".1%", color_continuous_scale="Reds", aspect="auto",
+                              labels=dict(color="구매의향"), title="연령대 × 성별 설문 구매의향 (4~5점 확률)"),
+                    width="stretch")
+    j = res["labels"].index(lb)
+    trait = res["base"][["health", "trend", "drink", "thrift"]].assign(의향=res["p_base"][j])
+    corr = trait.corr()["의향"].drop("의향").rename({"health": "건강 관심", "trend": "트렌드 민감", "drink": "음료 선호", "thrift": "가격 민감"})
+    st.plotly_chart(px.bar(corr, orientation="h", title="성향 점수와 구매의향의 상관", height=280)
+                    .update_layout(showlegend=False, xaxis_title="피어슨 r", yaxis_title=None), width="stretch")
+
+with t5:
+    lb = st.selectbox("시나리오 ", res["labels"], res["labels"].index(top.시나리오))
+    j = res["labels"].index(lb)
+    base = res["base"]
+    view = base[["age", "sex", "province", "occupation", "persona"]].assign(
+        구매의향=res["p_base"][j], 반응=res["texts"].get(lb, [""] * len(base)))
+    which = st.radio("보기", ["안 살 사람", "살 사람"], horizontal=True)
+    view = view.sort_values("구매의향", ascending=which == "안 살 사람").head(30)
+    st.dataframe(view.rename(columns={"age": "나이", "sex": "성별", "province": "지역", "occupation": "직업", "persona": "소개"})
+                 .style.format({"구매의향": "{:.1%}"}), width="stretch", hide_index=True)
+    st.subheader("페르소나에게 직접 묻기")
+    i = st.selectbox("페르소나", view.index, format_func=lambda i: f"{base.age[i]}세 {base.sex[i]} · {base.occupation[i]}")
+    q = st.text_input("질문", "이거 왜 안 샀어요? 뭐가 바뀌면 사겠어요?")
+    if st.button("묻기"):
+        if C.llm_available():
+            sc = res["scenarios"][j]
+            st.chat_message("user").write(q)
+            st.chat_message("assistant").write(C.ask_why(base.loc[i], st.session_state.concept, sc, q, model))
+        else:
+            st.chat_message("assistant").write(f"(규칙 기반 근거) {res['texts'][lb][i]}")
+            st.caption("OPENAI_API_KEY를 설정하면 이 페르소나가 직접 대답합니다.")
