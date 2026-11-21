@@ -35,18 +35,30 @@ copy = sb.multiselect("광고 문구 톤", ["재미", "건강"], ["재미", "건
 infl = sb.multiselect("인플루언서 협업", ["협업", "광고만"], ["협업", "광고만"])
 
 sb.subheader("시뮬레이션")
-n = sb.slider("페르소나 수 (n)", 200, 3000, 1000, 100)
+n = sb.slider("페르소나 수 (n)", 50, 3000, 1000, 50)
 sb.caption(f"±3%p·95% 신뢰 기준 필요 표본 = {S.sample_size():,}명 · 현재 오차한계 ≈ ±{100 * 1.96 * np.sqrt(0.25 / n):.1f}%p")
 reps = sb.slider("반복 횟수 (몬테카를로)", 5, 100, 30, 5)
 say_do = sb.slider("말-행동 전환율 (설문 의향 → 실제 구매)", 0.1, 1.0, 0.35, 0.05,
                    help="설문에서 '사겠다'고 한 사람이 실제 노출 시 구매하는 비율. 출시 데이터로 보정하는 값.")
 ad_reach = sb.slider("일일 광고 도달률", 0.0, 0.05, 0.01, 0.005)
+gkey = sb.text_input("Gemini API 키", type="password", key="gemini_key", placeholder="AIza...",
+                     help="Google AI Studio(aistudio.google.com)에서 무료 발급. 이 브라우저 세션 메모리에만 보관되고 저장되지 않습니다.")
+gem_models = []
+if gkey.strip():
+    C.GEMINI_KEY = gkey.strip()
+    try:
+        gem_models = st.cache_data(C.gemini_models, show_spinner=False)(C.GEMINI_KEY)
+        sb.success(f"Gemini 연결됨 · 모델 {len(gem_models)}개")
+    except Exception as e:
+        sb.error(f"Gemini 키 확인 실패: {type(e).__name__}")
 llm_ok = C.llm_available()
 mode = sb.radio("응답 엔진", ["rule", "llm"], format_func=lambda m: {"rule": "규칙 기반 (빠름)", "llm": "LLM + SSR"}[m],
-                disabled=not llm_ok, help=None if llm_ok else "Claude 로그인(ant auth login) 또는 ANTHROPIC_API_KEY가 있어야 켜집니다.")
-model = (sb.selectbox("LLM 모델", C.CLAUDE_MODELS + ["gpt-5-mini"],
-                      help="Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.1/$0.5 (100만 토큰당 입력/출력)")
-         if mode == "llm" else C.CLAUDE_MODELS[0])
+                disabled=not llm_ok, help=None if llm_ok else "Gemini 키를 넣거나 Claude에 로그인하면 켜집니다.")
+options = gem_models + C.CLAUDE_MODELS + ["gpt-5-mini"]
+model = (sb.selectbox("LLM 모델", options,
+                      help="Gemini 무료 등급은 분당·일일 호출 한도가 있어 n을 작게(50~100) 잡으세요. "
+                           "Claude: Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.1/$0.5 (100만 토큰당)")
+         if mode == "llm" else options[0])
 
 levels = dict(price=prices, zero=[1 if z == "제로 슈거" else 0 for z in zero], flavor=flavor,
               package=package, copy=copy, influencer=[i == "협업" for i in infl])
@@ -55,8 +67,9 @@ sb.caption(f"시나리오 {n_sc}개 × 반복 {reps}회 = 시뮬레이션 {n_sc 
 if mode == "llm":
     calls = n * n_sc // max(1, len(infl))
     tin, tout = calls * C.EST_TOKENS[0], calls * C.EST_TOKENS[1]
-    sb.warning(f"예상: LLM 호출 {calls:,}회 · 입력 {tin / 1e6:.2f}M / 출력 {tout / 1e6:.2f}M 토큰 · "
-               f"약 ${C.cost(model, tin, tout):,.2f} (₩{C.cost(model, tin, tout) * 1450:,.0f})")
+    price = ("무료 등급 (한도 내)" if model.startswith("gemini")
+             else f"약 ${C.cost(model, tin, tout):,.2f} (₩{C.cost(model, tin, tout) * 1450:,.0f})")
+    sb.warning(f"예상: LLM 호출 {calls:,}회 · 입력 {tin / 1e6:.2f}M / 출력 {tout / 1e6:.2f}M 토큰 · {price}")
 
 if sb.button("▶ 실험 실행", type="primary", width="stretch", disabled=n_sc == 0 or not sexes):
     bar = st.progress(0.0, "시작")

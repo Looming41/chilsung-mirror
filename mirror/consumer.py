@@ -112,9 +112,22 @@ CLAUDE_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
 EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"   # 로컬 실행, 한국어 지원, 무료
 
 
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")     # 대시보드 입력란에서 덮어씀(메모리에만 보관)
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"   # Gemini 의 OpenAI 호환 엔드포인트
+
+
+def gemini_models(key):
+    """키로 쓸 수 있는 Gemini 텍스트 모델 목록. 키가 틀리면 예외."""
+    from openai import OpenAI
+    ids = [m.id.removeprefix("models/") for m in OpenAI(api_key=key, base_url=GEMINI_URL).models.list()]
+    ids = [i for i in ids if i.startswith("gemini") and ("flash" in i or "pro" in i)
+           and not any(x in i for x in ("image", "tts", "audio", "live", "embedding"))]
+    return sorted(ids, key=lambda i: ("lite" in i, "pro" in i, i), reverse=False)
+
+
 def llm_available():
-    """Claude: API 키 또는 `ant auth login` 프로필. OpenAI 는 본선 환경 대비용."""
-    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    """Claude(API 키 또는 `ant auth login`), Gemini 키, OpenAI 키 중 하나라도 있으면 True."""
+    return bool(GEMINI_KEY or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
                 or os.path.exists(os.path.expanduser("~/.config/anthropic/credentials"))
                 or os.environ.get("OPENAI_API_KEY"))
 
@@ -156,7 +169,12 @@ def chat(system, user, model):
             return "(응답 거절)"
         return "".join(b.text for b in r.content if b.type == "text").strip()
     from openai import OpenAI
-    cl = _clients.setdefault("openai", OpenAI())
+    if model.startswith("gemini"):
+        # 무료 등급은 분당 한도가 낮아 429가 잦다 → 재시도 넉넉히
+        cl = _clients.get(("gemini", GEMINI_KEY)) or _clients.setdefault(
+            ("gemini", GEMINI_KEY), OpenAI(api_key=GEMINI_KEY, base_url=GEMINI_URL, max_retries=8))
+    else:
+        cl = _clients.setdefault("openai", OpenAI())
     r = cl.chat.completions.create(model=model, messages=[{"role": "system", "content": system},
                                                          {"role": "user", "content": user}])
     _track(r.usage.prompt_tokens, r.usage.completion_tokens)
@@ -187,6 +205,8 @@ SYSTEM_TAIL = ("\n이 사람으로서 솔직하게, 실제 이 사람이 쓸 법
 def llm_respond(personas, concept, sc, model, workers=8):
     """각 페르소나 자유 서술 → SSR pmf. 반환 (pmf[n,5], texts)."""
     from concurrent.futures import ThreadPoolExecutor
+    if model.startswith("gemini"):
+        workers = 2                     # 무료 등급 분당 한도 보호
     q = f"편의점 냉장고 앞에서 이 신제품을 봤어요.\n{concept_text(concept, sc)}\n살 건가요? 이유는?"
     with ThreadPoolExecutor(workers) as ex:
         texts = list(ex.map(lambda row: chat(persona_prompt(row) + SYSTEM_TAIL, q, model), personas.itertuples()))
