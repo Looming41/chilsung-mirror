@@ -112,7 +112,17 @@ CLAUDE_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
 EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"   # 로컬 실행, 한국어 지원, 무료
 
 
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")     # 대시보드 입력란에서 덮어씀(메모리에만 보관)
+def _dotenv(path=os.path.join(os.path.dirname(__file__), "..", ".env")):
+    """프로젝트 루트 .env 의 KEY=VALUE 를 환경변수로(이미 있으면 유지). .env 는 git 제외."""
+    if os.path.exists(path):
+        for line in open(path):
+            k, sep, v = line.strip().partition("=")
+            if sep and not k.startswith("#"):
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_dotenv()
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")     # .env 또는 대시보드 입력란(메모리에만 보관)
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"   # Gemini 의 OpenAI 호환 엔드포인트
 
 
