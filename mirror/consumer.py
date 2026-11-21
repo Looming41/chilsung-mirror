@@ -63,6 +63,7 @@ def utility(p, sc):
         "새로운 맛×고연령 거부감": -0.6 * (p.age.values >= 55) * novelty,
         "비주얼 패키지×SNS 활용": 0.8 * p.social.values * (sc["package"] == "비주얼(숏폼형)"),
         "문구 적합": np.where(sc["copy"] == "건강", 0.5 * p.health.values, 0.5 * p.trend.values),
+        # 함의 가격탄력성 -1.3~-1.7(1500원 기준): 탄산 카테고리 -0.79(Andreyeva 2010)와 브랜드 평균 -2.62(Bijmolt 2005) 사이
         "가격 부담": -0.9 * (0.3 + p.thrift.values) * (sc["price"] - 1500) / 500,
     }
     return sum(contrib.values()), contrib
@@ -100,6 +101,7 @@ ANCHORS = [
     "아마 한번 사 볼 것 같아요. 꽤 끌려요.",
     "무조건 사 볼 거예요. 당장 마셔보고 싶어요.",
 ]
+
 
 
 CLAUDE_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
@@ -263,7 +265,8 @@ def persona_prompt(row):
 
 
 SYSTEM_TAIL = ("\n이 사람으로서 솔직하게, 실제 이 사람이 쓸 법한 말투로 2~3문장만 답하세요. "
-               "광고 문구처럼 말하지 말고, 끌리면 끌린다고, 관심 없으면 관심 없다고 하세요.")
+               "광고 문구처럼 말하지 말고, 끌리면 끌린다고, 관심 없으면 관심 없다고 하세요. "
+               "설문 기록은 이 사람의 실제 습관이니 판단에 반영하되, 기록 문구('주 1회 이상' 등)를 그대로 읊지는 마세요.")
 # 주의: "대부분 그냥 지나친다" 같은 기저율 암시는 응답을 전부 부정·획일화시킴(실측 평균 1.9점, 문장 반복) → 넣지 않는다
 
 
@@ -326,6 +329,7 @@ def embed(texts):
 
 def ssr(texts, temp=None):
     """Semantic Similarity Rating (Maier et al. 2025): 응답과 기준 문장 5개의 코사인 유사도 → 분포."""
+    # 실측: '애매' 기준 세트를 추가하면 "눈은 가는데 안 살래요" 같은 거절이 0.01→0.41로 올라가 오히려 악화 → 단일 세트 유지
     v, t = embed(ANCHORS + list(texts))
     temp = temp or t
     v /= np.linalg.norm(v, axis=1, keepdims=True)
