@@ -53,15 +53,21 @@ levels = dict(price=prices, zero=[1 if z == "제로 슈거" else 0 for z in zero
 n_sc = int(np.prod([len(v) for v in levels.values()]))
 sb.caption(f"시나리오 {n_sc}개 × 반복 {reps}회 = 시뮬레이션 {n_sc * reps:,}번")
 if mode == "llm":
-    sb.warning(f"LLM 호출 약 {n * n_sc // max(1, len(infl)):,}회. n을 200 이하로 줄이길 권장.")
+    calls = n * n_sc // max(1, len(infl))
+    tin, tout = calls * C.EST_TOKENS[0], calls * C.EST_TOKENS[1]
+    sb.warning(f"예상: LLM 호출 {calls:,}회 · 입력 {tin / 1e6:.2f}M / 출력 {tout / 1e6:.2f}M 토큰 · "
+               f"약 ${C.cost(model, tin, tout):,.2f} (₩{C.cost(model, tin, tout) * 1450:,.0f})")
 
 if sb.button("▶ 실험 실행", type="primary", width="stretch", disabled=n_sc == 0 or not sexes):
     bar = st.progress(0.0, "시작")
     try:
+        before = dict(C.USAGE)
         st.session_state.res = sim.run(pool(), levels, n=n, reps=reps, ages=ages, sexes=tuple(sexes), say_do=say_do,
                                        ad_reach=ad_reach, mode=mode, concept=concept, model=model,
                                        progress=lambda f, t: bar.progress(min(f, 1.0), t))
         st.session_state.concept = concept
+        used = {k: C.USAGE[k] - before[k] for k in before}
+        st.session_state.usage = (model, used) if used["calls"] else None
     except Exception as e:  # LLM 인증·요금 한도 등은 화면에 그대로 보여준다
         st.error(f"실행 실패: {type(e).__name__}: {e}")
     bar.empty()
@@ -84,6 +90,10 @@ top = tb.iloc[0]
 
 st.title("실험 결과")
 st.caption(f"페르소나 {res['n']:,}명 × 반복 {res['reps']}회 · 콘셉트: {st.session_state.get('concept', '')[:60]}")
+if u := st.session_state.get("usage"):
+    m, d = u
+    st.caption(f"🔢 실제 사용량 ({m}): 호출 {d['calls']:,}회 · 입력 {d['in']:,} / 출력 {d['out']:,} 토큰 · "
+               f"호출당 평균 {d['in'] // d['calls']:,} / {d['out'] // d['calls']:,} · ${C.cost(m, d['in'], d['out']):,.3f}")
 c = st.columns(4)
 c[0].metric("🏆 1위 시나리오", top.시나리오.split("·")[0], top.시나리오, delta_color="off")
 c[1].metric("승률 (4주 구매 1위 빈도)", pct(top.승률))

@@ -120,6 +120,24 @@ def llm_available():
 
 
 _clients = {}
+PRICES = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.10, 0.50)}  # $/1M 입력·출력
+EST_TOKENS = (700, 300)            # 호출당 입력·출력(사고 포함) 추정치, 실측으로 갱신
+USAGE = {"calls": 0, "in": 0, "out": 0}
+
+import threading
+_lock = threading.Lock()
+
+
+def cost(model, tin, tout):
+    pi, po = PRICES.get(model, (0, 0))
+    return (tin * pi + tout * po) / 1e6
+
+
+def _track(tin, tout):
+    with _lock:
+        USAGE["calls"] += 1
+        USAGE["in"] += tin
+        USAGE["out"] += tout
 
 
 def chat(system, user, model):
@@ -133,6 +151,7 @@ def chat(system, user, model):
             output_config={"effort": "low"},             # 짧은 소비자 반응이라 낮은 노력으로 충분
             betas=["server-side-fallback-2026-07-01"], fallbacks="default",
         )
+        _track(r.usage.input_tokens, r.usage.output_tokens)
         if r.stop_reason == "refusal":
             return "(응답 거절)"
         return "".join(b.text for b in r.content if b.type == "text").strip()
@@ -140,6 +159,7 @@ def chat(system, user, model):
     cl = _clients.setdefault("openai", OpenAI())
     r = cl.chat.completions.create(model=model, messages=[{"role": "system", "content": system},
                                                          {"role": "user", "content": user}])
+    _track(r.usage.prompt_tokens, r.usage.completion_tokens)
     return r.choices[0].message.content.strip()
 
 
