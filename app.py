@@ -59,6 +59,13 @@ model = (sb.selectbox("LLM 모델", options,
                       help="Gemini 무료 등급은 분당·일일 호출 한도가 있어 n을 작게(50~100) 잡으세요. "
                            "Claude: Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.1/$0.5 (100만 토큰당)")
          if mode == "llm" else options[0])
+if mode == "llm":
+    try:
+        reply = st.cache_data(C.ping, show_spinner="모델 시험 호출 중…")(model)
+        sb.success(f"✅ {model} 응답 확인: {reply[:30]}")
+    except Exception as e:
+        print(f"[ping] {model}: {type(e).__name__}: {e}", flush=True)
+        sb.error(f"❌ {model} 호출 실패 — {type(e).__name__}: {str(e)[:300]}")
 
 levels = dict(price=prices, zero=[1 if z == "제로 슈거" else 0 for z in zero], flavor=flavor,
               package=package, copy=copy, influencer=[i == "협업" for i in infl])
@@ -82,7 +89,9 @@ if sb.button("▶ 실험 실행", type="primary", width="stretch", disabled=n_sc
         used = {k: C.USAGE[k] - before[k] for k in before}
         st.session_state.usage = (model, used) if used["calls"] else None
     except Exception as e:  # LLM 인증·요금 한도 등은 화면에 그대로 보여준다
-        st.error(f"실행 실패: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        st.error(f"실행 실패: {type(e).__name__}: {str(e)[:500]}")
     bar.empty()
 
 res = st.session_state.get("res")
@@ -99,6 +108,19 @@ if res is None:
 
 tb = res["table"]
 pct = lambda x: f"{100 * x:.1f}%"
+
+# 마지막 결과를 로컬 파일로 남김(분석·재현용, data/ 는 git 제외). API 키는 넣지 않는다.
+try:
+    import json
+    with open("data/last_run.json", "w") as f:
+        json.dump({"concept": st.session_state.get("concept"), "usage": st.session_state.get("usage"),
+                   "table": tb.drop(columns=["zero", "influencer"], errors="ignore").to_dict("records"),
+                   "texts": {k: v[:200] for k, v in res["texts"].items()},
+                   "personas": res["base"][["age", "sex", "province", "occupation"]].head(200).to_dict("records"),
+                   "p_top2": {lb: res["p_base"][j][:200].round(4).tolist() for j, lb in enumerate(res["labels"])}},
+                  f, ensure_ascii=False, default=str)
+except OSError:
+    pass
 top = tb.iloc[0]
 
 st.title("실험 결과")

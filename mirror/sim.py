@@ -29,12 +29,17 @@ def run(pool, levels, *, n=1000, reps=20, ages=(19, 80), sexes=("남자", "여�
     scs = scenarios(levels)
     llm_cache = {}
     if mode == "llm":
-        for j, sc in enumerate(scs):
+        uniq = {tuple((k, v) for k, v in sc.items() if k != "influencer") for sc in scs}
+        total, done = len(uniq) * n, [0]
+
+        def tick():
+            done[0] += 1
+            if progress:
+                progress(done[0] / total * 0.5, f"LLM 응답 {done[0]:,}/{total:,}")
+        for sc in scs:
             key = tuple((k, v) for k, v in sc.items() if k != "influencer")
             if key not in llm_cache:
-                llm_cache[key] = C.llm_respond(base, concept, sc, model)
-            if progress:
-                progress(j / len(scs) * 0.5, f"LLM 응답 {j + 1}/{len(scs)}")
+                llm_cache[key] = C.llm_respond(base, concept, sc, model, tick=tick)
 
     top2 = np.zeros((len(scs), reps))           # 반복별 설문형 구매의향률(4~5점)
     p_base = np.zeros((len(scs), n))            # 기준 표본 개인별 의향(반복 평균)

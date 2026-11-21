@@ -122,7 +122,10 @@ def gemini_models(key):
     ids = [m.id.removeprefix("models/") for m in OpenAI(api_key=key, base_url=GEMINI_URL).models.list()]
     ids = [i for i in ids if i.startswith("gemini") and ("flash" in i or "pro" in i)
            and not any(x in i for x in ("image", "tts", "audio", "live", "embedding"))]
-    return sorted(ids, key=lambda i: ("lite" in i, "pro" in i, i), reverse=False)
+    def rank(i):   # 최신 버전 flash 정식판이 맨 위
+        m = re.search(r"gemini-(\d+(?:\.\d+)?)", i)
+        return (-float(m.group(1)) if m else 0, "lite" in i, "pro" in i, "preview" in i or "exp" in i, i)
+    return sorted(set(ids), key=rank)
 
 
 def llm_available():
@@ -202,15 +205,28 @@ SYSTEM_TAIL = ("\n이 사람으로서 솔직하게, 실제 이 사람이 쓸 법
                "광고 문구처럼 말하지 말고, 관심 없으면 관심 없다고 하세요. 대부분의 신제품은 그냥 지나칩니다.")
 
 
-def llm_respond(personas, concept, sc, model, workers=8):
-    """각 페르소나 자유 서술 → SSR pmf. 반환 (pmf[n,5], texts)."""
+def llm_respond(personas, concept, sc, model, workers=8, tick=None):
+    """각 페르소나 자유 서술 → SSR pmf. 반환 (pmf[n,5], texts). tick(): 호출 1건 끝날 때마다."""
     from concurrent.futures import ThreadPoolExecutor
     if model.startswith("gemini"):
         workers = 2                     # 무료 등급 분당 한도 보호
     q = f"편의점 냉장고 앞에서 이 신제품을 봤어요.\n{concept_text(concept, sc)}\n살 건가요? 이유는?"
+
+    from concurrent.futures import as_completed
     with ThreadPoolExecutor(workers) as ex:
-        texts = list(ex.map(lambda row: chat(persona_prompt(row) + SYSTEM_TAIL, q, model), personas.itertuples()))
+        futs = {ex.submit(chat, persona_prompt(row) + SYSTEM_TAIL, q, model): i
+                for i, row in enumerate(personas.itertuples())}
+        texts = [None] * len(futs)
+        for f in as_completed(futs):       # 메인 스레드에서 진행 표시(Streamlit 은 다른 스레드에서 못 그림)
+            texts[futs[f]] = f.result()
+            if tick:
+                tick()
     return ssr(texts), texts
+
+
+def ping(model):
+    """모델이 실제로 응답하는지 1회 시험. 성공 시 응답 문자열, 실패 시 예외."""
+    return chat("짧게 답하세요.", "안녕? 한 단어로.", model)
 
 
 def ssr(texts, temp=0.05):
