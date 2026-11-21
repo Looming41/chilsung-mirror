@@ -108,13 +108,46 @@ ANCHORS = [
 ]
 
 
-def _client():
-    from openai import OpenAI
-    return OpenAI()
+CLAUDE_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
+EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"   # 로컬 실행, 한국어 지원, 무료
 
 
 def llm_available():
-    return bool(os.environ.get("OPENAI_API_KEY"))
+    """Claude: API 키 또는 `ant auth login` 프로필. OpenAI 는 본선 환경 대비용."""
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+                or os.path.exists(os.path.expanduser("~/.config/anthropic/credentials"))
+                or os.environ.get("OPENAI_API_KEY"))
+
+
+_clients = {}
+
+
+def chat(system, user, model):
+    """한 번의 페르소나 응답. 모델 이름으로 공급자를 고른다."""
+    if model.startswith("claude"):
+        import anthropic
+        cl = _clients.setdefault("claude", anthropic.Anthropic())
+        r = cl.beta.messages.create(
+            model=model, max_tokens=4000, system=system,
+            messages=[{"role": "user", "content": user}],
+            output_config={"effort": "low"},             # 짧은 소비자 반응이라 낮은 노력으로 충분
+            betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+        )
+        if r.stop_reason == "refusal":
+            return "(응답 거절)"
+        return "".join(b.text for b in r.content if b.type == "text").strip()
+    from openai import OpenAI
+    cl = _clients.setdefault("openai", OpenAI())
+    r = cl.chat.completions.create(model=model, messages=[{"role": "system", "content": system},
+                                                         {"role": "user", "content": user}])
+    return r.choices[0].message.content.strip()
+
+
+def _embedder():
+    if "embed" not in _clients:
+        from fastembed import TextEmbedding
+        _clients["embed"] = TextEmbedding(EMBED_MODEL)
+    return _clients["embed"]
 
 
 def concept_text(concept, sc):
@@ -127,25 +160,22 @@ def persona_prompt(row):
             f"{row.persona}\n식생활: {row.culinary_persona}\n취미: {row.hobbies_and_interests}")
 
 
-def llm_respond(personas, concept, sc, model):
+SYSTEM_TAIL = ("\n이 사람으로서 솔직하게, 실제 이 사람이 쓸 법한 말투로 2~3문장만 답하세요. "
+               "광고 문구처럼 말하지 말고, 관심 없으면 관심 없다고 하세요. 대부분의 신제품은 그냥 지나칩니다.")
+
+
+def llm_respond(personas, concept, sc, model, workers=8):
     """각 페르소나 자유 서술 → SSR pmf. 반환 (pmf[n,5], texts)."""
-    cl = _client()
-    texts = []
-    for row in personas.itertuples():
-        r = cl.chat.completions.create(model=model, messages=[
-            {"role": "system", "content": persona_prompt(row) +
-             "\n이 사람으로서 솔직하게, 반말 섞인 실제 말투로 2~3문장만 답하세요. 마케팅 문구처럼 말하지 마세요."},
-            {"role": "user", "content": f"편의점 냉장고 앞에서 이 신제품을 봤어요.\n{concept_text(concept, sc)}\n살 건가요? 이유는?"},
-        ])
-        texts.append(r.choices[0].message.content.strip())
+    from concurrent.futures import ThreadPoolExecutor
+    q = f"편의점 냉장고 앞에서 이 신제품을 봤어요.\n{concept_text(concept, sc)}\n살 건가요? 이유는?"
+    with ThreadPoolExecutor(workers) as ex:
+        texts = list(ex.map(lambda row: chat(persona_prompt(row) + SYSTEM_TAIL, q, model), personas.itertuples()))
     return ssr(texts), texts
 
 
 def ssr(texts, temp=0.05):
     """Semantic Similarity Rating (Maier et al. 2025): 응답과 기준 문장 5개의 코사인 유사도 → 분포."""
-    cl = _client()
-    emb = cl.embeddings.create(model="text-embedding-3-small", input=ANCHORS + list(texts)).data
-    v = np.array([e.embedding for e in emb])
+    v = np.array(list(_embedder().embed(ANCHORS + list(texts))))
     v /= np.linalg.norm(v, axis=1, keepdims=True)
     sims = v[len(ANCHORS):] @ v[: len(ANCHORS)].T
     z = (sims - sims.max(1, keepdims=True)) / temp
@@ -154,12 +184,8 @@ def ssr(texts, temp=0.05):
 
 
 def ask_why(row, concept, sc, question, model):
-    cl = _client()
-    r = cl.chat.completions.create(model=model, messages=[
-        {"role": "system", "content": persona_prompt(row) + "\n이 사람으로서 솔직하게 짧게 답하세요."},
-        {"role": "user", "content": f"제품: {concept_text(concept, sc)}\n{question}"},
-    ])
-    return r.choices[0].message.content.strip()
+    return chat(persona_prompt(row) + "\n이 사람으로서 솔직하게 짧게 답하세요.",
+                f"제품: {concept_text(concept, sc)}\n{question}", model)
 
 
 if __name__ == "__main__":
@@ -177,3 +203,6 @@ if __name__ == "__main__":
     cheap, _ = utility(s, {**sc, "price": 1500})
     assert (cheap >= u).all()
     print("consumer ok", "top2=%.3f" % pmf[:, 3:].sum(1).mean(), reasons(c, 0))
+    pm = ssr(["오 이거 완전 내 스타일, 바로 집어야지", "단 거 안 먹어서 패스", "음 글쎄, 한번 보긴 할 듯"])
+    assert pm[0].argmax() >= 3 and pm[1].argmax() <= 1, pm.round(2)
+    print("ssr ok", pm.argmax(1) + 1)

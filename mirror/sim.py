@@ -24,7 +24,7 @@ def label(sc):
 
 
 def run(pool, levels, *, n=1000, reps=20, ages=(19, 80), sexes=("남자", "여자"), say_do=0.35,
-        ad_reach=0.01, days=28, mode="rule", concept="", model="gpt-5-mini", seed=0, progress=None):
+        ad_reach=0.01, days=28, mode="rule", concept="", model="claude-opus-5-5", seed=0, progress=None):
     base = C.stratified_sample(pool, n, ages=ages, sexes=sexes, seed=seed)
     scs = scenarios(levels)
     llm_cache = {}

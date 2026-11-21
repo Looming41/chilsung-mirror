@@ -7,7 +7,7 @@
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/streamlit run app.py          # 첫 실행 시 페르소나 데이터(약 220MB) 자동 다운로드
-export OPENAI_API_KEY=...               # 선택: LLM + SSR 응답 모드, 페르소나 대화
+ant auth login                          # 선택: Claude로 LLM + SSR 응답 모드, 페르소나 대화 (또는 ANTHROPIC_API_KEY)
 ```
 
 ## 구조

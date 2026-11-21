@@ -43,8 +43,10 @@ say_do = sb.slider("말-행동 전환율 (설문 의향 → 실제 구매)", 0.1
 ad_reach = sb.slider("일일 광고 도달률", 0.0, 0.05, 0.01, 0.005)
 llm_ok = C.llm_available()
 mode = sb.radio("응답 엔진", ["rule", "llm"], format_func=lambda m: {"rule": "규칙 기반 (빠름)", "llm": "LLM + SSR"}[m],
-                disabled=not llm_ok, help=None if llm_ok else "OPENAI_API_KEY 환경변수가 있어야 켜집니다.")
-model = sb.text_input("LLM 모델", "gpt-5-mini") if mode == "llm" else "gpt-5-mini"
+                disabled=not llm_ok, help=None if llm_ok else "Claude 로그인(ant auth login) 또는 ANTHROPIC_API_KEY가 있어야 켜집니다.")
+model = (sb.selectbox("LLM 모델", C.CLAUDE_MODELS + ["gpt-5-mini"],
+                      help="Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.1/$0.5 (100만 토큰당 입력/출력)")
+         if mode == "llm" else C.CLAUDE_MODELS[0])
 
 levels = dict(price=prices, zero=[1 if z == "제로 슈거" else 0 for z in zero], flavor=flavor,
               package=package, copy=copy, influencer=[i == "협업" for i in infl])
@@ -55,10 +57,13 @@ if mode == "llm":
 
 if sb.button("▶ 실험 실행", type="primary", width="stretch", disabled=n_sc == 0 or not sexes):
     bar = st.progress(0.0, "시작")
-    st.session_state.res = sim.run(pool(), levels, n=n, reps=reps, ages=ages, sexes=tuple(sexes), say_do=say_do,
-                                   ad_reach=ad_reach, mode=mode, concept=concept, model=model,
-                                   progress=lambda f, t: bar.progress(min(f, 1.0), t))
-    st.session_state.concept = concept
+    try:
+        st.session_state.res = sim.run(pool(), levels, n=n, reps=reps, ages=ages, sexes=tuple(sexes), say_do=say_do,
+                                       ad_reach=ad_reach, mode=mode, concept=concept, model=model,
+                                       progress=lambda f, t: bar.progress(min(f, 1.0), t))
+        st.session_state.concept = concept
+    except Exception as e:  # LLM 인증·요금 한도 등은 화면에 그대로 보여준다
+        st.error(f"실행 실패: {type(e).__name__}: {e}")
     bar.empty()
 
 res = st.session_state.get("res")
@@ -219,4 +224,4 @@ with t5:
             st.chat_message("assistant").write(C.ask_why(base.loc[i], st.session_state.concept, sc, q, model))
         else:
             st.chat_message("assistant").write(f"(규칙 기반 근거) {res['texts'][lb][i]}")
-            st.caption("OPENAI_API_KEY를 설정하면 이 페르소나가 직접 대답합니다.")
+            st.caption("Claude에 로그인하면 이 페르소나가 직접 대답합니다.")
