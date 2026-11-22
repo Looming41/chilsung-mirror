@@ -37,7 +37,7 @@ def calibrate(pool=None, iters=10):
     pool = C.load_pool() if pool is None else pool
     lo_t, hi_t = target("펩시 제로 라임(보정용)")
     goal = (lo_t * hi_t) ** 0.5
-    lo, hi = 1e-4, 0.35
+    lo, hi = 1e-4, 1.0
     for _ in range(iters):
         mid = (lo * hi) ** 0.5
         lo, hi = (mid, hi) if trial(pool, mid, 40) < goal else (lo, mid)

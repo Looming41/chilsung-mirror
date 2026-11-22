@@ -27,6 +27,8 @@ def run(pool, levels, *, n=1000, reps=20, ages=(19, 80), sexes=("남자", "여�
         ad_reach=0.01, days=28, mode="rule", concept="", model="claude-opus-5-5", seed=0, progress=None):
     base = C.stratified_sample(pool, n, ages=ages, sexes=sexes, seed=seed)
     scs = scenarios(levels)
+    from . import choice as M
+    attrs = [M.concept_attrs(concept, sc) for sc in scs]      # 콘셉트 → 신제품 속성(선택모델 입력)
     llm_cache = {}
     if mode == "llm":
         uniq = {tuple((k, v) for k, v in sc.items() if k != "influencer") for sc in scs}
@@ -66,7 +68,7 @@ def run(pool, levels, *, n=1000, reps=20, ages=(19, 80), sexes=("남자", "여�
                 texts[label(sc)] = tx
                 u = np.log(np.clip(pmf[:, 3:].sum(1), 1e-4, 1 - 1e-4) / np.clip(pmf[:, :3].sum(1), 1e-4, 1))
             else:
-                u, contrib = C.utility(P, sc)
+                u, contrib = C.utility(P, sc, attrs[j])
                 u = u + noise
                 pmf = C.likert_pmf(u)
             p_top2 = pmf[:, 3:].sum(1)
@@ -96,7 +98,9 @@ def run(pool, levels, *, n=1000, reps=20, ages=(19, 80), sexes=("남자", "여�
         if progress:
             progress(0.5 * (mode == "llm") + (r + 1) / reps * (0.5 if mode == "llm" else 1.0), f"반복 {r + 1}/{reps}")
 
-    return summarize(scs, base, top2, p_base, curves, adopters, nstar, n, reps, spreaders, texts)
+    out = summarize(scs, base, top2, p_base, curves, adopters, nstar, n, reps, spreaders, texts)
+    out["attrs"] = attrs
+    return out
 
 
 def summarize(scs, base, top2, p_base, curves, adopters, nstar, n, reps, spreaders, texts):

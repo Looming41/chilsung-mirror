@@ -27,15 +27,25 @@ def fetch_personas(path, n=30000):
 
 
 def load_pool(path="data/personas.parquet", cache="data/personas_rec.parquet"):
-    """Nemotron 페르소나(서사) + KREI 실응답자 기록(성향·음료습관)을 hot-deck 매칭으로 붙인 모집단."""
+    """Nemotron 페르소나(서사) + KREI 실응답자 기록(성향·음료습관) hot-deck 매칭 + 선택모델 특성(z0..)·심리요인(f1..)."""
+    from . import choice as M
     from . import records as R
-    if not os.path.exists(cache) or os.path.getmtime(cache) < os.path.getmtime(R.__file__):
+    src_mtime = max(os.path.getmtime(R.__file__), os.path.getmtime(M.__file__))
+    if not os.path.exists(cache) or os.path.getmtime(cache) < src_mtime:
         if not os.path.exists(path):
             fetch_personas(path)
-        R.attach(pd.read_parquet(path)).to_parquet(cache)
+        df = R.attach(pd.read_parquet(path))
+        Z, S = M.person_features()
+        df = pd.concat([df, pd.DataFrame(Z[df.donor.values], columns=[f"z{i}" for i in range(Z.shape[1])]),
+                        pd.DataFrame(S[df.donor.values], columns=[f"f{i + 1}" for i in range(S.shape[1])])], axis=1)
+        df.to_parquet(cache)
     df = pd.read_parquet(cache)
     df["age_group"] = pd.cut(df.age, AGE_BINS, labels=AGE_LABELS)
     return df
+
+
+def zmat(p):
+    return p.filter(regex=r"^z\d+$").values
 
 
 def stratified_sample(pool, n, ages=(15, 80), sexes=("남자", "여자"), seed=0):
@@ -50,14 +60,17 @@ def stratified_sample(pool, n, ages=(15, 80), sexes=("남자", "여자"), seed=0
 
 
 # ---------- rule 모드 ----------
-def utility(p, sc):
-    """효용과 항목별 기여도. sc: 시나리오 dict."""
+def utility(p, sc, attr=None):
+    """효용과 항목별 기여도. sc: 시나리오 dict, attr: 신제품 속성(choice.concept_attrs). 없으면 '탄산·단맛·sc.zero'."""
+    from . import choice as M
+    attr = attr or M.concept_attrs("", sc)
+    fit_new = M.new_share(zmat(p), attr)          # 3개년 실선택 학습모델: 이 사람이 신제품을 1순위로 고를 확률
     # 성향은 모두 KREI 실응답 기록에서 온다(records.py). 제로 수용성은 실데이터로 학습한 로지스틱 모델 확률.
     novelty = 1.0 if sc["flavor"] == "새로운 맛" else 0.2
     contrib = {
         "기본": np.full(len(p), -1.0),
-        "탄산 선호(실기록)": 1.2 * p.drink.values,
-        "제로 수용성(실데이터 학습)": 3.0 * (p.zero_aff.values - 0.2) * sc["zero"],
+        "음료 선택구조 적합(3개년 학습)": 0.8 * np.log(fit_new / M.ref_share()),   # 일반 탄산 대비
+        "제로 수용성(실데이터 학습)": 2.0 * (p.zero_aff.values - 0.2) * sc["zero"],
         "제로 거부: 맛·감미료 불신(실기록)": -0.8 * p.zero_reject.values * sc["zero"],
         "새로운 맛×새로움 추구": 0.9 * (p.novelty.values - 0.4) * novelty,
         "새로운 맛×고연령 거부감": -0.6 * (p.age.values >= 55) * novelty,

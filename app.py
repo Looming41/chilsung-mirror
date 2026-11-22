@@ -125,6 +125,36 @@ def show_validation():
                     .update_yaxes(tickformat=".0%"), width="stretch")
     st.dataframe(met.style.format({"평균 오차(%p)": "{:.1f}", "차이 재현 r": "{:.2f}", "차이 기울기": "{:.2f}"}),
                  width="stretch")
+    st.subheader("음료 선택 모델 (KREI 2023~2025, 17,536명)")
+    import json, os
+    from mirror import choice as M
+    if os.path.exists("data/choice_validation.json"):
+        v = json.load(open("data/choice_validation.json"))
+        m = st.cache_resource(M.model)()
+        st.markdown("공통 리커트 33문항 → 병렬분석으로 **심리 요인 7개** → 사람별 속성 선호(탄산·제로·단맛·과일…)를 학습한 "
+                    "이질적 조건부 로짓(1~3순위 순위 확장). 데이터에 없던 속성 조합도 새 선택지로 넣을 수 있다.")
+        c = st.columns(2)
+        with c[0]:
+            st.caption("① 범주를 통째로 빼고 학습 → '신제품'처럼 넣어 예측 (누가 고르나 = 12집단 상관)")
+            st.dataframe(pd.DataFrame(v["loco"]).style.format({"실제 점유율": "{:.1%}", "예측 점유율": "{:.1%}",
+                                                                "집단 상관 r": "{:.2f}", "집단 오차(%p)": "{:.1f}"}),
+                         width="stretch", hide_index=True, height=300)
+        with c[1]:
+            st.caption("② 시간 검증: 2023~24로 학습 → 2025 집단별 점유율")
+            st.dataframe(pd.DataFrame(v["temporal"]), width="stretch", hide_index=True)
+            st.caption("③ 개인 트윈: 실제 응답자 60명의 제로음료 빈도를 가리고 맞히기")
+            st.dataframe(pd.DataFrame(v["twin"]).style.format({"정확히 맞힘": "{:.0%}", "1단계 이내": "{:.0%}"}),
+                         width="stretch", hide_index=True)
+            st.caption("④ 1순위 예측 5겹 교차검증")
+            st.dataframe(pd.DataFrame(v["cv"]), width="stretch", hide_index=True)
+        L = m["loadings"].copy()
+        L.columns = m["names"]
+        L.index = [f"{n + 1}. {M._short(i)}" for n, i in enumerate(L.index)]
+        st.plotly_chart(px.imshow(L.T, color_continuous_scale="RdBu", zmin=-1, zmax=1, aspect="auto",
+                                  title="심리 요인 적재량 (요인분석, varimax)", height=380), width="stretch")
+        st.caption("읽는 법: 신제품이 기존 범주들의 속성 조합(탄산·단맛·과일·제로)이면 '누가 고르나'는 r 0.7~0.98 수준. "
+                   "커피·음료전문점처럼 고유 속성 범주는 수준을 못 맞힘. 개인 단위는 LLM이 기준선보다 못하고(35%), "
+                   "분포 모양만 그럴듯 — 그래서 개인 판단은 학습모델 확률, LLM은 이유·말투를 맡는다.")
     st.subheader("백테스트: 실제 출시 실적과 비교 (성인 전체, 광고만, 익숙한 맛·클래식 1,700원)")
     from mirror import backtest as B
     sd, rows = st.cache_data(B.report, show_spinner="백테스트 중…")()
@@ -185,6 +215,19 @@ t1, t2, t3, t4, t5, t6 = st.tabs(["📊 시나리오 순위", "🧪 통계 검�
                                   "🔬 실데이터 검증"])
 
 with t1:
+    with st.expander("🥤 자기잠식: 1위 시나리오 신제품이 어느 음료에서 1순위 수요를 뺏어오나 (선택모델)", expanded=True):
+        from mirror import choice as M
+        j0 = res["labels"].index(top.시나리오)
+        cb = M.cannibal(C.zmat(res["base"]), res["attrs"][j0])
+        st.metric("신제품 1순위 점유(이 표본)", f'{cb.loc["신제품", "변화(%p)"]:.2f}%p', delta_color="off")
+        rel = cb.drop(["신제품"])["잠식률(%)"].sort_values()
+        st.plotly_chart(px.bar(rel, orientation="h", height=380,
+                               labels={"value": "잠식률: 자기 1순위 점유율 중 잃는 비율(%)", "index": ""},
+                               color=rel < rel.median(), color_discrete_map={True: "#E60012", False: "#999"})
+                        .update_layout(showlegend=False), width="stretch")
+        st.caption("신제품 속성: " + ", ".join(M.ATTR_KO[k] for k, v in res["attrs"][j0].items() if v) +
+                   " · 칠성 기존 제품(가당 탄산=칠성사이다, 제로 탄산=칠성사이다 제로·펩시 제로) 잠식 여부를 볼 것. "
+                   "중첩 로짓: 묶음은 실제 1→2순위 상승도 군집(단 음료 / 유제품 / 어른 음료 / 주스), λ=0.9 는 순위 우도로 추정.")
     show = tb.head(15)
     fig = go.Figure()
     fig.add_bar(y=show.시나리오, x=show.승률, orientation="h", marker_color="#E60012",
