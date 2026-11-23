@@ -20,7 +20,9 @@ def pool():
 sb = st.sidebar
 sb.title("🥤 칠성 미러마켓")
 sb.caption("가상 소비자 시장에 신제품을 먼저 출시해 보는 시뮬레이터")
-concept = sb.text_area("제품 콘셉트", "자두맛 탄산음료. 새콤달콤한 자두 향에 톡 쏘는 탄산, 500ml 페트.")
+view = sb.radio("화면", ["시뮬레이터", "미디어 대응실"], key="view", horizontal=True)
+st.session_state.setdefault("concept_in", "자두맛 탄산음료. 새콤달콤한 자두 향에 톡 쏘는 탄산, 500ml 페트.")
+concept = sb.text_area("제품 콘셉트", key="concept_in")
 
 sb.subheader("타깃")
 ages = sb.slider("연령", 19, 80, (20, 39))
@@ -168,6 +170,11 @@ def show_validation():
                "주의: 시뮬레이터는 기증자의 같은 문항 답을 복사하므로 '집단평균 복사'와 비슷한 게 당연하다(표본오차 수준). "
                "이 문항의 정답을 본 적 없는 LLM과의 비교는 공정하지 않으며 예측력의 증거가 아니다.")
 
+
+if view == "미디어 대응실":
+    from mirror import media_ui
+    media_ui.render("gemini-3.5-flash-lite" if C.GEMINI_KEY else model)
+    st.stop()
 
 res = st.session_state.get("res")
 if res is None:

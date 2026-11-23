@@ -68,3 +68,14 @@ for m in stats viral consumer sim; do .venv/bin/python -m mirror.$m; done
 
 ## 구성
 KREI 2023~25 공통 리커트 33문항 → 병렬분석 7요인 → 속성 기반 순위확장 로짓(`mirror/choice.py`), 개인 트윈(`mirror/twin.py`), 출시 백테스트(`mirror/backtest.py`).
+
+## 미디어 대응실 (`mirror/media.py`, `mirror/media_ui.py`)
+수집 → laya-ko 로컬 분류 → 추세·위험 감지 → 대응 초안(사람 승인, 자동 게시 없음).
+
+- 실행: `python -m mirror.media collect` (1회) · `watch 600` (10분마다) · `wiki` (위키 조회수) · `check` (자체검사). 대시보드 왼쪽 **화면 → 미디어 대응실**
+- 모델: [2nugu/laya-ko](https://huggingface.co/2nugu/laya-ko)(Apache-2.0) 를 `data/models/laya-ko` 에 둔다(git 제외)
+- 키 없이 23개 소스: 빙 뉴스, 식품·소비자 전문지, 식약처, 경제지, 구글 트렌드, 블루스카이, 마스토돈, 커뮤니티 10곳. `YOUTUBE_API_KEY`, `APIFY_TOKEN` 을 `.env` 에 넣으면 유튜브·Threads·릴스·틱톡이 켜진다(**미시험**). 네이버·쿠팡은 약관 위험 때문에 `ALLOW_NAVER=1`, `ALLOW_COUPANG=1` 을 명시해야 켜진다
+- 모든 웹 요청은 robots.txt 통과분만, 소스당 10분 1회, 작성자 아이디 미저장
+
+실측(2026-11-24): 24개 소스 18초 · 분류 502건 134초 · laya 정확도(수집 글 42건, 1인 라벨) 유형 62%(최빈값 48%), 감정 67%(최빈값 67%). 안전 판정은 실데이터에서 무의미해 키워드 규칙만 사용.
+위키 조회수 추세 검증(10개 키워드): 급등 다음 주 평소보다 높을 확률 75%, 더 오를 확률 21% → 관심은 남지만 대개 꺾인다.
