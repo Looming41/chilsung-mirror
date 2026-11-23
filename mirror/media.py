@@ -1,4 +1,4 @@
-"""소비자 미디어 추세 추종 부서: 수집 → laya-ko 분류 → 추세·위험 감지 → (사람 승인용) 초안.
+"""소비자 미디어 추세 추종 부서: 수집 → laya-ko(유형)·Level(감정) 분류 → 추세·위험 감지 → (사람 승인용) 초안.
 
 원칙
 - 모든 웹 요청은 robots.txt(RFC 9309, 와일드카드 포함)를 통과한 URL만. 차단 화면은 우회하지 않는다.
@@ -16,6 +16,7 @@ import os
 import re
 import socket
 import sqlite3
+import subprocess
 import sys
 import time
 import urllib.error
@@ -32,6 +33,10 @@ ROOT = os.path.join(os.path.dirname(__file__), "..")
 DB = os.path.join(ROOT, "data", "media.db")
 MODEL = os.path.join(ROOT, "data", "models", "laya-ko")
 UA = "TrendMonitor/0.1"
+EMO_DIR = os.path.abspath(os.path.join(ROOT, "data", "models", "level-emotion"))   # Level 감정 모델 사본(관문 Seonghaa + 세부 KOTE 44감정, MIT)
+# 44감정 → 긍정/부정. 채점 전에 고정한 표(나머지는 부정, NEU 는 중립)
+EMO_POS = set("환영/호의 감동/감탄 고마움 존경 기대감 뿌듯함 편안/쾌적 신기함/관심 아껴주는 즐거움/신남 흐뭇함(귀여움/예쁨) 행복 기쁨 안심/신뢰".split())
+EMO_NEU = {"비장함", "깨달음", "놀람", "neutral"}
 MIN_GAP = 600                                  # 같은 소스 재요청 최소 간격(초)
 KST = dt.timezone(dt.timedelta(hours=9))
 
@@ -74,6 +79,9 @@ def db():
     create table if not exists series(name text, day text, value real, primary key(name, day));
     create table if not exists drafts(id integer primary key, ts text, title text, basis text, body text, status text);
     """)
+    for col in ("emo", "feel"):                # emo: Level 세부 감정 JSON, feel: 긍정/중립/부정
+        if col not in {r[1] for r in c.execute("pragma table_info(items)")}:
+            c.execute(f"alter table items add column {col} text")
     return c
 
 
@@ -380,6 +388,34 @@ def classify(limit=600):
     return len(rows), time.time() - t
 
 
+# ---------- 감정 (Level) ----------
+def feel(labels):
+    v = sum(p if l in EMO_POS else 0 if l in EMO_NEU else -p for l, p in labels)
+    return "긍정" if v > 0 else "부정" if v < 0 else "중립"
+
+
+def emotions(texts):
+    """Level 실행 파일(CoreML, 로컬)에 표준입력으로 넘긴다. 실패한 글은 None. 반환 [[라벨, 확신]…] 목록."""
+    exe = os.path.join(EMO_DIR, "emotion")
+    if not os.path.exists(exe) or not texts:
+        return [None] * len(texts)
+    p = subprocess.run([exe], input="".join(json.dumps({"id": i, "text": t[:400]}, ensure_ascii=False) + "\n" for i, t in enumerate(texts)),
+                       capture_output=True, text=True, timeout=900, env={**os.environ, "SCREENLOG_DATA_DIR": EMO_DIR})
+    o = {j["id"]: j["labels"] for j in map(json.loads, p.stdout.splitlines()) if j.get("ok") and j.get("model") == "v2"}
+    return [o.get(i) for i in range(len(texts))]
+
+
+def feel_all(limit=1500):
+    c = db()
+    rows = c.execute("select id, text from items where emo is null and (relevant=1 or safety_kw=1) limit ?", (limit,)).fetchall()
+    t, n = time.time(), 0
+    for (i, _), l in zip(rows, emotions([x for _, x in rows])):
+        if l is not None:
+            n += c.execute("update items set emo=?, feel=? where id=?", (json.dumps(l, ensure_ascii=False), feel(l), i)).rowcount
+    c.commit()
+    return n, time.time() - t
+
+
 # ---------- 추세 ----------
 def wiki(days=730):
     """한국어 위키백과 문서 일별 조회수(사람만). 관심도의 대리 지표."""
@@ -538,6 +574,7 @@ def check():
     assert not REL.search("문제로 유명했던 수능") and REL.search("제로 콜라 맛있다")
     assert stories([{"A", "B", "C"}, {"A", "B", "C", "D"}, {"X"}]) == [0, 0, 1] and not SAFE_KW.search("야선 상한가 찍음")
     assert SAFE_KW.search("캔에서 이물질 나옴") and not SAFE_KW.search("탄산이 약해요")
+    assert feel([["기대감", .9], ["짜증", .5]]) == "긍정" and feel([["neutral", .9]]) == "중립" and feel([["불평/불만", .6]]) == "부정"
     p = parse_board('<a href="/hot/123"><img></a><a class="t" href="/hot/123">편의점 신상 음료 후기 [24]</a><a href="/x/1">딴글입니다아</a>', "https://theqoo.net/hot", r"/hot/(\d+)")
     assert p == [("편의점 신상 음료 후기", "https://theqoo.net/hot/123", None, 0)], p
     assert when("Mon, 23 Nov 2026 00:00:00 GMT").startswith("2026-11-23T09") and when("엉터리") is None
@@ -560,6 +597,8 @@ if __name__ == "__main__":
             print(now(), f"수집 {k}개 소스 {time.time() - t0:.0f}s", flush=True)
             n, s = classify()
             print(now(), f"분류 {n}건 {s:.0f}s", flush=True)
+            n, s = feel_all()
+            print(now(), f"감정 {n}건 {s:.0f}s", flush=True)
             if cmd != "watch":
                 break
             time.sleep(max(MIN_GAP, int(sys.argv[2]) if len(sys.argv) > 2 else MIN_GAP))

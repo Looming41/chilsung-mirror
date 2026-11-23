@@ -103,18 +103,28 @@ def render(model):
         ev = os.path.join(M.ROOT, "data", "media_eval.json")
         if os.path.exists(ev):
             e = json.load(open(ev))
-            st.caption(f"laya 정확도(수집 글 {e['n']}건을 예측을 보지 않고 1인이 라벨): 유형 {e['topic']:.0%} (한 가지로만 찍으면 {e['topic_base']:.0%}), "
-                       f"감정 {e['sent']:.0%} (한 가지로만 찍으면 {e['sent_base']:.0%}). 확신 {SURE:.0%} 미만은 '확인 필요'로 표시합니다.")
-        d = pd.read_sql("select coalesce(published, first_seen) 시각, kind 종류, source 소스, text 내용, url 링크, topic, topic_p, sent, sent_p from items "
+            f = e.get("feel", {})
+            st.caption(f"정확도(예측을 보지 않고 1인이 라벨) — 감정은 SNS 글 {f.get('n')}건: Level {f.get('level', 0):.0%}, laya {f.get('laya', 0):.0%}, 전부 '중립'이라고 하면 {f.get('base', 0):.0%}. "
+                       f"부정으로 판정한 글의 {f.get('neg_prec', 0):.0%}만 실제 부정이니 묶음으로 보고 한 건씩은 확인하세요. 유형(laya)은 {e['n']}건에서 {e['topic']:.0%}. 확신 {SURE:.0%} 미만 유형은 '확인 필요'. "
+                       "Level은 제품 평가가 아니라 '글쓴이의 감정'을 읽습니다.")
+        d = pd.read_sql("select coalesce(published, first_seen) 시각, kind 종류, source 소스, text 내용, url 링크, topic, topic_p, feel, emo from items "
                         "where relevant=1 order by 1 desc limit 1500", c)
         d["유형"] = d.topic.where(d.topic_p >= SURE, "확인 필요")
-        d["감정"] = d.sent.where(d.sent_p >= SURE, "확인 필요")
+        d["감정"] = d.feel.fillna("미판정")
+        d["세부 감정"] = [", ".join(l for l, _ in json.loads(x) if l != "neutral") if isinstance(x, str) else "" for x in d.emo]
         f1, f2 = st.columns(2)
         kinds = f1.multiselect("종류", sorted(d.종류.unique()))
         tops = f2.multiselect("유형", sorted(d.유형.unique()))
         q = st.text_input("단어로 찾기")
         v = d[(d.종류.isin(kinds) | (not kinds)) & (d.유형.isin(tops) | (not tops)) & d.내용.str.contains(q, case=False, regex=False)] if (kinds or tops or q) else d
-        st.dataframe(v[["시각", "종류", "소스", "유형", "감정", "내용", "링크"]], width="stretch", hide_index=True, height=460,
+        from collections import Counter
+        cnt = Counter(l for x in v["세부 감정"] for l in x.split(", ") if l)
+        if len(v) and cnt:
+            m = st.columns(3)
+            for box, k in zip(m, ("긍정", "중립", "부정")):
+                box.metric(k, f"{(v.감정 == k).mean():.0%}", f"{(v.감정 == k).sum()}건", delta_color="off")
+            st.bar_chart(pd.Series(dict(cnt.most_common(12)), name="글 수").sort_values(), horizontal=True, height=300)
+        st.dataframe(v[["시각", "종류", "소스", "유형", "감정", "세부 감정", "내용", "링크"]], width="stretch", hide_index=True, height=460,
                      column_config={"링크": st.column_config.LinkColumn(display_text="열기")})
 
     with t4:
