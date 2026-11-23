@@ -40,7 +40,7 @@ CODE = {2023: {**_BASE, 10: "coffee", 11: "tea", 12: "functional", 13: "sparklin
         2024: {**_BASE, 10: "tea", 11: "functional", 12: "sparkling", 13: "coffee", 14: "coffee", 15: "shop"}}
 CODE[2025] = CODE[2024]
 CACHE = "data/choice_model.npz"
-MODEL_VERSION = 1           # 모델 구조·규제·데이터가 바뀌면 올린다
+MODEL_VERSION = 2           # 모델 구조·규제·데이터가 바뀌면 올린다
 # v1 요인(병렬분석 7개)을 적재량 상위 문항을 보고 붙인 이름. 버전이 바뀌면 다시 확인할 것
 FACTOR_LABELS = ["로컬·친환경 식재료 관심", "간편식·간단 식사", "알뜰 비교 구매", "표시정보 신뢰·기능성 관심",
                  "식품 정책 관심", "음식물 낭비 회피", "안전·친환경 가치"]
@@ -161,6 +161,8 @@ def _rows(P, drop=()):
         for r in (a, b, c):
             if not isinstance(r, str) or r not in idx or r in drop:
                 break
+            if not av[idx[r]]:          # 같은 범주 중복 응답(커피 2종 합침·원자료 중복): 가능한 선택이 아니므로 건너뜀
+                continue
             pid.append(i)
             avail.append(av.copy())
             ch.append(idx[r])

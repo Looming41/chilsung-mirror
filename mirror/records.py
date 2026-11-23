@@ -189,6 +189,7 @@ def validate(model=None, seed=0):
     sim = attach(pool, k[~test].reset_index(drop=True), seed=seed)
     sim_seg = segment_truth(sim.assign(w=1.0))
     tab = pd.DataFrame({"정답(실제 응답자)": truth.stack(), "시뮬레이터": sim_seg.stack()})
+    tab["집단평균 복사(같은 문항)"] = segment_truth(k[~test]).stack()   # 공정 기준선: 시뮬레이터도 같은 문항의 기증자 답을 복사하므로 이걸 이겨야 의미가 있다
     tab["기준선(전체평균)"] = float(np.average(k[test].zero_code <= 2, weights=k[test].w))
     if model:
         import json, re

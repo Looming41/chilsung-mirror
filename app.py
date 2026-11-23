@@ -152,8 +152,8 @@ def show_validation():
         L.index = [f"{n + 1}. {M._short(i)}" for n, i in enumerate(L.index)]
         st.plotly_chart(px.imshow(L.T, color_continuous_scale="RdBu", zmin=-1, zmax=1, aspect="auto",
                                   title="심리 요인 적재량 (요인분석, varimax)", height=380), width="stretch")
-        st.caption("읽는 법: 신제품이 기존 범주들의 속성 조합(탄산·단맛·과일·제로)이면 '누가 고르나'는 r 0.7~0.98 수준. "
-                   "커피·음료전문점처럼 고유 속성 범주는 수준을 못 맞힘. 개인 단위는 LLM이 기준선보다 못하고(35%), "
+        st.caption("읽는 법: 일부 범주만 '누가 고르나'가 맞고(가당 탄산·유제품) 탄산수·차·이온·가공우유는 상관이 음수다. 시간 예측은 2024 값 그대로 쓰는 것보다 나쁘다. "
+                   "커피·음료전문점처럼 고유 속성 범주는 수준을 못 맞힘. 개인 단위(n=60)는 LLM 35%. "
                    "분포 모양만 그럴듯 — 그래서 개인 판단은 학습모델 확률, LLM은 이유·말투를 맡는다.")
     st.subheader("백테스트: 실제 출시 실적과 비교 (성인 전체, 광고만, 익숙한 맛·클래식 1,700원)")
     from mirror import backtest as B
@@ -163,9 +163,10 @@ def show_validation():
     st.dataframe(bt.drop(columns=["_lo", "_hi"]).style.format({"보정 전(say_do 0.35)": "{:.1%}", "보정 후": "{:.1%}"}),
                  width="stretch", hide_index=True)
     st.caption(f"펩시 제로 라임으로 말→실구매 전환율을 보정(={sd:.3f}, 기본값 0.35와 거의 같음)하고, 밀키스 제로는 보지 않고 예측. "
-               "판매 개수→시용률은 1인당 구매 개수 가정(범위)으로 변환. 두 제품이 요인공간에서 같아 제품 간 차이는 검증 못 함.")
+               "판매 개수→시용률은 근거 자료 없는 1인당 구매 개수 가정으로 변환했고, 중간에 범위를 벗어나 효용 기준점을 바꿔 맞춘 뒤라 독립 검증이 아니다. 두 제품이 요인공간에서 같아 제품 간 차이는 검증 못 함.")
     st.caption("차이 재현 r·기울기: 집단 간 차이의 방향·크기를 얼마나 맞히는지(1이 이상적). "
-               "LLM 단독은 순서는 맞혀도 수준을 크게 부풀리는 경향 — 그래서 수준은 실기록이, 반응 문장은 LLM이 맡는다.")
+               "주의: 시뮬레이터는 기증자의 같은 문항 답을 복사하므로 '집단평균 복사'와 비슷한 게 당연하다(표본오차 수준). "
+               "이 문항의 정답을 본 적 없는 LLM과의 비교는 공정하지 않으며 예측력의 증거가 아니다.")
 
 
 res = st.session_state.get("res")
@@ -227,7 +228,7 @@ with t1:
                         .update_layout(showlegend=False), width="stretch")
         st.caption("신제품 속성: " + ", ".join(M.ATTR_KO[k] for k, v in res["attrs"][j0].items() if v) +
                    " · 칠성 기존 제품(가당 탄산=칠성사이다, 제로 탄산=칠성사이다 제로·펩시 제로) 잠식 여부를 볼 것. "
-                   "중첩 로짓: 묶음은 실제 1→2순위 상승도 군집(단 음료 / 유제품 / 어른 음료 / 주스), λ=0.9 는 순위 우도로 추정.")
+                   "λ 재추정값 1.0 = 일반 로짓(묶음 대체 효과 없음). 잠식은 속성 선호 차이에서만 나오며 검증되지 않았다.")
     show = tb.head(15)
     fig = go.Figure()
     fig.add_bar(y=show.시나리오, x=show.승률, orientation="h", marker_color="#E60012",
