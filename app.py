@@ -20,7 +20,11 @@ def pool():
 sb = st.sidebar
 sb.title("🥤 칠성 미러마켓")
 sb.caption("가상 소비자 시장에 신제품을 먼저 출시해 보는 시뮬레이터")
-view = sb.radio("화면", ["시뮬레이터", "디지털 트윈 실험실", "미디어 대응실"], key="view", horizontal=True)
+view = sb.radio("화면", ["신제품 검증", "시뮬레이터", "미디어 대응실"], key="view", horizontal=True)
+if view == "신제품 검증":
+    from mirror import given_ui
+    given_ui.render()
+    st.stop()
 st.session_state.setdefault("concept_in", "자두맛 탄산음료. 새콤달콤한 자두 향에 톡 쏘는 탄산, 500ml 페트.")
 concept = sb.text_area("제품 콘셉트", key="concept_in")
 
@@ -171,10 +175,6 @@ def show_validation():
                "이 문항의 정답을 본 적 없는 LLM과의 비교는 공정하지 않으며 예측력의 증거가 아니다.")
 
 
-if view == "디지털 트윈 실험실":
-    from mirror import lab_ui
-    lab_ui.render()
-    st.stop()
 if view == "미디어 대응실":
     from mirror import media_ui
     media_ui.render("gemini-3.5-flash-lite" if C.GEMINI_KEY else model)

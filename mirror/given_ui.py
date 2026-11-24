@@ -1,4 +1,4 @@
-"""본선 과제 화면: 주어진 3개 컨셉의 결론 · 보정 과정 · 만약에 · 대상별 반응 · 데이터 장부 · 검토 이력."""
+"""신제품 검증 화면: 주어진 3개 컨셉의 결론 · 보정 과정 · 만약에 · 대상별 반응 · 데이터 장부 · 검토 이력."""
 import datetime as dt
 import json
 import os
@@ -40,47 +40,47 @@ def history(word=""):
     return t[t.apply(lambda x: word in " ".join(map(str, x)), axis=1)] if word and len(t) else t
 
 
-@st.cache_data(show_spinner="세계 여는 중…")
+@st.cache_data(show_spinner="계산 중…")
 def _run(assume, raw, worlds=1500):
     return G.forecast(worlds, assume=dict(assume), raw=raw)
 
 
-@st.cache_data(show_spinner="지렛대 계산 중…")
+@st.cache_data(show_spinner="계산 중…")
 def _whatif():
     return G.whatif()
 
 
 def render():
+    st.title("신제품 검증")
     if not G.have():
         st.info("data/given 폴더에 주어진 파일(3-1~3-3)을 넣어 주세요.")
         return
-    st.caption("대회가 제공한 **가상 데이터**로 계산합니다. 구매경험률 = 보정 구매의향 × 살 수 있는 점포 비율 × 전환계수(과거 5개 제품에서 배움)")
-    with st.expander("가정 바꾸기 (자료로 알 수 없어 사람이 정한 값)"):
+    st.caption("대회 제공 가상 데이터 기준 · 구매경험률 = 보정 구매의향 × 살 수 있는 점포 비율 × 전환계수")
+    with st.expander("가정 바꾸기"):
         assume = {}
         for k, (lo, hi, why) in G.ASSUME.items():
             assume[k] = st.slider(k.replace("|", " · "), 0.1, 1.0, (lo, hi), .05, help=why, key="gv_" + k)
-            st.caption(why)
         raw = st.toggle("과거 컨셉테스트도 원본 의향이었다고 보고 계산", False, help="과거 조사가 어떤 정제를 거쳤는지 자료에 없습니다. 켜면 정제 전 의향을 씁니다.")
     F = _run(tuple(assume.items()), raw)
     t = G.summary(F)
-    top = t.sort_values("경험률 1등 세계", ascending=False).iloc[0]
-    st.markdown(f"#### 결론 — {len(F) // 3:,}개 세계 중 **{top['경험률 1등 세계']:.0%}** 에서 **{top.컨셉}** 의 구매경험률이 1등")
+    top = t.sort_values("경험률 1등", ascending=False).iloc[0]
+    st.markdown(f"#### {top.컨셉}의 구매경험률이 가장 높습니다 — {len(F) // 3:,}번 계산 중 **{top['경험률 1등']:.0%}** 에서 1등")
     a, b = st.columns(2)
-    for box, (m, lo, hi, ttl, f) in zip((a, b), (("구매경험률", "하한", "상한", "출시 12개월 구매경험률 (막대=90% 세계)", ".1%"), ("소매 매출(억)", "매출 하한", "매출 상한", "소매 매출, 억 원 (막대=90% 세계)", ".0f"))):
+    for box, (m, lo, hi, ttl, f) in zip((a, b), (("구매경험률", "하한", "상한", "출시 12개월 구매경험률 (세로선=90% 범위)", ".1%"), ("소매 매출(억)", "매출 하한", "매출 상한", "소매 매출, 억 원 (세로선=90% 범위)", ".0f"))):
         fig = go.Figure(go.Bar(x=t.컨셉, y=t[m], marker_color=[COL[c] for c in t.컨셉], error_y=dict(type="data", symmetric=False, array=t[hi] - t[m], arrayminus=t[m] - t[lo], color="#555")))
         fig.update_layout(height=300, margin=dict(t=30, b=0), title=dict(text=ttl, font_size=13), yaxis_tickformat=f)
         box.plotly_chart(fig, width="stretch")
-    pc = ["보정 의향", "살 수 있는 비율", "구매경험률", "하한", "상한", "경험률 1등 세계", "매출 1등 세계"]
+    pc = ["보정 의향", "살 수 있는 비율", "구매경험률", "하한", "상한", "경험률 1등", "매출 1등"]
     st.dataframe(t.style.format({c: "{:.1%}" for c in pc} | {c: "{:.0f}" for c in ("소매 매출(억)", "매출 하한", "매출 상한", "출고 매출(억)")}), width="stretch", hide_index=True)
-    st.caption("'1등 세계'는 우리가 상상한 세계 중의 비율이지 이길 확률이 아닙니다. 매출은 1인당 구매 수량을 **밀키스 딸기·밀키스 제로 두 제품**에서 빌려 와 모든 컨셉에 적용했으므로 순서만 참고하고, 특히 쥬시모먼트 매출은 과대일 수 있습니다. 카니발은 빼지 않은 총매출입니다. "
+    st.caption("'1등'은 조건을 바꿔 계산한 횟수 중의 비율이지 성공 확률이 아닙니다. 매출은 1인당 구매 수량을 **밀키스 딸기·밀키스 제로 두 제품**에서 빌려 와 모든 컨셉에 적용했으므로 순서만 참고하고, 특히 쥬시모먼트 매출은 과대일 수 있습니다. 카니발은 빼지 않은 총매출입니다. "
                "대조: 밀키스 딸기 최고 85억 · 밀키스 수박 70억 · 프레시원 22억 · 델몬트 프리미엄 포도 31억 (제품자산DB).")
-    s1, s2, s3, s4, s5 = st.tabs(["왜 이 숫자인가", "만약에", "누가 사나", "데이터 장부", "검토 이력"])
+    s1, s2, s3, s4, s5 = st.tabs(["근거", "조건 바꾸기", "구매층", "데이터 문제", "검토 이력"])
     with s1:
         _why()
     with s2:
         w = _whatif()
         st.dataframe(w.style.format({"지금": "{:.1%}", "바꾸면": "{:.1%}"}), width="stretch", hide_index=True)
-        st.caption("기본 가정에서 하나만 바꾼 결과입니다(가운데 세계).")
+        st.caption("기본 가정에서 하나만 바꾼 결과입니다.")
         ev, tp = G.elasticity()
         c = st.columns(2)
         c[0].markdown("**행사 때 판매 배수** (같은 제품·같은 달의 행사 없는 곳 대비)")

@@ -1,4 +1,4 @@
-"""본선 과제(주어진 데이터): 정제 → 설문 편향 보정 → 과거 출시 실적으로 환산 → 세계 앙상블 예측.
+"""본선 과제(주어진 데이터): 정제 → 설문 편향 보정 → 과거 출시 실적으로 환산 → 반복 계산 예측.
 
 자료는 모두 대회가 제공한 '가상 데이터'다(data/given, git 제외). 실제 롯데칠성 실적이 아니다.
 핵심 식: 12개월 구매경험률 = 보정 구매의향 TOP2 × 살 수 있는 점포 비율 × 전환계수 k
@@ -183,7 +183,7 @@ def elasticity():
     return {k: float(np.exp(v)) for k, v in b.items()}, {c: float(np.exp(fe(g, "lg", ["temp"], ["rc"])["temp"]) - 1) for c, g in n.groupby("제품코드") if len(g) > 100 and c not in ("MK04", "LB03")}
 
 
-# ---------- 세계 앙상블 ----------
+# ---------- 예측(반복 계산) ----------
 def reach(con):
     """채널 비중으로 가중한 '이론상 놓일 수 있는' 비율: 판매 채널 × 냉동/냉장 인프라."""
     s, m, inf = SPEC[con], market()["채널"][con], sheet(A, "5_유통채널_인프라").set_index("채널")
@@ -196,7 +196,7 @@ def reach(con):
 
 
 def forecast(worlds=2000, seed=0, assume=None, raw=False, t2=None):
-    """세계마다: 응답자 재표집(가중 다시) → 순서 보정 TOP2 → 입점률·전환계수·1인당 수량·실판매가를 뽑아 구매경험률과 매출.
+    """회차마다: 응답자 재표집(가중 다시) → 순서 보정 TOP2 → 입점률·전환계수·1인당 수량·실판매가를 뽑아 구매경험률과 매출.
 
     과거 취급점포율은 '전 채널' 기준이라 살 수 있는 비율 = reach × 입점률 로 맞춘다(밀키스 화채는 reach 를 1 로 본다: 입점률 가정이 이미 과거 취급점포율).
     raw=True 면 정제 전 TOP2(과거 조사도 원본이었다고 볼 때). t2={컨셉: 의향}이면 그 값으로 고정(만약에)."""
@@ -227,17 +227,17 @@ def forecast(worlds=2000, seed=0, assume=None, raw=False, t2=None):
             can = m["캔 비중"] if s["can"] else 0.0
             list_, ship = (s["srp"] * (1 - can) + (s["can"][0] * can if can else 0)), (s["ship"] * (1 - can) + (s["can"][1] * can if can else 0))
             rows.append((i, c, top, d, k[j], trial, units, units * list_ * disc / 1e8, units * ship / 1e8))
-    return pd.DataFrame(rows, columns=["세계", "컨셉", "보정 의향", "살 수 있는 비율", "전환계수", "구매경험률", "수량", "소매 매출(억)", "출고 매출(억)"])
+    return pd.DataFrame(rows, columns=["회차", "컨셉", "보정 의향", "살 수 있는 비율", "전환계수", "구매경험률", "수량", "소매 매출(억)", "출고 매출(억)"])
 
 
 def summary(F):
-    w1 = lambda v: F.pivot(index="세계", columns="컨셉", values=v).idxmax(axis=1).value_counts(normalize=True)
+    w1 = lambda v: F.pivot(index="회차", columns="컨셉", values=v).idxmax(axis=1).value_counts(normalize=True)
     top, tr, rows = w1("출고 매출(억)"), w1("구매경험률"), []
     for c in CON:
         q = lambda v, x=.5: float(F[F.컨셉 == c][v].quantile(x))
         rows.append({"컨셉": c, "보정 의향": q("보정 의향"), "살 수 있는 비율": q("살 수 있는 비율"), "구매경험률": q("구매경험률"), "하한": q("구매경험률", .05), "상한": q("구매경험률", .95),
                      "소매 매출(억)": q("소매 매출(억)"), "매출 하한": q("소매 매출(억)", .05), "매출 상한": q("소매 매출(억)", .95), "출고 매출(억)": q("출고 매출(억)"),
-                     "경험률 1등 세계": float(tr.get(c, 0)), "매출 1등 세계": float(top.get(c, 0))})
+                     "경험률 1등": float(tr.get(c, 0)), "매출 1등": float(top.get(c, 0))})
     return pd.DataFrame(rows)
 
 
@@ -336,7 +336,7 @@ def check():
     assert er["의향 × 점포율 × k"] < er["의향만 환산"]
     assert reach("레쓰비 프리즈") < .5 < reach("밀키스 화채") and 1.2 < miss_factor() < 1.4
     s = summary(forecast(120)).set_index("컨셉")
-    assert abs(s["매출 1등 세계"].sum() - 1) < 1e-9 and (s.하한 < s.구매경험률).all() and (s.구매경험률 < s.상한).all()
+    assert abs(s["매출 1등"].sum() - 1) < 1e-9 and (s.하한 < s.구매경험률).all() and (s.구매경험률 < s.상한).all()
     lo, hi = (summary(forecast(120, assume={"입점률|레쓰비 프리즈": (x, x)})).set_index("컨셉").구매경험률["레쓰비 프리즈"] for x in (.3, .9))
     assert 2 < hi / lo < 4
     assert personas()[CON].apply(lambda x: x.between(0, 1)).all().all() and len(audit()) > 15
