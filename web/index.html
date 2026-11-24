@@ -26,17 +26,17 @@ input[type=range]{accent-color:#E60012}
 </style>
 </helmet>
 <div style="min-height:100vh;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;color:#111;background:#F3F2F2;letter-spacing:-0.005em">
-  <nav style="height:56px;flex:none;display:flex;align-items:stretch;gap:0;background:#0a0a0a;border-bottom:2px solid #2a2a2a;padding:0 clamp(12px,2vw,24px);overflow:hidden">
+  <nav style="height:56px;flex:none;display:flex;align-items:stretch;gap:0;background:#0a0a0a;border-bottom:2px solid #2a2a2a;padding:0 clamp(12px,2vw,24px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none">
     <div style="display:flex;align-items:center;gap:10px;margin-right:clamp(12px,3vw,40px);flex:none">
       <span style="width:14px;height:14px;background:#E60012;display:block"></span>
       <span style="color:#fff;font-weight:800;font-size:16px;letter-spacing:-0.02em;white-space:nowrap">칠성 미러마켓</span>
     </div>
-    <div style="display:flex;align-items:stretch;gap:clamp(8px,2vw,28px);min-width:0;flex-wrap:nowrap">
+    <div style="display:flex;align-items:stretch;gap:clamp(8px,2vw,28px);flex:none;flex-wrap:nowrap">
       <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
         <button onClick="{{ n.go }}" style="background:none;border:0;border-bottom:2px solid {{ n.bar }};margin-bottom:-2px;color:{{ n.color }};font-size:clamp(12px,1.1vw,15px);font-weight:600;padding:0 2px;cursor:pointer;white-space:nowrap" style-hover="color:#ffffff">{{ n.label }}</button>
       </sc-for>
     </div>
-    <a href="http://127.0.0.1:8518" target="_blank" rel="noopener" style="margin-left:auto;align-self:center;color:#a3a3a3;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="color:#ffffff">상세 도구</a>
+    <a href="http://127.0.0.1:8518" target="_blank" rel="noopener" style="flex:none;padding-left:clamp(12px,2vw,28px);margin-left:auto;align-self:center;color:#a3a3a3;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="color:#ffffff">상세 도구</a>
   </nav>
 
   <section data-screen-label="실험" style="display:{{ expDisplay }};flex:1;flex-direction:column;background:#0a0a0a;color:#f2f2f2;min-height:calc(100vh - 56px)">
@@ -337,7 +337,7 @@ input[type=range]{accent-color:#E60012}
         <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
           <div style="display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:#ffffff"><span style="background:#E60012;color:#fff;font-size:12px;font-weight:800;padding:3px 8px">주의</span>계산한 세상 중의 비율이며, 실제로 성공할 확률이 아닙니다.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onClick="{{ toggleEvid }}" aria-expanded="{{ evid }}" style="height:38px;padding:0 14px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,0.08)">{{ evidLabel }}</button>
+            <button onClick="{{ goOut }}" style="height:38px;padding:0 16px;background:#E60012;color:#fff;border:0;font-size:14px;font-weight:800;cursor:pointer" style-hover="background:#c4000f">누가, 왜 샀나 →</button><button onClick="{{ toggleEvid }}" aria-expanded="{{ evid }}" style="height:38px;padding:0 14px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,0.08)">{{ evidLabel }}</button>
             <button onClick="{{ backToExplore }}" style="height:38px;padding:0 14px;background:#f2f2f2;color:#0a0a0a;border:0;font-size:14px;font-weight:700;cursor:pointer">객석으로</button>
           </div>
         </div>
@@ -435,6 +435,51 @@ input[type=range]{accent-color:#E60012}
         
         
         
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isOut }}" hint-placeholder-val="{{ false }}">
+    <section data-screen-label="결과" style="flex:1;background:#F3F2F2;color:#111">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">{{ oHead }}</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">누가, 왜 샀나</span></div>
+          <div style="display:flex;flex-wrap:wrap;border:1px solid #111"><sc-for list="{{ oTabs }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:40px;padding:0 16px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid #111;font-size:15px;font-weight:700;cursor:pointer">{{ o.label }}</button></sc-for></div>
+        </div>
+        <sc-if value="{{ oMsg }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px;font-weight:700">{{ oMsg }}</span></sc-if>
+        <sc-if value="{{ oReady }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:56px">
+            <div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ oLines }}" as="l" hint-placeholder-count="5"><span style="font-size:clamp(18px,1.9vw,26px);font-weight:{{ l.fw }};line-height:1.45;letter-spacing:-0.02em">{{ l.t }}</span></sc-for></div>
+            <div style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">누가 샀나</span><span style="font-size:13px;color:#555">{{ oSegNote }}</span></div>
+              <sc-for list="{{ oSeg }}" as="g" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:72px minmax(0,1fr) 48px minmax(0,auto);gap:clamp(8px,1.2vw,14px);align-items:center;padding:7px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
+                  <span style="font-size:15px;font-weight:700">{{ g.who }}</span>
+                  <span style="position:relative;height:18px;background:rgba(17,17,17,0.08);display:block"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ g.w }}%;background:{{ g.c }};display:block"></span><span style="position:absolute;top:8px;height:2px;left:{{ g.lo }}%;width:{{ g.r }}%;background:rgba(17,17,17,0.55);display:block"></span></span>
+                  <span style="font-size:17px;font-weight:800;text-align:right">{{ g.rate }}</span>
+                  <span style="font-size:13px;color:#555;text-align:right">구매자의 {{ g.buyers }}</span>
+                </div>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 32px"><sc-for list="{{ oTrait }}" as="t" hint-placeholder-count="4"><span style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px"><span style="font-weight:700">{{ t.name }}</span><span>{{ t.text }}</span></span></sc-for></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px">
+              <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">무엇이 좋아서 살까</span><span style="font-size:13px;color:#555">살 사람이 직접 쓴 이유</span></div><sc-for list="{{ oYes }}" as="y" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}” <span style="color:#555;font-size:12px">· {{ y.n }}명</span></span></div></sc-for></div>
+              <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">왜 망설일까</span><span style="font-size:13px;color:#555">안 살 사람이 직접 쓴 이유</span></div><sc-for list="{{ oNo }}" as="y" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}” <span style="color:#555;font-size:12px">· {{ y.n }}명</span></span></div></sc-for></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px">
+              <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">안 산 사람은 왜</span><span style="font-size:13px;color:#555">세상 {{ oWorlds }}개에서 안 산 사람</span></div>
+                <sc-for list="{{ oNot }}" as="y" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:140px minmax(0,1fr) 56px;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="font-size:15px;font-weight:700">{{ y.why }}</span><span style="height:14px;background:rgba(17,17,17,0.08);display:block"><span style="display:block;height:14px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:16px;font-weight:800;text-align:right">{{ y.pct }}</span></div></sc-for></div>
+              <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">어떻게 사게 됐나</span><span style="font-size:13px;color:#555">세상 {{ oWorlds }}개에서 산 사람</span></div>
+                <div style="display:flex;height:44px;margin-top:14px"><span style="width:{{ oAd }}%;background:#111;display:block"></span><span style="width:{{ oFr }}%;background:#E60012;display:block"></span></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;padding-top:8px"><span><b>광고</b> {{ oAd }}%</span><span><b style="color:#b8000e">친구 추천 글</b> {{ oFr }}%</span></div>
+                <span style="font-size:15px;line-height:1.6;padding-top:14px">출시 {{ oHalf }}일째에 산 사람의 절반이 샀습니다.</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">그래서 무엇을 할까</span><span style="font-size:13px;color:#555">걱정이 사라질 때 구매의향이 오를 수 있는 최대치 (지금 {{ oIntent }})</span></div>
+              <sc-for list="{{ oLift }}" as="u" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:14px 0;border-bottom:1px solid rgba(17,17,17,0.15);align-items:center"><span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:18px;font-weight:800">{{ u.do }}</span><span style="font-size:14px;color:#555">“{{ u.say }}” · 응답자의 {{ u.share }}</span></span><span style="font-size:22px;font-weight:800;color:#b8000e;white-space:nowrap">+{{ u.gain }}%p</span></div></sc-for></div>
+            <div style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">대표 응답자</span><span style="font-size:13px;color:#555">패널 {{ oPanel }}명 가운데, 그런 사람이 많은 집단부터</span></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));border-top:2px solid #111;border-left:2px solid #111"><sc-for list="{{ oCards }}" as="p" hint-placeholder-count="6"><div style="border-right:2px solid #111;border-bottom:2px solid #111;padding:20px;display:flex;flex-direction:column;gap:8px"><span style="font-size:12px;font-weight:700;color:{{ p.kc }}">{{ p.kind }} · 구매의향 {{ p.score }}점</span><span style="font-size:20px;font-weight:800;line-height:1.4">“{{ p.say }}”</span><span style="font-size:15px;font-weight:700">{{ p.who }}</span><span style="font-size:13px;color:#555;line-height:1.5">{{ p.life }}<br>{{ p.trait }}</span></div></sc-for></div></div>
+            <div style="font-size:13px;color:#555;line-height:1.7;border-top:2px solid #111;padding-top:14px">‘무엇이 좋아서’, ‘왜 망설일까’, ‘대표 응답자’는 대회 제공 가상 패널이 직접 쓴 답입니다(같은 문장이 많아 34가지를 사람이 분류). ‘누가 샀나’, ‘안 산 사람은 왜’, ‘어떻게 사게 됐나’는 계산 결과입니다. 집단별 응답자가 적어 순위는 흔들릴 수 있고, 막대 위 가는 선이 세상들의 90% 범위입니다.</div>
+          </div>
+        </sc-if>
       </div>
     </section>
   </sc-if>
@@ -658,12 +703,12 @@ class Component extends DCLogic {
     const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM);
     const P = ready ? D.products : [], pById = id => P.find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
     const go = scr => () => { this.setState({ screen: scr, targetOpen: false }); window.scrollTo(0, 0); };
-    const navDefs = [['verify', '신제품 검증'], ['exp', '실험'], ['react', '소비자 반응'], ['concept', '새 컨셉'], ['evid', '근거']];
+    const navDefs = [['verify', '신제품 검증'], ['exp', '실험'], ['out', '결과'], ['react', '소비자 반응'], ['concept', '새 컨셉'], ['evid', '근거']];
     const out = {
       cv: this.cv,
       navItems: navDefs.map(([id, label]) => ({ label, go: go(id), color: s.screen === id ? '#ffffff' : '#a3a3a3', bar: s.screen === id ? '#E60012' : 'transparent' })),
       expDisplay: s.screen === 'exp' ? 'flex' : 'none',
-      isVerify: s.screen === 'verify', isReact: s.screen === 'react', isConcept: s.screen === 'concept', isEvid: s.screen === 'evid',
+      isVerify: s.screen === 'verify', isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: go('out'), isConcept: s.screen === 'concept', isEvid: s.screen === 'evid',
       goConcept: go('concept'), goExp: go('exp'), theme: s.theme
     };
     const sc = s.scene;
@@ -807,6 +852,25 @@ class Component extends DCLogic {
       out.reviews = D.verify.reviews.map(r => ({ t: r[0], who: r[1], text: r[2] })); out.noReviews = !D.verify.reviews.length;
       out.memo = s.memo; out.setMemo = e => this.setState({ memo: e.target.value }); out.saveMemo = () => MM.api('/api/review', { memo: s.memo }).then(r => { D.verify.reviews = r.reviews; this.setState({ memo: '' }); }).catch(e => this.setState({ memo: '저장 실패: ' + e.message }));
     } else { out.vCards = []; out.vFlow = []; out.issues = []; out.reviews = []; out.issueFilters = []; out.vSteps = []; }
+
+    // 결과
+    if (s.screen === 'out' && ready && s.oRun !== D.run && !this._ol) { this._ol = true; const rid = D.run; MM.api('/api/report?run=' + encodeURIComponent(rid)).then(O => this.setState({ O, oRun: rid, oErr: '' })).catch(e => this.setState({ oErr: e.message, oRun: rid, O: null })).finally(() => { this._ol = false; }); }
+    const O = s.O, oid = s.oProd || '화채', pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%', pc = v => Math.round(v * 100) + '%';
+    out.oTabs = P.map(p => { const on = p.id === oid; return { label: p.name, on, bg: on ? '#111' : 'transparent', fg: on ? '#fff' : '#111', pick: () => this.setState({ oProd: p.id }) }; });
+    out.oReady = !!O && s.oRun === (D && D.run); out.oMsg = out.oReady ? '' : s.oErr ? '불러오지 못했습니다: ' + s.oErr : '세상들을 모으는 중입니다';
+    if (out.oReady) {
+      const o = O.products[oid], mx = Math.max(...o.seg.map(g => g.hi)) || 1;
+      out.oHead = `${O.target} · 세상 ${O.worlds.toLocaleString()}개와 패널 ${O.panel}명`; out.oWorlds = O.worlds.toLocaleString(); out.oPanel = O.panel;
+      out.oLines = o.head.map((t, k) => ({ t, fw: k === 0 ? 800 : 500 }));
+      out.oSegNote = '막대 = 12개월 구매경험률, 가는 선 = 90% 범위';
+      out.oSeg = o.seg.map((g, k) => ({ who: g.who, rate: pct(g.rate), buyers: pc(g.buyers), w: (g.rate / mx * 100).toFixed(1), lo: (g.lo / mx * 100).toFixed(1), r: ((g.hi - g.lo) / mx * 100).toFixed(1), c: k < 2 ? '#E60012' : 'rgba(17,17,17,0.45)' }));
+      out.oTrait = o.trait.map(t => ({ name: t.trait, text: `높은 쪽 ${pct(t.hi)} · 낮은 쪽 ${pct(t.lo)}` }));
+      const lst = a => { const m = Math.max(0.01, ...a.map(y => y.share)); return a.map(y => ({ why: y.why, say: y.say, n: y.n, pct: pc(y.share), w: (y.share / m * 100).toFixed(1) })); };
+      out.oYes = lst(o.yes); out.oNo = lst(o.no); out.oNot = o.not.map(y => ({ why: y.why, pct: pc(y.share), w: (y.share * 100).toFixed(1) }));
+      out.oFr = Math.round(o.friend * 100); out.oAd = 100 - out.oFr; out.oHalf = o.half; out.oIntent = pc(o.intent);
+      out.oLift = o.lift.map(u => ({ do: u.do, say: u.say, share: pc(u.share), gain: (u.gain * 100).toFixed(1) }));
+      out.oCards = o.good.map(p => Object.assign({ kind: '살 사람', kc: '#b8000e' }, p)).concat(o.bad.map(p => Object.assign({ kind: '망설이는 사람', kc: '#555' }, p)));
+    } else { out.oHead = '실험 결과를 사람 쪽에서 읽습니다'; ['oLines', 'oSeg', 'oTrait', 'oYes', 'oNo', 'oNot', 'oLift', 'oCards'].forEach(k => { out[k] = []; }); }
 
     // 소비자 반응
     if (s.screen === 'react' && !s.R && !this._rl) { this._rl = true; window.MM.api('/api/reactions').then(R => this.setState({ R, rErr: '' })).catch(e => this.setState({ rErr: e.message })).finally(() => setTimeout(() => { this._rl = false; if (this.state.rErr) this.forceUpdate(); }, 3000)); }

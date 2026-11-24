@@ -115,6 +115,8 @@ def prep(tick=None, cand=CAND):
         if d["sig"] == s and d["cand"] == cand:
             return d
     pe, X = people()
+    pe["_seg"] = [AGES.index(a) * 2 + SEXES.index(b) for a, b in zip(pe.age10, pe.sex)]
+    lev = {t: pe[t].map({"낮음": 0, "중하": 1, "중상": 2, "높음": 3}).values.astype(int) for t in TRAIT}
     res = []
     with ProcessPoolExecutor() as ex:
         for z in ex.map(past_fit, range(cand), chunksize=50):
@@ -123,7 +125,7 @@ def prep(tick=None, cand=CAND):
                 tick(len(res) / cand)
     act, sim = np.log(G.past().경험률.values), np.log(np.maximum([x[1] for x in res], .5 / N))
     lw = -.5 * (((sim - act) / TAU) ** 2).sum(1)
-    d = {"sig": s, "cand": cand, "people": pe, "X": X, "boots": boots(), "conds": [x[0] for x in res], "lw": lw - lw.max(), "sim": sim, "reach": {k: 1.0 if G.SPEC[v]["infra"] is None else G.reach(v) for k, v in IDS.items()}}
+    d = {"sig": s, "cand": cand, "people": pe, "X": X, "levels": lev, "boots": boots(), "conds": [x[0] for x in res], "lw": lw - lw.max(), "sim": sim, "reach": {k: 1.0 if G.SPEC[v]["infra"] is None else G.reach(v) for k, v in IDS.items()}}
     with open(PREP, "wb") as f:
         pickle.dump(d, f)
     return d
@@ -164,7 +166,8 @@ def one(i, flt=None, seed=7, log=None):
     nb, dg = V.build_network(N, seed=int(r.integers(1 << 30)))
     ix = ix[np.argsort(-pe.trend.values[ix] + r.normal(0, .15, N))][np.argsort(np.argsort(-dg))]      # 친구 많은 자리에 유행 민감한 사람(잡음 섞음)
     tr, u = pe.trend.values[ix], r.random(N)
-    out = {"id": i, "cond": c, "intent": {}, "buy": {}, "curve": {}, "seen": {}}
+    out = {"id": i, "cond": c, "intent": {}, "buy": {}, "curve": {}, "seen": {}, "agg": {}}
+    sg = d["people"]["_seg"].values[ix]
     for j, (k, con) in enumerate(IDS.items()):
         lo, hi = G.ASSUME["입점률|" + con][:2]
         acc = d["reach"][k] * (lo + (hi - lo) * c["입점"])
@@ -178,6 +181,10 @@ def one(i, flt=None, seed=7, log=None):
         out["intent"][k], out["buy"][k] = float(p.mean()), float(cum[-1])
         out["curve"][k] = [0.0, *np.round(cum, 4).tolist()]
         out["seen"][k] = float((o["log"]["seen"] >= 0).mean())
+        code = why(o, X[ix], B[j], u < acc, p)
+        got = o["first_day"] >= 0
+        out["agg"][k] = {"seg": np.column_stack([np.bincount(sg, minlength=8), np.bincount(sg, got, 8)]).astype(int).tolist(), "code": np.bincount(sg * len(CODES) + code[0], minlength=8 * len(CODES)).reshape(8, -1).tolist(),
+                         "trait": [np.column_stack([np.bincount(d["levels"][t][ix], minlength=4), np.bincount(d["levels"][t][ix], got, 4)]).astype(int).tolist() for t in TRAIT]}
         if log == k:
             out["log"] = detail(o, pe.iloc[ix].reset_index(drop=True), X[ix], B[j], u < acc, p, nb, dg)
     return out
@@ -187,28 +194,33 @@ TRAIT = {"novelty": ("새로운 맛을 즐김", "익숙한 것을 고름"), "thr
 GOOD, POOR = ["나이·성별이 좋아하는 쪽", "새 제품을 시도하는 편", "건강을 챙기는 편", "가격 감각이 맞는 편"], ["나이·성별상 덜 끌림", "새 제품을 덜 시도하는 편", "건강 관심이 맞지 않음", "가격이 부담되는 편"]
 
 
-def detail(o, s, X, b, ok, p, nb, dg):
-    """한 사람씩의 기록. 이유는 모델 안에서 가장 크게 작용한 항목이다(실제 사람의 말이 아님)."""
-    L, nodes, con = o["log"], [], X * b
+CODES = ["buy_ad", "buy_friend", "unaware", "noplace", "bad", "poor", "cold"]
+
+
+def why(o, X, b, ok, p):
+    """한 사람씩의 까닭 → (CODES 번호, 성향 묶음 기여 4열)."""
+    L, con = o["log"], X * b
     con = con - con.mean(0)
     grp = np.column_stack([con[:, :4].sum(1), con[:, 4], con[:, 5], con[:, 6]])
+    code = np.where(grp.min(1) < -.1, 5, 6)
+    code = np.where((L["neg_seen"] > 0) & (p > .3), 4, code)
+    code = np.where(~ok, 3, code)
+    code = np.where(L["seen"] < 0, 2, code)
+    return np.where(o["first_day"] >= 0, np.where(L["friend"], 1, 0), code), grp
+
+
+def detail(o, s, X, b, ok, p, nb, dg):
+    """한 사람씩의 기록. 이유는 모델 안에서 가장 크게 작용한 항목이다(실제 사람의 말이 아님)."""
+    L, nodes = o["log"], []
+    code, grp = why(o, X, b, ok, p)
     q = lambda v: int(v) + 1 if v >= 0 else None
     for i, r in enumerate(s.itertuples()):
         lv = {k: {"낮음": -2, "중하": -1, "중상": 1, "높음": 2}[getattr(r, k)] for k in TRAIT}
         k = max(lv, key=lambda x: abs(lv[x]))
         buy, seen = o["first_day"][i], L["seen"][i]
-        if buy >= 0:
-            why = ("친구 추천 글을 봄 · " if L["friend"][i] else "광고를 봄 · ") + GOOD[int(grp[i].argmax())]
-        elif seen < 0:
-            why = "광고도 추천 글도 보지 못함"
-        elif not ok[i]:
-            why = "근처에 파는 곳이 없음"
-        elif L["neg_seen"][i] > 0 and p[i] > .3:
-            why = "불만 글을 봄"
-        else:
-            why = POOR[int(grp[i].argmin())] if grp[i].min() < -.1 else "사고 싶은 마음이 크지 않음"
+        t = {0: "광고를 봄 · " + GOOD[int(grp[i].argmax())], 1: "친구 추천 글을 봄 · " + GOOD[int(grp[i].argmax())], 2: "광고도 추천 글도 보지 못함", 3: "근처에 파는 곳이 없음", 4: "불만 글을 봄", 5: POOR[int(grp[i].argmin())], 6: "사고 싶은 마음이 크지 않음"}[int(code[i])]
         nodes.append({"id": i, "age": r.age10, "sex": r.sex, "followers": int(dg[i]) * 12, "friends": int(dg[i]), "trait": TRAIT[k][0 if lv[k] > 0 else 1], "exposed": q(seen), "via": ("friend" if L["friend"][i] else "ad") if seen >= 0 else None,
-                      "bought": q(buy), "posted": q(L["post"][i]), "positive": bool(L["pos"][i]) if L["post"][i] >= 0 else None, "access": bool(ok[i]), "why": why})
+                      "bought": q(buy), "posted": q(L["post"][i]), "positive": bool(L["pos"][i]) if L["post"][i] >= 0 else None, "access": bool(ok[i]), "why": t})
     return {"nodes": nodes, "links": [[i, int(j)] for i in range(len(nb)) for j in nb[i] if i < j]}
 
 
