@@ -319,12 +319,14 @@ def sources():
     return s
 
 
-def collect():
+def collect(only_sources=None):
     """켜진 소스를 병렬 수집. 실패는 runs 에 이유와 함께 남긴다."""
     c = db()
     last = dict(c.execute("select source, max(ts) from runs where ok=1 group by source"))
     todo = {}
     for n, (kind, fn, on, _) in sources().items():
+        if only_sources is not None and n not in only_sources:
+            continue
         ago = (dt.datetime.now(KST) - dt.datetime.fromisoformat(last[n])).total_seconds() if n in last else 1e9
         if on and ago > (6 * 3600 if n in APIFY or "유튜브" in n else MIN_GAP):      # 유료·쿼터 소스는 6시간
             todo[n] = (kind, fn)

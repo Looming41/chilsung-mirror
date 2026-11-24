@@ -167,7 +167,11 @@ def render(model):
     k[4].metric("마지막 수집", last[5:16].replace("T", " ") if last else "없음")
     st.button("▶ 지금 수집·분류", on_click=_start, disabled=_running(), type="primary", help="소스마다 10분에 한 번만 요청합니다.")
     _status()
-    t0, t1, t2, t3, t4, t5, t6 = st.tabs(["🏆 포맷", "🚨 위험", "📈 추세", "📰 글", "✍️ 지정 분석", "📝 대응 초안", "🔌 소스"])
+    td, t0, t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Decode", "🏆 포맷", "🚨 위험", "📈 추세", "📰 글", "✍️ 지정 분석", "📝 대응 초안", "🔌 소스"])
+
+    with td:
+        from . import decode_ui
+        decode_ui.render()
 
     with t0:
         _formats(model)

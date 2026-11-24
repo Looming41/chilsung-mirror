@@ -143,10 +143,12 @@ def parse(name, page, base):
     return out
 
 
-def community(pages=5):
+def community(pages=5, names=None):
     """각 게시판 앞쪽 몇 쪽만, 쪽마다 1.5초 간격. 반환 {게시판: 건수 또는 오류}."""
     rep = {}
     for n, (url, first, _, _) in PAGES.items():
+        if names is not None and n not in names:
+            continue
         rows, err = [], ""
         try:
             for p in range(first, first + pages):

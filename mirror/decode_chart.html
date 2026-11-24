@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#fff;color:#242424;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,a{touch-action:manipulation}button{cursor:pointer;font:inherit}button:focus-visible,a:focus-visible{outline:3px solid #2159bf;outline-offset:3px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 14px}.eyebrow{font-size:11px;letter-spacing:2px;color:#777}h2{margin:6px 0;font-size:24px;letter-spacing:-.7px}#replay{background:#e60012;color:white;border:0;border-radius:8px;padding:10px 18px;font-weight:700}#chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 12px}#chips button{border:1px solid #ddd;background:#fff;border-radius:20px;padding:7px 12px;font-size:12px}#chips button[aria-pressed=true]{background:#242424;color:#fff;border-color:#242424}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}#plot{position:relative;height:440px;overflow:hidden;border:1px solid #e7e7e7;border-radius:10px;background:#fafafa}.axis{position:absolute;font-size:10px;color:#777;pointer-events:none}.line{position:absolute;background:#e9e9e9;pointer-events:none}.point{position:absolute;left:0;top:0;width:30px;height:38px;padding:0;border:1px solid white;border-radius:4px;background:#e5e5e5;box-shadow:0 1px 4px #0003;transition:transform .65s ease,opacity .2s,border-color .2s;overflow:hidden;color:#555;font-size:11px}.point img{width:100%;height:100%;object-fit:cover;pointer-events:none}.point.selected{border:3px solid #e60012;z-index:4}.point.dim{opacity:.12}.point:hover,.point:focus-visible{z-index:5;box-shadow:0 0 0 2px #e60012}#detail{height:440px;overflow:auto;border:1px solid #e7e7e7;border-radius:10px;padding:16px}#cover{width:64px;height:86px;object-fit:cover;border-radius:6px;float:right;margin-left:8px}#creator{font-size:11px;color:#777;overflow-wrap:anywhere}#hook{font-size:17px;line-height:1.45;margin:8px 0 14px;overflow-wrap:anywhere}.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}.stats small{display:block;color:#777;font-size:11px}.stats strong{font-size:18px}#tag{font-size:12px;color:#b6000e}details{border-top:1px solid #eee;padding:10px 0}summary{cursor:pointer;font-size:12px;font-weight:600}pre{font-family:inherit;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:0}#original{display:inline-block;color:#b6000e;margin:8px 0;text-decoration:underline}#note{font-size:11px;line-height:1.6;color:#777;margin:10px 0}.empty{padding:90px 25px;text-align:center;color:#777}#live{font-size:12px;color:#666;margin:5px 0 12px} @media(max-width:700px){.layout{grid-template-columns:1fr}#detail{height:300px}#plot{height:350px}h2{font-size:20px}}@media(prefers-reduced-motion:reduce){.point{transition:none}}
+</style></head><body>
+<div class="top"><div><div class="eyebrow">THE DECODE PICTURE</div><h2>어떤 포맷이 더 많이 보였을까.</h2></div><button id="replay" type="button">Decode ↗</button></div>
+<div id="chips" aria-label="포맷 강조"></div><div id="live" aria-live="polite"></div>
+<div class="layout"><div id="plot" role="group" aria-label="조회수와 좋아요 로그 산점도. 각 콘텐츠은 키보드로 선택할 수 있습니다."></div>
+<aside id="detail" aria-label="선택한 콘텐츠 상세"><img id="cover" alt="선택한 콘텐츠 썸네일" hidden><div id="creator"></div><h3 id="hook">콘텐츠을 선택하세요.</h3><div id="tag"></div><div class="stats" id="stats"></div><a id="original" target="_blank" rel="noopener noreferrer" hidden>원문 콘텐츠 열기 ↗</a><details open><summary>대본</summary><pre id="transcript"></pre></details><details><summary>화면 자막</summary><pre id="overlay"></pre></details><details><summary>캡션</summary><pre id="caption"></pre></details></aside></div>
+<p id="note"></p>
+<script>
+const data=__DECODE_DATA__;
+const plot=document.getElementById('plot'), chips=document.getElementById('chips'), live=document.getElementById('live');
+const usable=data.filter(d=>Number.isFinite(d.views)&&d.views>0&&Number.isFinite(d.likes)&&d.likes>0);
+const fmt=d=>d.fmt||'미분류', num=n=>n==null?'—':new Intl.NumberFormat('ko-KR',{maximumFractionDigits:1}).format(n);
+let active=null, selected=null, buttons=[], timer=null;
+const set=(id,t)=>document.getElementById(id).textContent=t;
+function safeURL(s){try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?s:null}catch{return null}}
+function show(d){
+ selected=d.id;set('creator',d.creator||'계정 미제공');set('hook',(d.transcript||d.on_screen_text||d.caption||'내용 없음').slice(0,160));
+ set('tag',fmt(d)+(d.confidence==null?'':` · 확신 ${Math.round(d.confidence*100)}%`)+` · 브랜드 ${d.brand||'미판정'}`);
+ const cover=document.getElementById('cover'), src=safeURL(d.thumbnail);cover.hidden=!src;if(src){cover.referrerPolicy='no-referrer';cover.src=src;cover.onerror=()=>cover.hidden=true}
+ const stats=document.getElementById('stats');stats.replaceChildren();
+ for(const [k,v] of [['조회·재생',d.views],['좋아요',d.likes],['댓글',d.comments],['공유',d.shares],['시간당 증가',d.rate]]){const box=document.createElement('div'),label=document.createElement('small'),value=document.createElement('strong');label.textContent=k;value.textContent=num(v);box.append(label,value);stats.append(box)}
+ set('transcript',d.transcript||'대본 미확보');set('overlay',d.on_screen_text||'화면 자막 미확보');set('caption',d.caption||'캡션 없음');
+ const a=document.getElementById('original'),url=safeURL(d.url);a.hidden=!url;if(url)a.href=url;
+ buttons.forEach(({b,d:r})=>{b.classList.toggle('selected',r.id===selected);b.setAttribute('aria-pressed',r.id===selected?'true':'false')});
+}
+function highlight(name){active=name;for(const b of chips.children)b.setAttribute('aria-pressed',b.dataset.fmt===(name||'')?'true':'false');buttons.forEach(({b,d})=>b.classList.toggle('dim',!!name&&fmt(d)!==name));live.textContent=name?`${name} · ${data.filter(d=>fmt(d)===name).length}개 콘텐츠`:`전체 ${data.length}개 콘텐츠`}
+for(const name of [null,...new Set(data.map(fmt))]){const b=document.createElement('button');b.type='button';b.textContent=name||'전체';b.dataset.fmt=name||'';b.onclick=()=>highlight(name);chips.append(b)}
+function draw(animate=false){
+ clearTimeout(timer);plot.replaceChildren();buttons=[];
+ if(!usable.length){const p=document.createElement('p');p.className='empty';p.textContent='양수인 조회수와 좋아요가 함께 있는 콘텐츠이 아직 없습니다. 아래 표에서 전체 결과를 확인하세요.';plot.append(p);return}
+ const w=plot.clientWidth,h=plot.clientHeight,L=54,R=30,T=28,B=42;
+ const xmax=Math.max(1,...usable.map(d=>Math.ceil(Math.log10(d.views)))),ymax=Math.max(1,...usable.map(d=>Math.ceil(Math.log10(d.likes))));
+ function elem(cls,txt,x,y,width,height){const e=document.createElement('div');e.className=cls;e.textContent=txt;e.style.left=x+'px';e.style.top=y+'px';if(width)e.style.width=width+'px';if(height)e.style.height=height+'px';plot.append(e)}
+ for(let i=0;i<=xmax;i++){const x=L+i/xmax*(w-L-R);elem('line','',x,T,1,h-T-B);elem('axis',num(10**i),x-10,h-B+10)}
+ for(let i=0;i<=ymax;i++){const y=h-B-i/ymax*(h-T-B);elem('line','',L,y,w-L-R,1);elem('axis',num(10**i),4,y-5)}
+ elem('axis','조회·재생 →',w-94,h-17);elem('axis','좋아요 ↑',8,5);
+ const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ usable.forEach((d,i)=>{const b=document.createElement('button');b.className='point';b.type='button';b.setAttribute('aria-label',`${fmt(d)}, ${d.caption||d.external_id}, 조회 ${num(d.views)}, 좋아요 ${num(d.likes)}`);b.title=`${fmt(d)} · ${num(d.views)}회`;b.onclick=()=>show(d);
+ const src=safeURL(d.thumbnail);if(src){const img=document.createElement('img');img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.src=src;img.onerror=()=>{img.remove();b.textContent='▶'};b.append(img)}else b.textContent='▶';
+ const x=L+Math.log10(d.views)/xmax*(w-L-R)-15,y=h-B-Math.log10(d.likes)/ymax*(h-T-B)-19;
+ const dest=`translate(${x}px,${y}px)`;b.style.transform=animate&&!reduce?`translate(${L+(i%8)*32}px,${T+Math.floor(i/8)%9*40}px)`:dest;b.style.transitionDelay=animate&&!reduce?`${Math.min(i*3,900)}ms`:'0ms';plot.append(b);buttons.push({b,d,dest});});
+ highlight(active);if(selected){const d=data.find(d=>d.id===selected);if(d)show(d)}
+ if(animate&&!reduce)timer=setTimeout(()=>buttons.forEach(({b,dest})=>b.style.transform=dest),70);
+}
+document.getElementById('replay').onclick=()=>draw(true);
+set('note',`양수 지표가 있는 ${usable.length}개를 표시합니다. 0 또는 미제공인 ${data.length-usable.length}개는 로그 차트에서 제외하지만 아래 표에는 포함됩니다. 포맷을 누르면 해당 콘텐츠이 강조됩니다.`);
+new ResizeObserver(()=>draw()).observe(plot);draw();highlight(null);if(data.length)show(usable[0]||data[0]);
+</script></body></html>
