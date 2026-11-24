@@ -260,7 +260,9 @@ def auto_connect():
 
 
 def ai_state():
-    return {"on": AI["on"], "model": AI["model"], "models": [{"id": m, "ok": m in AI.get("have", MODELS)} for m in MODELS]}
+    from . import consumer as C
+    use = [{"model": m, "calls": n, "in": a, "out": b, "usd": (a * MODELS[m][0] + b * MODELS[m][1]) / 1e6} for m, (n, a, b) in C.ledger().items() if m in MODELS]
+    return {"use": use, "on": AI["on"], "model": AI["model"], "models": [{"id": m, "ok": m in AI.get("have", MODELS)} for m in MODELS]}
 
 
 def a_openai(req, j):

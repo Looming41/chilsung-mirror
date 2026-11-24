@@ -227,7 +227,25 @@ def gateway(key):
 def ask_openai(cl, model, system, user, **kw):
     """→ (답, 입력 토큰, 출력 토큰). 생각 끄기를 받는 모델은 끈다."""
     r = cl.responses.create(model=model, instructions=system, input=user, store=False, **({"reasoning": {"effort": "none"}} if model in NO_THINK else {}), **kw)
-    return (r.output_text or "").strip(), (r.usage.input_tokens if r.usage else 0), (r.usage.output_tokens if r.usage else 0)
+    tin, tout = (r.usage.input_tokens, r.usage.output_tokens) if r.usage else (0, 0)
+    with _lock:                                             # 사용량 장부: 때·모델·토큰만(질문·답·키는 적지 않는다)
+        with open(LEDGER, "a") as f:
+            f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "m": model, "in": tin, "out": tout}) + "\n")
+    return (r.output_text or "").strip(), tin, tout
+
+
+LEDGER = os.path.join(os.path.dirname(__file__), "..", "data", "openai_usage.jsonl")
+
+
+def ledger():
+    """모델마다 [호출, 입력 토큰, 출력 토큰]."""
+    out = {}
+    if os.path.exists(LEDGER):
+        with open(LEDGER) as f:
+            for d in map(json.loads, f):
+                u = out.setdefault(d["m"], [0, 0, 0])
+                u[0], u[1], u[2] = u[0] + 1, u[1] + d["in"], u[2] + d["out"]
+    return out
 
 
 NO_THINK = {"gpt-6-luna", "gpt-6.1-terra"}      # 생각 토큰도 출력 요금이라 끈다. gpt-6.2-sol 은 none 을 거부해서 기본값(공식 문서 2026-11-24)
