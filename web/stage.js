@@ -301,7 +301,7 @@
       this.mode = 'society'; this.socT0 = performance.now(); this.day = 1;
       this.playing = !this.reduced; this.playT0 = performance.now(); if (this.reduced) this.day = 28.999;
       this.fade = 1; this.fadeAnim = { from: 1, to: 0, t0: performance.now(), dur: this.reduced ? 1 : 450 };
-      this._cum(soc); this.o.onEnter && this.o.onEnter({ worldId: i, product: pid });
+      this._cum(soc); this.o.onEnter && this.o.onEnter({ worldId: i, product: pid, scene: soc.scene, nodes: soc.nodes });
       this._emitDay(true);
     }
     _cum(soc) {
@@ -360,7 +360,7 @@
       const events = [
         { d: '12개월', t: window.MM.eul(nm) + ' 알게 된 사람 ' + Math.round(100 * w.seen[cur]) + '%' },
         { d: peak * SD + '일째', t: '처음 산 사람이 가장 많았던 때' },
-        { d: '결과', t: '600명 중 ' + Math.round(v0 * 600) + '명이 삼' }
+        { d: '결과', t: (this.D.ai && this.D.ai.town ? '100명 중 ' + Math.round(v0 * 100) : '600명 중 ' + Math.round(v0 * 600)) + '명이 삼' }
       ];
       let above = 0; for (let j = 0; j < this.N; j++) if (this.margin[j] > v0) above++;
       return { id: i, winner: wp.id, vals, diffs, top: Math.max(1, Math.round(100 * (above + 1) / this.N)), curves, events };

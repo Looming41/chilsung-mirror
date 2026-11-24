@@ -118,7 +118,7 @@ def crowd(ws, k):
 def build(run):
     ws, flt, out = run["worlds"], run["flt"], {}
     for k, con in W.IDS.items():
-        if run.get("sc") and k != run["only"]:                      # AI 가 이 제품을 위해 설계한 세상이라 다른 제품에는 쓰지 않는다
+        if run.get("town") and k != run["only"]:                    # AI 가 이 제품을 위해 설계한 세상이라 다른 제품에는 쓰지 않는다
             continue
         c = crowd(ws, k)
         yes, no, n = words(con, flt)
@@ -133,11 +133,9 @@ def build(run):
             head.append(f"안 살 사람은 ‘{no[0]['say']}’({no[0]['share']:.0%})를 가장 많이 들었습니다.")
         head.append(f"계산에서 안 산 가장 큰 까닭은 ‘{nb['why']}’({nb['share']:.0%})입니다.")
         out[k] = {"name": con, "head": head, **c, "yes": yes, "no": no, "n": n, "intent": base, "lift": up[:4], "good": good, "bad": bad}
-    ai = run.get("ai")
-    if ai:
-        from . import agents as A
-        from . import scenes as S
-        out[ai["k"]]["ai"] = A.said(ws, ai) | ai["info"] | ({"scene": run["scene"] | S.drivers(ws, run["text"], run["scene"]["axis"], ai["k"])} if run.get("sc") else {})
+    if run.get("town"):
+        from . import town as T
+        out[run["only"]]["ai"] = T.said(ws, run["town"], run["only"]) | {"info": run["info"], "axes": [a["name"] for a in run["axis"]]}
     return out
 
 

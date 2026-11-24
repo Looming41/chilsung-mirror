@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="ds/styles.css">
 
 <script src="data.js?v=5"></script>
-<script src="stage.js?v=2"></script>
+<script src="stage.js?v=4"></script>
 <style>
 @font-face{font-family:"Pretendard Variable";src:url(vendor/PretendardVariable.woff2) format("woff2");font-weight:45 920;font-display:swap}
 html,body{margin:0;background:#0a0a0a;overflow-x:hidden}
@@ -128,7 +128,7 @@ input[type=range]{accent-color:#E60012}
             <span style="font-size:clamp(22px,2.2vw,30px);font-weight:800;letter-spacing:-0.02em;white-space:nowrap">세상 #{{ worldNum }}</span>
             <span style="font-size:15px;color:#d0d0d0">{{ worldSub }}</span>
           </div>
-          <sc-if value="{{ worldStory }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px;max-width:360px;background:rgba(10,10,10,0.82);padding:12px;border:1px solid rgba(255,255,255,0.22)"><span style="font-size:15px;font-weight:800">{{ worldTitle }}</span><span style="font-size:13px;line-height:1.5;color:#d0d0d0">{{ worldStory }}</span><sc-for list="{{ worldTalk }}" as="t" hint-placeholder-count="8"><span style="display:grid;grid-template-columns:66px 34px 1fr;gap:6px;font-size:12px;line-height:1.4"><span style="color:#a3a3a3">{{ t.who }}</span><b>{{ t.p }}점</b><span>{{ t.say }}</span></span></sc-for></div></sc-if>
+          <sc-if value="{{ worldStory }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px;max-width:360px;background:rgba(10,10,10,0.82);padding:12px;border:1px solid rgba(255,255,255,0.22)"><span style="font-size:15px;font-weight:800">{{ worldTitle }}</span><span style="font-size:13px;line-height:1.5;color:#d0d0d0">{{ worldStory }}</span><sc-for list="{{ worldTalk }}" as="t" hint-placeholder-count="8"><span style="display:grid;grid-template-columns:66px 44px 1fr;gap:6px;font-size:12px;line-height:1.4"><span style="color:#a3a3a3">{{ t.who }}</span><b>{{ t.p }}</b><span>{{ t.say }}</span></span></sc-for></div></sc-if>
         </div>
       </sc-if>
 
@@ -150,7 +150,7 @@ input[type=range]{accent-color:#E60012}
           <div style="border-top:2px solid rgba(255,255,255,0.25);padding-top:10px;display:flex;flex-direction:column;gap:4px">
             <span style="font-size:12px;color:#a3a3a3">{{ person.whyLabel }}</span>
             <span style="font-size:17px;font-weight:700;line-height:1.4">{{ person.why }}</span>
-            <sc-if value="{{ person.say }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#a3a3a3;padding-top:6px">AI 페르소나의 말</span><span style="font-size:15px;line-height:1.5">“{{ person.say }}”</span></sc-if>
+            <sc-if value="{{ person.say }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#a3a3a3;padding-top:6px">AI가 말한 까닭</span><span style="font-size:15px;line-height:1.5">“{{ person.say }}”</span></sc-if>
           </div>
         </div>
       </sc-if>
@@ -237,6 +237,14 @@ input[type=range]{accent-color:#E60012}
               </div>
             </div>
           </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">방식</div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
+            <sc-for list="{{ modeOpts }}" as="o" hint-placeholder-count="2">
+              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <div style="font-size:12px;color:#a3a3a3;font-weight:600">세상 개수</div>
@@ -373,7 +381,7 @@ input[type=range]{accent-color:#E60012}
               </sc-for>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 32px"><sc-for list="{{ oTrait }}" as="t" hint-placeholder-count="4"><span style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px"><span style="font-weight:700">{{ t.name }}</span><span>{{ t.text }}</span></span></sc-for></div>
             </div>
-            <sc-if value="{{ oAI }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:16px"><span style="font-size:14px;color:#333;line-height:1.6">{{ oAILine }}</span><sc-if value="{{ oScene }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px;padding-bottom:24px"><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">잘 팔리는 세상</span><span style="font-size:13px;color:#555">AI가 설계한 상황</span></div><sc-for list="{{ oUp }}" as="y" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:800">{{ y.state }}</span><span style="font-size:13px;color:#555">{{ y.axis }} · 세상 {{ y.n }}개</span></span><span style="text-align:right;font-size:16px;font-weight:800;color:#b8000e">{{ y.buy }}<br><span style="font-size:13px;font-weight:500">{{ y.diff }}</span></span></div></sc-for><sc-if value="{{ oUpNone }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#555;padding:12px 0">뚜렷한 상황이 없습니다</span></sc-if></div><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">안 팔리는 세상</span><span style="font-size:13px;color:#555">AI가 설계한 상황</span></div><sc-for list="{{ oDown }}" as="y" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:800">{{ y.state }}</span><span style="font-size:13px;color:#555">{{ y.axis }} · 세상 {{ y.n }}개</span></span><span style="text-align:right;font-size:16px;font-weight:800;color:#111">{{ y.buy }}<br><span style="font-size:13px;font-weight:500">{{ y.diff }}</span></span></div></sc-for><sc-if value="{{ oDownNone }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#555;padding:12px 0">뚜렷한 상황이 없습니다</span></sc-if></div></div></sc-if><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px"><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI 페르소나가 산 이유</span><span style="font-size:13px;color:#555">세상 속에서 산 사람</span></div><sc-for list="{{ oAIBuy }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI 페르소나가 안 산 이유</span><span style="font-size:13px;color:#555">알고도 안 산 사람</span></div><sc-for list="{{ oAIHold }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div></div></div></sc-if>
+            <sc-if value="{{ oAI }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:16px"><span style="font-size:14px;color:#333;line-height:1.6">{{ oAILine }}</span><div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:800;border-bottom:2px solid #111;padding-bottom:10px">AI들이 주고받은 글</span><sc-for list="{{ oPosts }}" as="p" hint-placeholder-count="6"><span style="display:grid;grid-template-columns:80px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:15px"><b>{{ p.who }}</b><span>“{{ p.t }}”</span><span style="color:#555;font-size:13px">친구 {{ p.friends }}명</span></span></sc-for></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px"><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI가 산 이유</span><span style="font-size:13px;color:#555">세상 속에서 산 사람</span></div><sc-for list="{{ oAIBuy }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI가 안 산 이유</span><span style="font-size:13px;color:#555">보고도 안 산 사람</span></div><sc-for list="{{ oAIHold }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div></div></div></sc-if>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px">
               <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매 요인</span><span style="font-size:13px;color:#555">살 사람이 직접 쓴 이유</span></div><sc-for list="{{ oYes }}" as="y" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}” <span style="color:#555;font-size:12px">· {{ y.n }}명</span></span></div></sc-for></div>
               <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매 망설이는 요인</span><span style="font-size:13px;color:#555">안 살 사람이 직접 쓴 이유</span></div><sc-for list="{{ oNo }}" as="y" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}” <span style="color:#555;font-size:12px">· {{ y.n }}명</span></span></div></sc-for></div>
@@ -507,7 +515,7 @@ class Component extends DCLogic {
   state = {
     screen: 'exp', scene: 'setup', ready: false,
     cur: '화채', sel: { age: ['20대', '30대', '40대', '50대'], sex: ['여자', '남자'], region: ['수도권', '중부', '영남', '호남·제주'] },
-    n: 1500, targetOpen: false, prog: null, view: 'theater', sort: '', hover: null, table: false, tablePage: 0,
+    n: 1500, mode: 'stat', targetOpen: false, prog: null, view: 'theater', sort: '', hover: null, table: false, tablePage: 0,
     world: null, dayInfo: null, person: null, evid: false, theme: '',
     R: null, rErr: '', runErr: '', calc: 0, job: null, cErr: '', rSt: '기본', cSt: '입력', cStep: 0, cPct: 0, eSt: '기본',
     cName: '', cDesc: '', cPrice: '', cTarget: ''
@@ -584,7 +592,7 @@ class Component extends DCLogic {
     const sc = s.scene;
     out.isSetup = sc === 'setup'; out.isWorld = sc === 'world'; out.isConclusion = sc === 'conclusion';
     out.showSetupBar = sc === 'setup' || sc === 'running'; out.showExploreBar = sc === 'explore';
-    out.running = sc === 'running'; out.runLabel = sc !== 'running' ? (ready ? '실행' : '준비 중') : s.calc >= 0 ? (s.phase === 'ask' ? (AI.on ? `AI 페르소나 ${s.calc} / 600` : '준비 중') : s.phase === 'axes' ? 'AI가 세상의 축을 설계하는 중' : s.phase === 'design' ? `AI가 세상 설계 ${s.calc.toLocaleString()} / ${(s.total || 0).toLocaleString()}` : s.phase === 'live' ? `세상 속 AI의 판단 ${s.calc.toLocaleString()} / ${(s.total || 0).toLocaleString()}` : `계산 중 ${s.calc.toLocaleString()} / ${s.n.toLocaleString()}`) : '세상을 만드는 중';
+    out.running = sc === 'running'; out.runLabel = sc !== 'running' ? (ready ? '실행' : '준비 중') : s.calc >= 0 ? (s.phase === 'axes' ? 'AI가 세상의 축을 설계하는 중' : s.phase === 'design' ? `AI가 세상 설계 ${s.calc} / ${s.total || 0}` : s.phase === 'town' ? `AI 사회 ${Math.round(100 * s.calc / (s.total || 1))}%` : `계산 중 ${s.calc.toLocaleString()} / ${s.n.toLocaleString()}`) : '세상을 만드는 중';
 
     // 설정 막대
     out.prodChips = P.map(p => { const on = s.cur === p.id; return { color: on ? '#E60012' : 'transparent', radius: '50%', rot: 'none', name: p.name, on, bg: on ? 'rgba(255,255,255,0.06)' : 'transparent', fg: on ? '#ffffff' : '#a3a3a3', border: on ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', toggle: () => { if (sc === 'setup') this.setState({ cur: p.id }, () => this.applySel()); } }; });
@@ -594,13 +602,14 @@ class Component extends DCLogic {
     out.targetLabel = allSel ? '19~59세 전체' : ['age', 'sex', 'region'].map(g => ready && s.sel[g].length === D.segments[g].length ? (g === 'age' ? '전 연령' : g === 'sex' ? '남녀' : '전국') : s.sel[g].join('·')).join(' · ');
     out.targetOpen = s.targetOpen; out.toggleTarget = () => this.setState({ targetOpen: !s.targetOpen });
     out.selectAll = () => this.setState({ sel: Object.assign({}, s.sel, { age: D.segments.age.map(x => x.id), sex: D.segments.sex.map(x => x.id), region: D.segments.region.map(x => x.id) }) }, () => this.applySel());
-    out.nOpts = this.seg([{ v: 200, l: '200' }, { v: 500, l: '500' }, { v: 1000, l: '1,000' }, { v: 1500, l: '1,500' }], s.n, v => { if (sc === 'setup') this.setState({ n: v }); }, true);
+    out.modeOpts = this.seg([{ v: 'stat', l: '통계' }, { v: 'ai', l: 'AI 사회' }], s.mode, v => { if (sc === 'setup' && v !== s.mode) this.setState({ mode: v, n: v === 'ai' ? 3 : 1500, runErr: '' }); }, true);
+    out.nOpts = this.seg(s.mode === 'ai' ? [{ v: 3, l: '3' }, { v: 10, l: '10' }, { v: 30, l: '30' }] : [{ v: 200, l: '200' }, { v: 500, l: '500' }, { v: 1000, l: '1,000' }, { v: 1500, l: '1,500' }], s.n, v => { if (sc === 'setup') this.setState({ n: v }); }, true);
     out.runErr = s.runErr || (!ready && window.BOOT && window.BOOT.error ? '서버를 기다리는 중 · ' + window.BOOT.error : '');
     out.run = async () => {
       if (!this.stage || sc !== 'setup') return;
-      this.setState({ scene: 'running', targetOpen: false, hover: null, runErr: '', calc: 0, phase: 'ask', prog: null });
+      this.setState({ scene: 'running', targetOpen: false, hover: null, runErr: '', calc: 0, phase: 'run', prog: null });
       try {
-        const j = await MM.api('/api/run', { product: s.cur, n: s.n, age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
+        const j = await MM.api('/api/run', { product: s.cur, n: s.n, mode: s.mode, age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
         const r = await MM.job(j.job, x => this.setState({ calc: x.n || 0, phase: x.phase, total: x.total }));
         const D = window.DATA; D.worlds = r.worlds; D.run = r.run; D.ai = r.ai;
         D.cur = s.cur; this.stage.setData(D, s.n); this.applySel(); this.stage.run();
@@ -613,7 +622,7 @@ class Component extends DCLogic {
     const pr = s.prog, showCounter = !!pr && (sc === 'running' || sc === 'explore');
     out.showCounter = showCounter;
     if (pr) {
-      out.counterKicker = pById(s.cur).name + (D.ai ? (D.ai.worlds ? ` · AI가 설계한 세상 ${D.ai.worlds.toLocaleString()}개` : ` · AI 페르소나 ${D.ai.n}명`) : ' · AI 미연결(통계만)');
+      out.counterKicker = pById(s.cur).name + (D.ai ? ` · AI 사회 ${D.ai.worlds}개(보정 전)` : ' · 통계');
       out.counterN = pr.n.toLocaleString();
       out.tallyList = Object.keys(pr.tallies).filter(k => pr.tallies[k] > 0).map(k => Object.assign(this.glyph(pById(k)), { id: pById(k).name, count: pr.tallies[k].toLocaleString() }));
       const h = pr.hist || [], last = h[h.length - 1], N = pr.N || 1;
@@ -664,9 +673,9 @@ class Component extends DCLogic {
 
     // 한 세상 안
     const wd = s.world, di = s.dayInfo;
-    const ws0 = wd && wd.scene; out.worldStory = ws0 ? ws0.story + ' ' + ws0.events.map(e => e.m + '달째 ' + e.t).join(', ') : ''; out.worldTitle = ws0 ? ws0.title : ''; out.worldTalk = ws0 ? ws0.talk : [];
+    const dtOf = d => `${d * (ready ? D.step_days : 13)}일`, ws0 = wd && wd.scene; out.worldStory = ws0 ? ws0.story + ' ' + ws0.events.map(e => e.m + '달째 ' + e.t).join(', ') : ''; out.worldTitle = ws0 ? ws0.title : ''; out.worldTalk = wd && wd.nodes ? wd.nodes.reduce((a, n) => a.concat((n.posts || []).map(x => ({ who: n.age + ' ' + n.sex, p: dtOf(x.d), say: x.t, f: n.friends, d: x.d }))), []).sort((a, b) => b.f - a.f).slice(0, 8).sort((a, b) => a.d - b.d) : [];
     out.worldNum = wd ? wd.worldId + 1 : ''; out.back = () => this.back();
-    if (wd && ready) { const wv = D.worlds[wd.worldId]; out.worldSub = `${MM.eul(pById(wd.product).name)} 냈을 때 · 600명 · 12개월 구매경험률 ${(wv.buy[wd.product] * 100).toFixed(1)}%`; }
+    if (wd && ready) { const wv = D.worlds[wd.worldId]; out.worldSub = `${MM.eul(pById(wd.product).name)} 냈을 때 · ${D.ai ? 100 : 600}명 · 12개월 구매경험률 ${(wv.buy[wd.product] * 100).toFixed(1)}%`; }
     out.day = di ? di.day : 1; const SD = ready ? D.step_days : 13, dt = d => `${d * SD}일째`; out.dayText = dt(out.day); out.playIcon = di && di.playing ? 'Ⅱ' : '▶'; out.playLabel = di && di.playing ? '멈춤' : '재생';
     out.togglePlay = () => { if (!this.stage) return; di && di.playing ? this.stage.pause() : this.stage.play(); };
     out.pickDay = e => this.stage && this.stage.setDay(+e.target.value);
@@ -681,7 +690,7 @@ class Component extends DCLogic {
     // 결론
     if (sc === 'conclusion' && ready && this.stage) {
       const x = MM.summarize(D.worlds.slice(0, this.stage.N)), nm = pById(D.cur).name, b1 = Math.round(D.bench[1] * 100);
-      out.conclusionLine = `${x.n.toLocaleString()}개 세상 중 ${x.over.toLocaleString()}개에서 ${nm}의 구매경험률이 과거 출시 평균(${b1}%)을 넘었습니다.`;
+      out.conclusionLine = (D.ai ? '보정 전 값입니다. ' : '') + `${x.n.toLocaleString()}개 세상 중 ${x.over.toLocaleString()}개에서 ${nm}의 구매경험률이 과거 출시 평균(${b1}%)을 넘었습니다.`;
       out.sumHead = '12개월 구매경험률';
       const hiMax = Math.max(x.hi, D.bench[2]) * 1.05;
       out.sumRows = [{ color: '#E60012', radius: '50%', rot: 'none', name: nm, median: this.fmt(x.median), range: `${this.fmt(x.lo)}~${this.fmt(x.hi)}`, lo: (x.lo / hiMax * 100).toFixed(1), w: ((x.hi - x.lo) / hiMax * 100).toFixed(1), mid: (x.median / hiMax * 100).toFixed(1), barColor: '#E60012', share: (x.over / x.n * 100).toFixed(1) + '%', regret: (x.under / x.n * 100).toFixed(1) + '%', lose: x.good.join(', ') || '뚜렷하지 않음' }];
@@ -706,11 +715,11 @@ class Component extends DCLogic {
       out.oTrait = o.trait.map(t => ({ name: t.trait, text: `높은 쪽 ${pct(t.hi)} · 낮은 쪽 ${pct(t.lo)}` }));
       const lst = a => { const m = Math.max(0.01, ...a.map(y => y.share)); return a.map(y => ({ why: y.why, say: y.say, n: y.n, pct: pc(y.share), w: (y.share / m * 100).toFixed(1) })); };
       out.oYes = lst(o.yes); out.oNo = lst(o.no); out.oNot = o.not.map(y => ({ why: y.why, pct: pc(y.share), w: (y.share * 100).toFixed(1) }));
-      out.oAI = !!o.ai; out.oScene = !!(o.ai && o.ai.scene); if (o.ai) { const a = o.ai, dr = x => (x || []).map(y => ({ state: y.state, axis: y.axis, n: y.n, buy: pct(y.buy), diff: (y.diff > 0 ? '+' : '') + (y.diff * 100).toFixed(1) + '%p' })); out.oUp = dr(a.scene && a.scene.up); out.oDown = dr(a.scene && a.scene.down); out.oUpNone = !out.oUp.length; out.oDownNone = !out.oDown.length; out.oAIBuy = lst(a.buy); out.oAIHold = lst(a.hold); out.oAILine = `AI 페르소나 ${a.n}명(${a.model})이 답했습니다. 살 가능성은 AI 평균 ${pc(a.top2)}, 패널에서 4~5점을 준 사람은 ${pc(a.panel)}입니다. 패널 응답을 맞히는 힘(찍기 0.50)은 성향만 ${a.base.toFixed(2)}, AI 답을 더하면 ${a.with.toFixed(2)}입니다.` + (a.scene ? ` 세상 ${a.scene.worlds.toLocaleString()}개를 AI가 설계했고, 세상마다 AI 8명이 들어가 판단했습니다. 상황 축은 ${a.scene.axes.join(', ')}입니다.` : ''); }
+      out.oAI = !!o.ai; if (o.ai) { const a = o.ai, f = a.info; out.oAIBuy = lst(a.buy); out.oAIHold = lst(a.hold); out.oPosts = a.posts; out.oAILine = `AI(${f.model})가 설계한 세상 ${f.worlds}개에서 AI ${f.people}명씩 ${f.steps}단계를 살았습니다. 판단 ${f.calls.toLocaleString()}번, 글 ${f.posts.toLocaleString()}개. 산 사람의 ${pc(f.friend)}는 친구 글로 처음 알았습니다. 구매경험률 ${pct(f.mean)}(${pct(f.lo)}~${pct(f.hi)})은 과거 실적에 맞추기 전의 값이라 예측으로 쓰지 않습니다. 상황 축: ${a.axes.join(', ')}.`; }
       out.oFr = Math.round(o.friend * 100); out.oAd = 100 - out.oFr; out.oHalf = o.half; out.oIntent = pc(o.intent);
       out.oLift = o.lift.map(u => ({ do: u.do, say: u.say, share: pc(u.share), gain: (u.gain * 100).toFixed(1) }));
       out.oCards = o.good.map(p => Object.assign({ kind: '살 사람', kc: '#b8000e' }, p)).concat(o.bad.map(p => Object.assign({ kind: '망설이는 사람', kc: '#555' }, p)));
-    } else { out.oHead = '실험 결과를 사람 쪽에서 읽습니다'; out.oAI = out.oScene = false; ['oUp', 'oDown', 'oAIBuy', 'oAIHold', 'oLines', 'oSeg', 'oTrait', 'oYes', 'oNo', 'oNot', 'oLift', 'oCards'].forEach(k => { out[k] = []; }); }
+    } else { out.oHead = '실험 결과를 사람 쪽에서 읽습니다'; out.oAI = false; ['oPosts', 'oAIBuy', 'oAIHold', 'oLines', 'oSeg', 'oTrait', 'oYes', 'oNo', 'oNot', 'oLift', 'oCards'].forEach(k => { out[k] = []; }); }
 
     // 소비자 반응
     if (s.screen === 'react' && !s.R && !this._rl) { this._rl = true; window.MM.api('/api/reactions').then(R => this.setState({ R, rErr: '' })).catch(e => this.setState({ rErr: e.message })).finally(() => setTimeout(() => { this._rl = false; if (this.state.rErr) this.forceUpdate(); }, 3000)); }

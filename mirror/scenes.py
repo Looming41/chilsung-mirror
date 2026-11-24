@@ -150,8 +150,8 @@ def _all(jobs, tick, what, need=.9):
     return out
 
 
-def design(k, model, n, tick=None):
-    """세상 n 개를 채운다. 이미 설계한 세상은 다시 묻지 않는다. tick(단계, 끝난 수, 전체)."""
+def worlds(k, model, n, tick=None):
+    """세상 n 개의 설계(축·이야기·조건·사건)만 채운다. 이미 설계한 세상은 다시 묻지 않는다. tick(단계, 끝난 수, 전체)."""
     tick = tick or (lambda *a: None)
     d = load(k, model) or {"sig": _sig(k), "model": model, "axes": None, "worlds": {}}
     if not d["axes"]:
@@ -170,6 +170,14 @@ def design(k, model, n, tick=None):
         for b, ws in _all([(tuple(b), lambda b=b: make(b)) for b in blocks], lambda v: tick("design", v * BATCH, len(blocks) * BATCH), "세상 설계").items():
             W_.update({str(i): w for i, w in zip(b, ws)})
         _save(k, d)
+    return d
+
+
+def design(k, model, n, tick=None):
+    """세상 설계에 더해, 세상마다 여덟 명의 답까지 채운다."""
+    tick = tick or (lambda *a: None)
+    d = worlds(k, model, n, tick)
+    W_ = d["worlds"]
     todo = [(i, p) for i in range(n) if str(i) in W_ and "people" not in W_[str(i)] for p in crew(i)]
     if todo:
         got = _all([(x, lambda x=x: _live(k, W_[str(x[0])], x[1], model)) for x in todo], lambda v: tick("live", v, len(todo)), "세상 속 사람의 답")

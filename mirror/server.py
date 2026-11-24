@@ -204,25 +204,37 @@ def clean_filter(j):
     return f
 
 
+def keep(flt, ws, only, **kw):
+    rid = uuid.uuid4().hex[:8]
+    RUNS[rid] = {"flt": flt, "worlds": ws, "only": only, **kw}
+    log_experiment(ws, flt, only=only)
+    for k in list(RUNS)[1:-4]:
+        RUNS.pop(k, None)
+    return rid
+
+
 def run_job(flt, n, only):
+    """통계 시뮬레이션(생성형 AI 없음)."""
     def fn(job):
         with LOCK:                                               # 한 번에 하나씩
-            from . import agents as A
-            from . import scenes as S
-            model = AI["model"] if AI["on"] else None
-            job.update(phase="ask", total=A.N)
-            ai = A.get(only, model, lambda k: job.update(n=k))
-            made = S.get(only, model, n, ai["base"], lambda p, k, t: job.update(phase=p, n=min(k, t), total=t)) if ai else None
-            sc, text, info = made or (None, None, None)
-            job.update(phase="run", n=0, total=n)
-            ws = W.default(lambda k: job.update(n=k)) if not ai and not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k), ai=ai, sc=sc)
-        rid = uuid.uuid4().hex[:8]
-        RUNS[rid] = {"flt": flt, "worlds": ws, "ai": ai, "sc": sc, "text": text, "scene": info, "only": only}
-        log_experiment(ws, flt, only=only)
-        for k in list(RUNS)[1:-4]:
-            RUNS.pop(k, None)
-        return {"run": rid, "worlds": [w | ({"scene": {q: t[q] for q in ("title", "story", "events")}} if t else {}) for w, t in zip(lean(ws), text or [None] * n)],
-                "ai": ai["info"] | {"worlds": info["worlds"] if info else 0} if ai else None}
+            job.update(phase="run", total=n)
+            ws = W.default(lambda k: job.update(n=k)) if not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k))
+        return {"run": keep(flt, ws, only), "worlds": lean(ws), "ai": None}
+    return fn
+
+
+def town_job(n, only):
+    """AI 사회: AI 가 설계한 세상마다 AI 100명이 서로의 글을 읽고 산다."""
+    def fn(job):
+        from . import scenes as S
+        from . import town as T
+        with LOCK:
+            d, sc, ids = T.play(only, AI["model"], n, lambda p, k, t: job.update(phase=p, n=min(k, t), total=t))
+            ws = T.to_worlds(only, d, sc, ids)
+        text = [{q: sc["worlds"][str(i)][q] for q in ("title", "story", "events", "pick")} for i in ids]
+        info = T.summary(d, ids)
+        rid = keep({}, ws, only, town=[d["worlds"][str(i)] for i in ids], text=text, info=info, axis=sc["axes"])
+        return {"run": rid, "worlds": [w | {"scene": {q: t[q] for q in ("title", "story", "events")}} for w, t in zip(lean(ws), text)], "ai": info | {"town": True}}
     return fn
 
 
@@ -497,12 +509,19 @@ def api(fn):
 
 
 def a_run(req, j):
-    n = int(j.get("n", 1500))
-    if n not in (200, 500, 1000, 1500):
+    n, ai = int(j.get("n", 1500)), j.get("mode") == "ai"
+    if n not in ((3, 10, 30) if ai else (200, 500, 1000, 1500)):
         raise ValueError("세상 개수가 맞지 않습니다")
     if j.get("product") not in W.IDS:
         raise ValueError("제품을 하나 고르세요")
-    return {"job": start(run_job(clean_filter(j), n, j["product"]))}
+    flt = clean_filter(j)
+    if not ai:
+        return {"job": start(run_job(flt, n, j["product"]))}
+    if not AI["on"]:
+        raise ValueError("AI 사회는 OpenAI 연결이 필요합니다")
+    if flt:
+        raise ValueError("AI 사회는 전체 소비자로만 돌립니다")
+    return {"job": start(town_job(n, j["product"]))}
 
 
 def a_job(req, j):
@@ -517,10 +536,14 @@ def a_society(req, j):
     i, p = int(q["world"]), q["product"]
     if not r or p not in W.IDS or not 0 <= i < len(r["worlds"]):
         raise ValueError("다시 실행해 주세요")
-    L = W.one(i, r["flt"], log=p, ai=r.get("ai"), sc=r["sc"][i] if r.get("sc") else None)["log"]
+    if r.get("town"):
+        from . import town as T
+        L = T.society(r["town"][i])
+    else:
+        L = W.one(i, r["flt"], log=p)["log"]
     days = [{"d": d, "exposed": [x["id"] for x in L["nodes"] if x["exposed"] == d], "bought": [x["id"] for x in L["nodes"] if x["bought"] == d], "positive": [x["id"] for x in L["nodes"] if x["posted"] == d and x["positive"]], "negative": [x["id"] for x in L["nodes"] if x["posted"] == d and not x["positive"]]} for d in range(1, W.STEPS + 1)]
     t = r["text"][i] if r.get("text") else None
-    return {"worldId": i, "product": p, "days": days, "scene": {q: t[q] for q in ("title", "story", "events", "talk")} if t else None, **L}
+    return {"worldId": i, "product": p, "days": days, "scene": {q: t[q] for q in ("title", "story", "events")} if t else None, **L}
 
 
 def a_report(req, j):
@@ -583,6 +606,7 @@ def check():
     assert bad.status_code == 400 and "xxxxx" not in bad.text and c.get("/api/openai").json()["on"] is False
     assert c.post("/api/openai", json={"model": "gpt-6.1-terra"}).json()["model"] == "gpt-6.1-terra" and c.post("/api/openai", json={"model": "아무거나"}).status_code == 400
     assert c.post("/api/openai", json={"off": True}, headers={"origin": "https://evil.com"}).status_code == 403
+    assert c.post("/api/run", json={"product": "화채", "n": 3, "mode": "ai", "age": W.AGES, "sex": W.SEXES, "region": W.REGS}).status_code == 400      # 연결 없이는 AI 사회를 돌리지 않는다
     old = STEPS[2]
     STEPS[2] = (old[0], lambda c_, x: (_ for _ in ()).throw(PermissionError("시험")))
     try:
