@@ -208,16 +208,21 @@ def run_job(flt, n, only):
     def fn(job):
         with LOCK:                                               # 한 번에 하나씩
             from . import agents as A
-            job.update(phase="ask")
-            ai = A.get(only, AI["model"] if AI["on"] else None, lambda k: job.update(n=k))
-            job.update(phase="run", n=0)
-            ws = W.default(lambda k: job.update(n=k)) if not ai and not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k), ai=ai)
+            from . import scenes as S
+            model = AI["model"] if AI["on"] else None
+            job.update(phase="ask", total=A.N)
+            ai = A.get(only, model, lambda k: job.update(n=k))
+            made = S.get(only, model, n, ai["base"], lambda p, k, t: job.update(phase=p, n=min(k, t), total=t)) if ai else None
+            sc, text, info = made or (None, None, None)
+            job.update(phase="run", n=0, total=n)
+            ws = W.default(lambda k: job.update(n=k)) if not ai and not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k), ai=ai, sc=sc)
         rid = uuid.uuid4().hex[:8]
-        RUNS[rid] = {"flt": flt, "worlds": ws, "ai": ai}
+        RUNS[rid] = {"flt": flt, "worlds": ws, "ai": ai, "sc": sc, "text": text, "scene": info, "only": only}
         log_experiment(ws, flt, only=only)
         for k in list(RUNS)[1:-4]:
             RUNS.pop(k, None)
-        return {"run": rid, "worlds": lean(ws), "ai": ai["info"] if ai else None}
+        return {"run": rid, "worlds": [w | ({"scene": {q: t[q] for q in ("title", "story", "events")}} if t else {}) for w, t in zip(lean(ws), text or [None] * n)],
+                "ai": ai["info"] | {"worlds": info["worlds"] if info else 0} if ai else None}
     return fn
 
 
@@ -504,7 +509,7 @@ def a_job(req, j):
     x = JOBS.get(req.path_params["jid"])
     if not x:
         raise ValueError("없는 작업입니다")
-    return {k: x.get(k) for k in ("state", "n", "result", "error", "steps", "phase")}
+    return {k: x.get(k) for k in ("state", "n", "result", "error", "steps", "phase", "total")}
 
 
 def a_society(req, j):
@@ -512,9 +517,10 @@ def a_society(req, j):
     i, p = int(q["world"]), q["product"]
     if not r or p not in W.IDS or not 0 <= i < len(r["worlds"]):
         raise ValueError("다시 실행해 주세요")
-    L = W.one(i, r["flt"], log=p, ai=r.get("ai"))["log"]
+    L = W.one(i, r["flt"], log=p, ai=r.get("ai"), sc=r["sc"][i] if r.get("sc") else None)["log"]
     days = [{"d": d, "exposed": [x["id"] for x in L["nodes"] if x["exposed"] == d], "bought": [x["id"] for x in L["nodes"] if x["bought"] == d], "positive": [x["id"] for x in L["nodes"] if x["posted"] == d and x["positive"]], "negative": [x["id"] for x in L["nodes"] if x["posted"] == d and not x["positive"]]} for d in range(1, W.STEPS + 1)]
-    return {"worldId": i, "product": p, "days": days, **L}
+    t = r["text"][i] if r.get("text") else None
+    return {"worldId": i, "product": p, "days": days, "scene": {q: t[q] for q in ("title", "story", "events", "talk")} if t else None, **L}
 
 
 def a_report(req, j):

@@ -32,8 +32,8 @@ CARD = {"화채": "밀키스 화채. 우유가 든 부드러운 탄산음료 밀
         "쥬시": "쥬시모먼트. 비가열 프리미엄 착즙주스, 유리병, 냉장. 3,000원. 편의점·슈퍼·새벽배송에서 판다."}
 BUY = ["맛 기대", "새로움·호기심", "가격이 괜찮음", "건강·성분", "브랜드 믿음", "계절·상황", "디자인·재미", "없음"]
 HOLD = ["맛 걱정", "가격 부담", "건강·당 걱정", "필요 없음", "살 곳·휴대 불편", "낯섦", "차이를 모름", "없음"]
-SYS = "당신은 아래 사람입니다. 마케터처럼 말하지 말고, 이 사람의 습관과 처지에서 솔직하게 답하세요. 관심 없으면 낮은 점수를 주세요.\n"
-ASK = ("편의점에서 이 신제품을 봤습니다: {card}\nJSON 하나로만 답하세요. 점수는 1(전혀)~5(매우) 정수.\n"
+SYS = "당신은 아래 사람입니다. 마케터처럼 말하지 말고, 이 사람의 습관과 처지에서 솔직하게 답하세요.\n"
+ASK = ("편의점에서 이 신제품을 봤습니다: {card}\nJSON 하나로만 답하세요. 점수는 0(전혀)~100(매우) 정수이고, 사람마다 크게 다르니 이 사람답게 넓게 쓰세요.\n"
        '{{"first":처음 봤을 때 살 마음,"friend":친구가 맛있다고 추천한 뒤 살 마음,"bad":맛없다는 후기를 본 뒤 살 마음,"post":마셔 보고 SNS에 올릴 마음,"like":마시면 만족할 것 같은 정도,'
        '"buy":살 이유 번호,"hold":망설일 이유 번호,"yes":"살 이유 한 문장(30자 이내)","no":"망설일 이유 한 문장(30자 이내)"}}\n살 이유: ' + " ".join(f"{i}={x}" for i, x in enumerate(BUY)) + "\n망설일 이유: " + " ".join(f"{i}={x}" for i, x in enumerate(HOLD)))
 LV = {"낮음": 0, "중하": 1, "중상": 2, "높음": 3}
@@ -54,7 +54,7 @@ def _sig():
 def parse(t):
     m = json.loads(re.search(r"\{.*\}", t, re.S).group(0))
     o = {k: int(m[k]) for k in ("first", "friend", "bad", "post", "like", "buy", "hold")}
-    if not all(1 <= o[k] <= 5 for k in ("first", "friend", "bad", "post", "like")) or not (0 <= o["buy"] < len(BUY) and 0 <= o["hold"] < len(HOLD)):
+    if not all(0 <= o[k] <= 100 for k in ("first", "friend", "bad", "post", "like")) or not (0 <= o["buy"] < len(BUY) and 0 <= o["hold"] < len(HOLD)):
         raise ValueError("범위 밖")
     return o | {k: re.sub(r"\s+", " ", str(m[k]))[:60] for k in ("yes", "no")}
 
@@ -149,17 +149,17 @@ def effects(k, d):
     m, mp = near(_people_x(), B), near(_panel_x(), B[:, :5])
     avg = lambda v: np.average(v[m].mean(1), weights=w)                          # 실제 인구에서의 평균
     first, like = t["first"].values.astype(float), t.like.values.astype(float)
-    up, down = np.clip(t.friend.values - first, 0, None) + .25, np.clip(first - t.bad.values, 0, None) + .25
+    up, down = np.clip(t.friend.values - first, 0, None) + 5, np.clip(first - t.bad.values, 0, None) + 5
     rel = lambda v: np.clip(v / avg(v), .2, 3)                                   # 평균은 지키고 사람마다의 차이만
-    mu, sd = avg(first), max(first.std(), .3)
+    mu, sd = avg(first), max(first.std(), 5)
     s, sp = (first[m].mean(1) - mu) / sd, (first[mp].mean(1) - mu) / sd
     own = first[m] - first[m].mean(1, keepdims=True)                             # 비슷한 사람들 사이에서 이 페르소나만의 차이
     j = list(W.IDS).index(k)
     coef = W.boots(extra={j: sp})
     keep = float(np.clip(np.median([x[3][0] for x in coef]), .3, 1))             # 성향의 차이 가운데 패널이 확인해 준 몫
     b = np.array([x[0][j] for x in coef])                                        # 마지막 값이 AI 답의 계수
-    return {"k": k, "m": m, "s": s, "keep": keep, "own": own / max(np.sqrt(np.average((own ** 2).mean(1), weights=w)), .3), "B": b, "a": np.array([x[1][j] for x in coef]), "post": rel(t.post.values.astype(float)), "rec": rel(up), "bad": rel(down),
-            "sat": 1 / (1 + np.exp(-(np.log(.82 / .18) + .6 * (like - avg(like))))), "buy": t.buy.values, "hold": t.hold.values, "text": t[["yes", "no"]].values.tolist(), "info": proof(j, sp, t, b, d) | {"keep": keep}}
+    return {"k": k, "m": m, "s": s, "keep": keep, "own": own / max(np.sqrt(np.average((own ** 2).mean(1), weights=w)), 5), "B": b, "a": np.array([x[1][j] for x in coef]), "post": rel(t.post.values.astype(float)), "rec": rel(up), "bad": rel(down),
+            "sat": 1 / (1 + np.exp(-(np.log(.82 / .18) + .6 * (like - avg(like)) / max(like.std(), 5)))), "buy": t.buy.values, "hold": t.hold.values, "text": t[["yes", "no"]].values.tolist(), "base": dict(zip(t.i.tolist(), t["first"].tolist())), "info": proof(j, sp, t, b, d) | {"keep": keep}}
 
 
 _fx = {}
@@ -195,16 +195,16 @@ def proof(j, sp, t, b, d):
     r, _ = G.panel()
     X, y = W.panel_X(), G.wide("T2")[:, j].astype(int)
     au = lambda Z: float(np.mean([roc_auc_score(y, cross_val_predict(LogisticRegression(C=.5, max_iter=1000), Z, y, cv=StratifiedKFold(5, shuffle=True, random_state=q), method="predict_proba")[:, 1]) for q in range(10)]))
-    return {"n": len(t), "model": d["model"], "at": d["at"], "top2": float((t["first"] >= 4).mean()), "panel": float(np.average(y, weights=r.w)), "alone": float(roc_auc_score(y, sp)), "base": au(X), "with": au(np.column_stack([X, sp])),
+    return {"n": len(t), "model": d["model"], "at": d["at"], "top2": float(t["first"].mean() / 100), "panel": float(np.average(y, weights=r.w)), "alone": float(roc_auc_score(y, sp)), "base": au(X), "with": au(np.column_stack([X, sp])),
             "coef": [float(x) for x in np.quantile(b[:, -1], [.05, .5, .95])]}
 
 
 def check():
     c = cast()
     assert len(c) == N
-    ok = '앞말 {"first":3,"friend":4,"bad":2,"post":1,"like":4,"buy":0,"hold":1,"yes":"a","no":"b"}'
-    assert parse(ok)["friend"] == 4
-    for bad in ("싫어요", ok.replace('"first":3', '"first":9'), ok.replace('"hold":1', '"hold":8')):
+    ok = '앞말 {"first":30,"friend":40,"bad":20,"post":10,"like":40,"buy":0,"hold":1,"yes":"a","no":"b"}'
+    assert parse(ok)["friend"] == 40
+    for bad in ("싫어요", ok.replace('"first":30', '"first":900'), ok.replace('"hold":1', '"hold":8')):
         try:
             parse(bad)
         except (AttributeError, ValueError):
@@ -212,7 +212,7 @@ def check():
         raise AssertionError(bad)
     # 가짜 답: 절반은 사고 싶고 절반은 아니다(성향과 무관) → 전체 의향 수준은 그대로, 산 사람은 사고 싶다고 한 쪽에 몰린다
     hot = np.random.default_rng(0).random(N) < .5
-    rows = [{"i": i, "first": 5 if y else 1, "friend": 5 if y else 1, "bad": 1, "post": 2, "like": 4, "buy": 1 if y else 7, "hold": 7 if y else 3, "yes": "신기해서", "no": "필요 없음"} for i, y in enumerate(hot)]
+    rows = [{"i": i, "first": 90 if y else 10, "friend": 95 if y else 15, "bad": 5, "post": 20, "like": 60, "buy": 1 if y else 7, "hold": 7 if y else 3, "yes": "신기해서", "no": "필요 없음"} for i, y in enumerate(hot)]
     ai = effects("화채", {"rows": rows, "model": "시험", "at": ""})
     A, Z = W.run(60, workers=1, ai=ai), W.run(60, workers=1)
     v = np.sum([x["agg"]["화채"]["ai"][0] for x in A], 0)

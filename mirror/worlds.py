@@ -100,11 +100,11 @@ def shift(lp, w, goal):
     return (lo + hi) / 2
 
 
-def society(intent, access, trend, c, nb, dg, seed, ai=None):
+def society(intent, access, trend, c, nb, dg, seed, ai=None, pulse=None):
     """ai 가 있으면 올릴 마음·만족·악평 반응·추천 반응이 사람마다 AI 페르소나의 답을 따른다."""
     post, sat, bad, rec = (ai["post"], ai["sat"], np.clip(c["악평 영향"], .01, 1) ** ai["bad"], ai["rec"]) if ai else (1.0, np.full(len(intent), .82), c["악평 영향"], 1.0)
     return V.simulate(intent * c["실구매 전환"] * access, np.clip((.04 + .45 * trend) * post * c["게시 성향"], 0, 1), sat, nb, dg, days=STEPS, ad_reach=min(.9, c["광고 도달"] * 4),
-                      shortform=c["SNS 전파력"] * .85, decay=c["유행 지속"], neg_penalty=bad, conform=c["동조"], fatigue=c["피로"], trait=(.5 + trend) * rec, rng=np.random.default_rng(seed))
+                      shortform=c["SNS 전파력"] * .85, decay=c["유행 지속"], neg_penalty=bad, conform=c["동조"], fatigue=c["피로"], trait=(.5 + trend) * rec, pulse=pulse, rng=np.random.default_rng(seed))
 
 
 def past_fit(i, seed=1, n=N):
@@ -158,18 +158,21 @@ def weights(flt):
     return w
 
 
-def one(i, flt=None, seed=7, log=None, ai=None):
-    """세상 i → {id, 조건(원값), intent, buy, curve, seen}. log=컨셉이면 사람·관계·날짜 기록을 함께 준다. ai 는 agents.effects 의 값(그 컨셉에만 쓴다)."""
+def one(i, flt=None, seed=7, log=None, ai=None, sc=None):
+    """세상 i → {id, 조건(원값), intent, buy, curve, seen}. log=컨셉이면 사람·관계·날짜 기록을 함께 준다. ai 는 agents.effects 의 값(그 컨셉에만 쓴다), sc 는 scenes.plan 이 이 세상에 준 값(AI 가 설계한 세상)."""
     d, r = ready(), np.random.default_rng([seed, i])
     pe, X, w0 = d["people"], d["X"], d["people"].w.values
     pw = np.exp(d["lw"])
-    c = dict(d["conds"][r.choice(len(pw), p=pw / pw.sum())])
+    cand = r.choice(len(pw), p=pw / pw.sum())
+    c = dict(d["conds"][sc["pick"] if sc else cand])
     for k in ("실구매 전환", "광고 도달", "게시 성향", "가격 민감도", "SNS 전파력"):              # 걸러낸 조건 주변을 조금씩 흔든다(똑같은 세상이 반복되지 않게)
         c[k] *= float(np.exp(r.normal(0, .06)))
     for k in ("유행 지속", "악평 영향", "동조", "피로", "시장 분위기"):
         c[k] += float(r.normal(0, .015))
     c["동조"], c["피로"], c["유행 지속"] = max(0, c["동조"]), max(0, c["피로"]), float(np.clip(c["유행 지속"], .2, .9))
-    c["입점"] = float(r.uniform())                                  # 입점은 과거 제품이 아니라 이 컨셉들의 가정
+    c["입점"] = float(r.uniform())
+    if sc:
+        c["입점"], c["시장 분위기"] = sc["store"], sc["mood"]                                  # 입점은 과거 제품이 아니라 이 컨셉들의 가정
     bt = int(r.integers(BOOT))
     B, a, top = d["boots"][bt]
     lead = r.uniform(*G.ASSUME["유도문항|쥬시모먼트"][:2])
@@ -200,7 +203,7 @@ def one(i, flt=None, seed=7, log=None, ai=None):
         # 가격 민감도: 가격이 1,800원보다 비쌀수록, 알뜰한 사람일수록 더 깎임(세기는 가정)
         price = -.5 * np.log(c["가격 민감도"]) * (G.SPEC[con]["srp"] / 1800 - 1) * (1 + .5 * X[:, 6])
         p = _sigmoid(z + price + c["시장 분위기"])[ix]
-        o = society(p * own[j], (u < acc) * 1.0, tr, c, nb, dg, [seed, i, 1], mine)
+        o = society(p * own[j], (u < acc) * 1.0, tr, c, nb, dg, [seed, i, 1], mine, sc["pulse"] if sc else None)
         cum = np.cumsum(o["buy"]) / N
         out["intent"][k], out["buy"][k] = float(p.mean()), float(cum[-1])
         out["curve"][k] = [0.0, *np.round(cum, 4).tolist()]
@@ -261,16 +264,16 @@ def _job(a):
 _pool = None
 
 
-def run(n=1500, flt=None, seed=7, tick=None, workers=None, ai=None):
+def run(n=1500, flt=None, seed=7, tick=None, workers=None, ai=None, sc=None):
     """세상 n 개. cond 는 0~1 백분위, raw 는 원값."""
     global _pool
     ready()
-    ai = {k: v for k, v in ai.items() if k not in ("text", "info")} if ai else None      # 집계에 안 쓰는 글은 나눠 주지 않는다
+    ai = {k: v for k, v in ai.items() if k not in ("text", "info", "base")} if ai else None      # 집계에 안 쓰는 글은 나눠 주지 않는다
     if workers == 1:
-        it = map(_job, [(i, flt, seed, None, ai) for i in range(n)])
+        it = map(_job, [(i, flt, seed, None, ai, sc[i] if sc else None) for i in range(n)])
     else:
         _pool = _pool or ProcessPoolExecutor()
-        it = _pool.map(_job, [(i, flt, seed, None, ai) for i in range(n)], chunksize=10)
+        it = _pool.map(_job, [(i, flt, seed, None, ai, sc[i] if sc else None) for i in range(n)], chunksize=10)
     W = []
     for x in it:
         W.append(x)

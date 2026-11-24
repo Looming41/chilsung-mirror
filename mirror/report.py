@@ -118,6 +118,8 @@ def crowd(ws, k):
 def build(run):
     ws, flt, out = run["worlds"], run["flt"], {}
     for k, con in W.IDS.items():
+        if run.get("sc") and k != run["only"]:                      # AI 가 이 제품을 위해 설계한 세상이라 다른 제품에는 쓰지 않는다
+            continue
         c = crowd(ws, k)
         yes, no, n = words(con, flt)
         base, up = lift(con)
@@ -134,7 +136,8 @@ def build(run):
     ai = run.get("ai")
     if ai:
         from . import agents as A
-        out[ai["k"]]["ai"] = A.said(ws, ai) | ai["info"]
+        from . import scenes as S
+        out[ai["k"]]["ai"] = A.said(ws, ai) | ai["info"] | ({"scene": run["scene"] | S.drivers(ws, run["text"], run["scene"]["axis"], ai["k"])} if run.get("sc") else {})
     return out
 
 

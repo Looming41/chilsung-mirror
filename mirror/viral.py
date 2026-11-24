@@ -20,7 +20,7 @@ def build_network(n, m=3, seed=0):
 
 def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.01,
              influencer_seed=False, shortform=1.0, decay=0.6, neg_penalty=0.5, early=14, rng=None,
-             conform=0.0, fatigue=0.0, scarce=0.0, stock=None, trait=1.0):
+             conform=0.0, fatigue=0.0, scarce=0.0, stock=None, trait=1.0, pulse=None):
     """한 번의 확산을 돌린다.
 
     intent[i]       : 페르소나 i가 '노출됐을 때' 살 확률
@@ -31,6 +31,7 @@ def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.
     심리 규칙(로그 오즈에 더함, 기본 0 = 끔). trait[i] 는 사람별 민감도(평균 1 근처)
     conform : 동조. 서로 다른 지인의 추천을 2번째·3번째 볼 때마다 더해짐(3번에서 멈춤)
     fatigue : 피로. 4번째 노출부터 한 번마다 깎임(10번까지)
+    pulse   : 날짜마다 살 확률에 곱하는 값(사건의 때). 없으면 1
     scarce  : 희소성. stock(전체 인원 대비 물량)을 정한 한정 판매일 때만. 물량이 떨어지면 더 못 산다(missed)
 
     난수는 사람·관계·날짜마다 미리 정해져 있어, 같은 rng 씨앗이면 조건이 달라도 같은 운을 쓴다.
@@ -71,7 +72,7 @@ def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.
             sig = np.bincount(dst[seen], minlength=n)
             z = lg + trait * (conform * np.clip(np.minimum(sig, 3) - 1, 0, None) + (scarce if stock is not None else 0.0)) - fatigue * np.clip(np.minimum(expo, 10) - 3, 0, None)
             p = 1 / (1 + np.exp(-z))
-        new = np.flatnonzero(ex & ~bought & (u_buy < p * neg_penalty ** neg_seen))
+        new = np.flatnonzero(ex & ~bought & (u_buy < p * neg_penalty ** neg_seen * (1.0 if pulse is None else pulse[d])))
         if len(new) > left:                      # 물량 부족: 먼저 온 사람부터
             new = new[np.argsort(order[new])]
             out["missed"] += len(new) - int(left)
