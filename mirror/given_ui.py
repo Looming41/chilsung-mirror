@@ -137,7 +137,7 @@ def _who():
     base, au = G.personas(), G.persona_model()
     r = pd.DataFrame([{"컨셉": c, "고른 집단": np.average(p[c], weights=p.w), "19~59세 전체": np.average(base[c], weights=base.w), "패널 실측(가중)": G.stages()[0]["+ 모집단 가중"][c], "모델 판별력(AUC)": au[c][1]} for c in G.CON])
     st.dataframe(r.style.format({c: "{:.0%}" for c in r.columns[1:4]} | {"모델 판별력(AUC)": "{:.2f}"}), width="stretch", hide_index=True)
-    st.caption(f"{info['신호']} 고른 집단의 실응답자 {info['실응답자']:,}명. 패널 응답자는 273명뿐이라 세부 집단 숫자는 ±10%p 이상 흔들립니다. 쥬시모먼트는 유도 문항 보정 전 값입니다. AUC 0.5는 찍기, 1은 완벽.")
+    st.caption(f"자료 근거 {info['신호']} · 고른 집단의 실응답자 {info['실응답자']:,}명. 패널 응답자는 273명뿐이라 세부 집단 숫자는 ±10%p 이상 흔들립니다. 쥬시모먼트는 유도 문항 보정 전 값입니다. AUC 0.5는 찍기, 1은 완벽.")
     g = base.groupby(["age10", "sex"])[G.CON + ["w"]].apply(lambda d: pd.Series({c: np.average(d[c], weights=d.w) for c in G.CON})).reset_index()
     fig = go.Figure([go.Bar(x=g.age10 + " " + g.sex, y=g[c], name=c, marker_color=COL[c]) for c in G.CON])
     fig.update_layout(height=320, barmode="group", yaxis_tickformat=".0%", margin=dict(t=10), legend=dict(orientation="h"))

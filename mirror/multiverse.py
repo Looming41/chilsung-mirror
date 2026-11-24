@@ -100,7 +100,7 @@ def select(filters, floor=200):
         w = d.w.values * np.exp(-lo * mis)
         info["빌린 비율"] = float(1 - w[hit].sum() / w.sum())
     info["오차"] = 1.96 * np.sqrt(.25 / info["유효표본"]) if info["유효표본"] > 0 else np.nan
-    info["신호"] = "🟢" if info["유효표본"] >= 385 else "🟡" if info["유효표본"] >= 100 else "🔴"
+    info["신호"] = "충분" if info["유효표본"] >= 385 else "보통" if info["유효표본"] >= 100 else "부족"
     return w, info
 
 
@@ -250,7 +250,7 @@ def check():
     assert i["실응답자"] == len(base()) and i["빌린 비율"] == 0 and 3300 < i["유효표본"] < 4500 and 44e6 < i["인구"] < 46e6
     assert select({"age10": ["10대"]})[1]["실응답자"] == 604
     w2, j = select({"age10": ["20대"], "sex": ["여자"], "reg": ["수도권"], "single": ["1인"]})
-    assert j["신호"] == "🔴" and j["빌린 비율"] > .3 and ess(w2) > 180
+    assert j["신호"] == "부족" and j["빌린 비율"] > .3 and ess(w2) > 180
     assert relax({"age10": ["20대"], "single": ["1인"]})[0][1] > select({"age10": ["20대"], "single": ["1인"]})[1]["유효표본"]
     n = need(8)
     assert n["권장"] == n["비교"] > need(2)["비교"] > 1000 and need(1)["권장"] == S.sample_size(.03)
