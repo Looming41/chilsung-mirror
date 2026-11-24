@@ -444,15 +444,6 @@ def a_report(req, j):
     return {"products": r["report"], "worlds": len(r["worlds"]), "target": ", ".join(x for v in r["flt"].values() for x in v) or "19~59세 전체", "panel": int(len(G.panel()[0]))}
 
 
-def a_price(req, j):
-    """가격별 전국 예상 매출(대상 소비자와 관계없이 전국 기준의 기본 실험으로 계산)."""
-    base()
-    k, x = req.query_params["product"], [int(v) for v in req.query_params.get("extra", "").split(",") if v]
-    if k not in W.IDS or len(x) > 6 or any(not 300 <= v <= 20000 for v in x):
-        raise ValueError("가격은 300원에서 20,000원 사이로 적어 주세요")
-    return RP.prices(RUNS["default"]["worlds"], k, x)
-
-
 def a_concept(req, j):
     c = {k: str(j.get(k, "")).strip()[:m] for k, m in (("name", 60), ("desc", 300), ("price", 20), ("target", 40))}
     if not c["name"] or not c["desc"]:
@@ -468,7 +459,7 @@ def a_review(req, j):
 
 
 app = Starlette(routes=[Route("/api/data", api(lambda r, j: base())), Route("/api/reactions", api(lambda r, j: react())), Route("/api/posts", api(a_posts)), Route("/observe", observe), Route("/api/run", api(a_run), methods=["POST"]), Route("/api/job/{jid}", api(a_job)), Route("/api/society", api(a_society)),
-                        Route("/api/report", api(a_report)), Route("/api/price", api(a_price)), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", StaticFiles(directory=WEB, html=True, check_dir=False))])
+                        Route("/api/report", api(a_report)), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", StaticFiles(directory=WEB, html=True, check_dir=False))])
 
 
 def check():
@@ -484,8 +475,6 @@ def check():
     s = c.get("/api/society", params={"run": "default", "world": 4, "product": "화채"}).json()
     assert len(s["nodes"]) == W.N and abs(sum(x["bought"] is not None for x in s["nodes"]) / W.N - d["worlds"][4]["buy"]["화채"]) < 1e-3
     assert c.get("/api/society", params={"run": "default", "world": 99999, "product": "화채"}).status_code == 400 and c.post("/api/run", json={"age": [], "sex": [], "region": [], "n": 200}).status_code == 400
-    z = c.get("/api/price", params={"product": "쥬시", "extra": "2700"}).json()
-    assert len(z["rows"]) == 6 and c.get("/api/price", params={"product": "쥬시", "extra": "5"}).status_code == 400
     z = c.get("/api/report").json()
     assert z["worlds"] == 1500 and set(z["products"]) == set(W.IDS) and c.get("/api/report", params={"run": "x"}).status_code == 400
     p = c.get("/api/posts", params={"sort": "likes"}).json()

@@ -375,19 +375,6 @@ input[type=range]{accent-color:#E60012}
         <sc-if value="{{ oReady }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;flex-direction:column;gap:56px">
             <div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ oLines }}" as="l" hint-placeholder-count="5"><span style="font-size:clamp(18px,1.9vw,26px);font-weight:{{ l.fw }};line-height:1.45;letter-spacing:-0.02em">{{ l.t }}</span></sc-for></div>
-            <div style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">가격별 예상 매출</span><span style="font-size:13px;color:#555">{{ qNote }}</span></div>
-              <div style="overflow-x:auto"><div style="min-width:640px">
-                <div style="display:grid;grid-template-columns:130px minmax(0,1fr) 190px 110px 120px 110px;gap:14px;padding:6px 0;font-size:12px;font-weight:600;color:#555;border-bottom:1px solid rgba(17,17,17,0.3)"><span>가격</span><span>예상 매출 (12개월)</span><span style="text-align:right">50% 범위</span><span style="text-align:right">구매경험률</span><span style="text-align:right">구매자</span><span style="text-align:right">판매량</span></div>
-                <sc-for list="{{ qRows }}" as="r" hint-placeholder-count="5">
-                  <div style="display:grid;grid-template-columns:130px minmax(0,1fr) 190px 110px 120px 110px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
-                    <span style="font-size:17px;font-weight:800">{{ r.price }} <span style="font-size:12px;font-weight:700;color:#b8000e">{{ r.tag }}</span></span>
-                    <span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="height:18px;width:{{ r.w }}%;background:{{ r.c }};display:block;flex:none"></span><span style="font-size:17px;font-weight:800;white-space:nowrap">{{ r.sales }}</span></span>
-                    <span style="font-size:14px;text-align:right;color:#333">{{ r.range }}</span><span style="font-size:15px;text-align:right">{{ r.rate }}</span><span style="font-size:15px;text-align:right">{{ r.buyers }}</span><span style="font-size:15px;text-align:right">{{ r.units }}</span>
-                  </div>
-                </sc-for>
-              </div></div>
-              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><input value="{{ qIn }}" onChange="{{ setQIn }}" onKeyDown="{{ qKey }}" inputMode="numeric" aria-label="다른 가격" placeholder="다른 가격 (원)" style="width:170px;height:38px;padding:0 12px;border:1px solid #111;background:#fff;font-size:15px;border-radius:0"><button onClick="{{ addQ }}" style="height:38px;padding:0 16px;background:#111;color:#fff;border:0;font-size:14px;font-weight:700;cursor:pointer">가격 추가</button><sc-if value="{{ qErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#b8000e;font-weight:600">{{ qErr }}</span></sc-if></div>
-            </div>
             <div style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매층</span><span style="font-size:13px;color:#555">{{ oSegNote }}</span></div>
               <sc-for list="{{ oSeg }}" as="g" hint-placeholder-count="8">
                 <div style="display:grid;grid-template-columns:72px minmax(0,1fr) 48px minmax(0,auto);gap:clamp(8px,1.2vw,14px);align-items:center;padding:7px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
@@ -705,17 +692,6 @@ class Component extends DCLogic {
     const O = s.O, oid = s.oProd || '화채', pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%', pc = v => Math.round(v * 100) + '%';
     out.oTabs = P.map(p => { const on = p.id === oid; return { label: p.name, on, bg: on ? '#111' : 'transparent', fg: on ? '#fff' : '#111', pick: () => this.setState({ oProd: p.id }) }; });
     out.oReady = !!O && s.oRun === (D && D.run); out.oMsg = out.oReady ? '' : s.oErr ? '불러오지 못했습니다: ' + s.oErr : '세상들을 모으는 중입니다';
-    const QK = oid + '|' + ((s.qx || {})[oid] || []).join(',');
-    if (s.screen === 'out' && ready && s.qKey !== QK && this._ql !== QK) { this._ql = QK; MM.api(`/api/price?product=${encodeURIComponent(oid)}&extra=${((s.qx || {})[oid] || []).join(',')}`).then(Q => this.setState({ Q, qKey: QK, qErr: '' })).catch(e => this.setState({ qErr: e.message, qKey: QK })); }
-    const won = v => v >= 1e8 ? Math.round(v / 1e8).toLocaleString() + '억 원' : Math.round(v / 1e4).toLocaleString() + '만 원', man = v => Math.round(v / 1e4).toLocaleString() + '만';
-    if (s.Q && s.qKey && s.qKey.startsWith(oid + '|')) {
-      const mx = Math.max(...s.Q.rows.map(r => r.sales[1]));
-      out.qNote = `전국 13~79세 ${man(s.Q.pop)} 명`;
-      out.qRows = s.Q.rows.map(r => ({ price: r.price.toLocaleString() + '원', tag: r.best ? '매출 최대' : r.now ? '지금 가격' : '', w: (r.sales[1] / mx * 62).toFixed(1), c: r.best ? '#E60012' : '#111', sales: won(r.sales[1]), range: won(r.sales[0]) + ' ~ ' + won(r.sales[2]), rate: pct(r.rate[1]), buyers: man(r.buyers[1]) + ' 명', units: man(r.units[1]) + ' 개' }));
-    } else { out.qNote = '계산 중'; out.qRows = []; }
-    out.qIn = s.qIn || ''; out.qErr = s.qErr || ''; out.setQIn = e => this.setState({ qIn: e.target.value });
-    out.addQ = () => { const v = parseInt(String(s.qIn || '').replace(/[^0-9]/g, ''), 10); if (!(v >= 300 && v <= 20000)) return this.setState({ qErr: '300원에서 20,000원 사이로 적어 주세요' }); const cur = (s.qx || {})[oid] || []; this.setState({ qx: Object.assign({}, s.qx, { [oid]: cur.concat(cur.includes(v) ? [] : [v]).slice(-6) }), qIn: '', qErr: '' }); };
-    out.qKey = e => { if (e.key === 'Enter') out.addQ(); };
     if (out.oReady) {
       const o = O.products[oid], mx = Math.max(...o.seg.map(g => g.hi)) || 1;
       out.oHead = `${O.target} · 세상 ${O.worlds.toLocaleString()}개와 패널 ${O.panel}명`; out.oWorlds = O.worlds.toLocaleString(); out.oPanel = O.panel;

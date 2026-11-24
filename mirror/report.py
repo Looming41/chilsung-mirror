@@ -115,58 +115,6 @@ def crowd(ws, k):
             "curve": [round(float(x), 5) for x in cur], "not": sorted([{"why": v, "share": float(sh[x] / max(1 - buy, 1e-9))} for x, v in ROUTE.items()], key=lambda x: -x["share"]), "total": buy}
 
 
-PRICES = {"화채": [1200, 1500, 1800, 2100, 2400], "프리즈": [1200, 1500, 1800, 2100, 2400], "쥬시": [1800, 2400, 3000, 3600, 4200]}
-ELASTIC = (1.3, 2.9)                                             # 지금 가격에서의 탄력성 범위. 위 끝은 POS 20% 할인(2.9, 행사 효과 포함), 아래 끝은 문헌(탄산 범주 0.8 ~ 브랜드 2.6)의 가운데
-
-
-@lru_cache(1)
-def nation():
-    """전국(13~79세) 인구, 컨셉별 '전국 의향 ÷ 19~59세 의향', 구매자 1인당 수량(전국 기준, 과거 2제품), 컨셉별 최대지불가격 곡선(중앙, 폭).
-    패널에 없는 10대·60~70대의 의향은 가장 가까운 나이(19세·59세)의 값으로 본다."""
-    from scipy.optimize import curve_fit
-
-    from . import multiverse as U
-    from . import youth as Y
-    d, (r, e) = U.base(), G.panel()
-    keep = d.age.between(19, 59).values
-    q = lambda c, v: Y.qmap(d[c].values, d[c].values[keep], np.repeat(r[v].values, np.maximum(1, (r.w * 4).round().astype(int))))
-    X = G.design(pd.DataFrame({"나이": d.age.clip(19, 59), "여성": (d.sex == "여자") * 1.0, "신제품": q("novelty", "신제품시도성향"), "건강": q("health", "건강관심도"), "가격민감": q("thrift", "가격민감도")}))
-    ratio, curve = {}, {}
-    for k, con in W.IDS.items():
-        p = G.persona_model()[con][0].predict_proba(X)[:, 1]
-        ratio[k] = float(np.average(p, weights=d.w) / np.average(p[keep], weights=d.w[keep]))
-        t = e[(e.컨셉 == con) & e.최대지불의향가격.notna()]
-        ps = np.arange(600, 4001, 100)
-        curve[k] = tuple(curve_fit(lambda x, m, s: 1 / (1 + np.exp((x - m) / s)), ps, [np.average(t.최대지불의향가격 >= x, weights=t.w) for x in ps], p0=[2000, 300])[0])
-    m, pop = G.market(), float(d.w.sum())
-    return pop, ratio, [v * m["인구"] / pop for v in m["1인당 수량"].values()], curve
-
-
-def demand(k, price, eps):
-    """지금 가격 대비 구매 배수. 최대지불가격 곡선의 모양을 쓰되, 지금 가격에서의 탄력성이 eps 가 되도록 완만하게 만든다."""
-    m, s = nation()[3][k]
-    p0 = G.SPEC[W.IDS[k]]["srp"]
-    S = lambda x: 1 / (1 + np.exp((x - m) / s))
-    return (S(price) / S(p0)) ** (eps / (p0 / s * (1 - S(p0))))
-
-
-def prices(ws, k, extra=(), seed=3):
-    """가격별 전국 12개월 구매경험률·구매자·판매량·예상 매출(소비자가, 행사 할인 72~93% 반영). 세상마다 탄력성·1인당 수량·할인율을 뽑는다."""
-    g, (pop, ratio, per, _) = np.random.default_rng(seed), nation()
-    n = len(ws)
-    rate0 = np.array([w["buy"][k] for w in ws]) * ratio[k]
-    eps, unit, disc = g.uniform(*ELASTIC, n), np.exp(np.log(per).mean() + g.normal(0, .35, n)), g.uniform(.72, .93, n)
-    q = lambda v: [float(x) for x in np.quantile(v, [.25, .5, .75])]           # 가운데 절반(50% 범위)
-    out, p0 = [], G.SPEC[W.IDS[k]]["srp"]
-    for p in sorted({*PRICES[k], *extra}):
-        r = np.clip(rate0 * demand(k, p, eps), 0, 1)
-        out.append({"price": int(p), "now": p == p0, "rate": q(r), "buyers": q(r * pop), "units": q(r * pop * unit), "sales": q(r * pop * unit * p * disc)})
-    best = max(out, key=lambda x: x["sales"][1])["price"]
-    for x in out:
-        x["best"] = x["price"] == best
-    return {"pop": pop, "rows": out}
-
-
 def build(run):
     ws, flt, out = run["worlds"], run["flt"], {}
     for k, con in W.IDS.items():
@@ -195,10 +143,6 @@ def check():
     for k, x in o.items():
         assert abs(x["total"] - np.mean([w["buy"][k] for w in ws])) < 1e-9 and abs(sum(s["buyers"] for s in x["seg"]) - 1) < 1e-9 and abs(sum(s["share"] for s in x["not"]) - 1) < 1e-9
         assert x["yes"] and x["no"] and x["good"] and x["bad"] and all(g["score"] >= 4 for g in x["good"]) and all(g["score"] < 4 for g in x["bad"]) and all(u["gain"] < 1 - x["intent"] for u in x["lift"])
-    z = prices(ws, "화채", (1650,))
-    rs = [x["rate"][1] for x in z["rows"]]
-    assert len(rs) == 6 and rs == sorted(rs, reverse=True) and 44e6 < z["pop"] < 46e6 and sum(x["best"] for x in z["rows"]) == 1 and abs(demand("화채", 1800, 2.0) - 1) < 1e-9
-    assert abs(np.log(demand("쥬시", 3030, 2.0) / demand("쥬시", 2970, 2.0)) / np.log(3030 / 2970) + 2.0) < .05 and all(x["sales"][0] <= x["sales"][1] <= x["sales"][2] for x in z["rows"])
     assert build({"worlds": W.run(10, {"age10": ["20대"]}, workers=1), "flt": {"age10": ["20대"]}})["화채"]["seg"][0]["who"].startswith("20대")
     s = lambda k: dict((x["why"], x["share"]) for x in o[k]["not"])["파는 곳이 없음"]
     assert s("프리즈") > s("화채")
