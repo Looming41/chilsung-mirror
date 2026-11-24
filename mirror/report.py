@@ -131,6 +131,10 @@ def build(run):
             head.append(f"안 살 사람은 ‘{no[0]['say']}’({no[0]['share']:.0%})를 가장 많이 들었습니다.")
         head.append(f"계산에서 안 산 가장 큰 까닭은 ‘{nb['why']}’({nb['share']:.0%})입니다.")
         out[k] = {"name": con, "head": head, **c, "yes": yes, "no": no, "n": n, "intent": base, "lift": up[:4], "good": good, "bad": bad}
+    ai = run.get("ai")
+    if ai:
+        from . import agents as A
+        out[ai["k"]]["ai"] = A.said(ws, ai) | ai["info"]
     return out
 
 

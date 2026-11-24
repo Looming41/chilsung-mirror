@@ -1,5 +1,6 @@
 // 실제 엔진(mirror/server.py) 결과를 window.DATA 에 넣고, 화면이 쓰는 계산 도우미를 window.MM 에 둔다.
 (function () {
+  if (window.MM) return;      // 화면 틀이 이 파일을 두 번 실행해도 자료는 한 벌만
   function mulberry(seed) { let a = seed >>> 0; return function () { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   const api = async (url, body) => {
     const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);

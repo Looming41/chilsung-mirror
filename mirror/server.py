@@ -207,13 +207,17 @@ def clean_filter(j):
 def run_job(flt, n, only):
     def fn(job):
         with LOCK:                                               # 한 번에 하나씩
-            ws = W.default(lambda k: job.update(n=k)) if not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k))
+            from . import agents as A
+            job.update(phase="ask")
+            ai = A.get(only, AI["model"] if AI["on"] else None, lambda k: job.update(n=k))
+            job.update(phase="run", n=0)
+            ws = W.default(lambda k: job.update(n=k)) if not ai and not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k), ai=ai)
         rid = uuid.uuid4().hex[:8]
-        RUNS[rid] = {"flt": flt, "worlds": ws}
+        RUNS[rid] = {"flt": flt, "worlds": ws, "ai": ai}
         log_experiment(ws, flt, only=only)
         for k in list(RUNS)[1:-4]:
             RUNS.pop(k, None)
-        return {"run": rid, "worlds": lean(ws)}
+        return {"run": rid, "worlds": lean(ws), "ai": ai["info"] if ai else None}
     return fn
 
 
@@ -500,7 +504,7 @@ def a_job(req, j):
     x = JOBS.get(req.path_params["jid"])
     if not x:
         raise ValueError("없는 작업입니다")
-    return {k: x.get(k) for k in ("state", "n", "result", "error", "steps")}
+    return {k: x.get(k) for k in ("state", "n", "result", "error", "steps", "phase")}
 
 
 def a_society(req, j):
@@ -508,7 +512,7 @@ def a_society(req, j):
     i, p = int(q["world"]), q["product"]
     if not r or p not in W.IDS or not 0 <= i < len(r["worlds"]):
         raise ValueError("다시 실행해 주세요")
-    L = W.one(i, r["flt"], log=p)["log"]
+    L = W.one(i, r["flt"], log=p, ai=r.get("ai"))["log"]
     days = [{"d": d, "exposed": [x["id"] for x in L["nodes"] if x["exposed"] == d], "bought": [x["id"] for x in L["nodes"] if x["bought"] == d], "positive": [x["id"] for x in L["nodes"] if x["posted"] == d and x["positive"]], "negative": [x["id"] for x in L["nodes"] if x["posted"] == d and not x["positive"]]} for d in range(1, W.STEPS + 1)]
     return {"worldId": i, "product": p, "days": days, **L}
 

@@ -57,19 +57,29 @@ def people():
     return pd.DataFrame({"age10": k.age10, "sex": k.sex, "reg": k.reg, "w": k.w, "trend": k.trend, "novelty": k.novelty_q, "thrift": k.thrift_q, "health": k.health_q, "social": k.social_q}).reset_index(drop=True), G.design(f)
 
 
-def boots(seed=0):
-    """패널 재표집마다: (컨셉별 로지스틱 계수·절편, 순서 보정 TOP2)."""
+def panel_X():
+    r, _ = G.panel()
+    return G.design(pd.DataFrame({"나이": 2026 - r.출생연도, "여성": (r.성별 == "여성") * 1.0, "신제품": r.신제품시도성향, "건강": r.건강관심도, "가격민감": r.가격민감도}))
+
+
+def boots(seed=0, extra=None):
+    """패널 재표집마다: (컨셉별 로지스틱 계수·절편, 순서 보정 TOP2). extra={컨셉 번호: 패널 응답자마다의 값}이면 그 컨셉에 입력 하나를 더한다(AI 페르소나의 답)."""
     from sklearn.linear_model import LogisticRegression
-    g, (r, _) = np.random.default_rng(seed), G.panel()
-    X = G.design(pd.DataFrame({"나이": 2026 - r.출생연도, "여성": (r.성별 == "여성") * 1.0, "신제품": r.신제품시도성향, "건강": r.건강관심도, "가격민감": r.가격민감도}))
+    g, (r, _), extra = np.random.default_rng(seed), G.panel(), extra or {}
+    X = panel_X()
+    XX = [np.column_stack([X, extra[j]]) if j in extra else X for j in range(3)]
     T2, ps, out = G.wide("T2"), G.wide("제시순서"), []
     while len(out) < BOOT:
         ix = g.integers(0, len(r), len(r))
         if any(len(np.unique(T2[ix, j])) < 2 for j in range(3)):
             continue
         w = G.rake(r.iloc[ix].reset_index(drop=True))
-        ms = [LogisticRegression(C=.5, max_iter=1000).fit(X[ix], T2[ix, j], sample_weight=w) for j in range(3)]
-        out.append((np.array([m.coef_[0] for m in ms]), np.array([m.intercept_[0] for m in ms]), G.adjusted(w, T2[ix], ps[ix])[0]))
+        ms = [LogisticRegression(C=.5, max_iter=1000).fit(XX[j][ix], T2[ix, j], sample_weight=w) for j in range(3)]
+        keep = []
+        for j in extra:                                             # 뽑히지 않은 응답자로 잰 기울기: 1보다 작으면 성향의 차이가 부풀려진 것
+            o = np.setdiff1d(np.arange(len(r)), ix)
+            keep.append(LogisticRegression(C=1e6, max_iter=1000).fit((XX[j][o] @ ms[j].coef_[0] + ms[j].intercept_[0])[:, None], T2[o, j]).coef_[0, 0] if len(np.unique(T2[o, j])) > 1 else 1.0)
+        out.append(([m.coef_[0] for m in ms] if extra else np.array([m.coef_[0] for m in ms]), np.array([m.intercept_[0] for m in ms]), G.adjusted(w, T2[ix], ps[ix])[0], *([keep] if extra else [])))
     return out
 
 
@@ -90,9 +100,11 @@ def shift(lp, w, goal):
     return (lo + hi) / 2
 
 
-def society(intent, access, trend, c, nb, dg, seed):
-    return V.simulate(intent * c["실구매 전환"] * access, np.clip((.04 + .45 * trend) * c["게시 성향"], 0, 1), np.full(len(intent), .82), nb, dg, days=STEPS, ad_reach=min(.9, c["광고 도달"] * 4),
-                      shortform=c["SNS 전파력"] * .85, decay=c["유행 지속"], neg_penalty=c["악평 영향"], conform=c["동조"], fatigue=c["피로"], trait=.5 + trend, rng=np.random.default_rng(seed))
+def society(intent, access, trend, c, nb, dg, seed, ai=None):
+    """ai 가 있으면 올릴 마음·만족·악평 반응·추천 반응이 사람마다 AI 페르소나의 답을 따른다."""
+    post, sat, bad, rec = (ai["post"], ai["sat"], np.clip(c["악평 영향"], .01, 1) ** ai["bad"], ai["rec"]) if ai else (1.0, np.full(len(intent), .82), c["악평 영향"], 1.0)
+    return V.simulate(intent * c["실구매 전환"] * access, np.clip((.04 + .45 * trend) * post * c["게시 성향"], 0, 1), sat, nb, dg, days=STEPS, ad_reach=min(.9, c["광고 도달"] * 4),
+                      shortform=c["SNS 전파력"] * .85, decay=c["유행 지속"], neg_penalty=bad, conform=c["동조"], fatigue=c["피로"], trait=(.5 + trend) * rec, rng=np.random.default_rng(seed))
 
 
 def past_fit(i, seed=1, n=N):
@@ -146,8 +158,8 @@ def weights(flt):
     return w
 
 
-def one(i, flt=None, seed=7, log=None):
-    """세상 i → {id, 조건(원값), intent, buy, curve, seen}. log=컨셉이면 사람·관계·날짜 기록을 함께 준다."""
+def one(i, flt=None, seed=7, log=None, ai=None):
+    """세상 i → {id, 조건(원값), intent, buy, curve, seen}. log=컨셉이면 사람·관계·날짜 기록을 함께 준다. ai 는 agents.effects 의 값(그 컨셉에만 쓴다)."""
     d, r = ready(), np.random.default_rng([seed, i])
     pe, X, w0 = d["people"], d["X"], d["people"].w.values
     pw = np.exp(d["lw"])
@@ -158,7 +170,8 @@ def one(i, flt=None, seed=7, log=None):
         c[k] += float(r.normal(0, .015))
     c["동조"], c["피로"], c["유행 지속"] = max(0, c["동조"]), max(0, c["피로"]), float(np.clip(c["유행 지속"], .2, .9))
     c["입점"] = float(r.uniform())                                  # 입점은 과거 제품이 아니라 이 컨셉들의 가정
-    B, a, top = d["boots"][int(r.integers(BOOT))]
+    bt = int(r.integers(BOOT))
+    B, a, top = d["boots"][bt]
     lead = r.uniform(*G.ASSUME["유도문항|쥬시모먼트"][:2])
     own = np.exp(r.normal(0, float(np.log(G.past().k).std(ddof=1)) * np.sqrt(1.2), 3))      # 제품마다 다른 전환(과거 5개 제품의 차이만큼)
     g = weights(flt) * r.exponential(size=len(w0))
@@ -171,22 +184,39 @@ def one(i, flt=None, seed=7, log=None):
     for j, (k, con) in enumerate(IDS.items()):
         lo, hi = G.ASSUME["입점률|" + con][:2]
         acc = d["reach"][k] * (lo + (hi - lo) * c["입점"])
-        lp = X @ B[j] + a[j]
+        on = ai if ai and ai["k"] == k else None
+        b = on["B"][bt][:-1] if on else B[j]
+        lp = X @ b + (on["s"] * on["B"][bt][-1] + on["a"][bt] if on else a[j])
+        mine = None
+        if on:                                                       # 사람마다 페르소나 한 명이 맡는다. 성향의 차이는 패널이 확인해 준 만큼(keep)만 남기고, 빠진 자리를 그 페르소나만의 차이로 채운다(전체 크기는 그대로)
+            pick = np.random.default_rng([seed, i, 2]).integers(0, on["m"].shape[1], len(w0))
+            who, row = on["m"][np.arange(len(w0)), pick], np.arange(len(w0))
+            mid = np.average(lp, weights=w0)
+            sd = np.sqrt(np.average((lp - mid) ** 2, weights=w0))
+            lp = mid + on["keep"] * (lp - mid) + on["own"][row, pick] * sd * np.sqrt(1 - on["keep"] ** 2)
+            who = who[ix]
+            mine = {x: on[x][who] for x in ("post", "sat", "bad", "rec")}
         z = lp + shift(lp, w0, float(np.clip(top[j] * (lead if k == "쥬시" else 1), .01, .99)))
         # 가격 민감도: 가격이 1,800원보다 비쌀수록, 알뜰한 사람일수록 더 깎임(세기는 가정)
         price = -.5 * np.log(c["가격 민감도"]) * (G.SPEC[con]["srp"] / 1800 - 1) * (1 + .5 * X[:, 6])
         p = _sigmoid(z + price + c["시장 분위기"])[ix]
-        o = society(p * own[j], (u < acc) * 1.0, tr, c, nb, dg, [seed, i, 1])
+        o = society(p * own[j], (u < acc) * 1.0, tr, c, nb, dg, [seed, i, 1], mine)
         cum = np.cumsum(o["buy"]) / N
         out["intent"][k], out["buy"][k] = float(p.mean()), float(cum[-1])
         out["curve"][k] = [0.0, *np.round(cum, 4).tolist()]
         out["seen"][k] = float((o["log"]["seen"] >= 0).mean())
-        code = why(o, X[ix], B[j], u < acc, p)
+        code = why(o, X[ix], b, u < acc, p)
         got = o["first_day"] >= 0
         out["agg"][k] = {"seg": np.column_stack([np.bincount(sg, minlength=8), np.bincount(sg, got, 8)]).astype(int).tolist(), "code": np.bincount(sg * len(CODES) + code[0], minlength=8 * len(CODES)).reshape(8, -1).tolist(),
                          "trait": [np.column_stack([np.bincount(d["levels"][t][ix], minlength=4), np.bincount(d["levels"][t][ix], got, 4)]).astype(int).tolist() for t in TRAIT]}
+        if on:                                                       # 산 사람이 말한 살 이유, 알고도 안 산 사람이 말한 망설일 이유
+            no = ~got & (o["log"]["seen"] >= 0)
+            out["agg"][k]["ai"] = [np.bincount(on["buy"][who][got], minlength=8).tolist(), np.bincount(on["hold"][who][no], minlength=8).tolist()]
         if log == k:
-            out["log"] = detail(o, pe.iloc[ix].reset_index(drop=True), X[ix], B[j], u < acc, p, nb, dg)
+            out["log"] = detail(o, pe.iloc[ix].reset_index(drop=True), X[ix], b, u < acc, p, nb, dg)
+            if on:
+                for x, q in zip(out["log"]["nodes"], who):
+                    x["say"] = on["text"][q][0 if x["bought"] else 1]
     return out
 
 
@@ -231,15 +261,16 @@ def _job(a):
 _pool = None
 
 
-def run(n=1500, flt=None, seed=7, tick=None, workers=None):
+def run(n=1500, flt=None, seed=7, tick=None, workers=None, ai=None):
     """세상 n 개. cond 는 0~1 백분위, raw 는 원값."""
     global _pool
     ready()
+    ai = {k: v for k, v in ai.items() if k not in ("text", "info")} if ai else None      # 집계에 안 쓰는 글은 나눠 주지 않는다
     if workers == 1:
-        it = map(_job, [(i, flt, seed) for i in range(n)])
+        it = map(_job, [(i, flt, seed, None, ai) for i in range(n)])
     else:
         _pool = _pool or ProcessPoolExecutor()
-        it = _pool.map(_job, [(i, flt, seed) for i in range(n)], chunksize=10)
+        it = _pool.map(_job, [(i, flt, seed, None, ai) for i in range(n)], chunksize=10)
     W = []
     for x in it:
         W.append(x)
