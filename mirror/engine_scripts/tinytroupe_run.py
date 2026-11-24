@@ -3,6 +3,8 @@ import json
 import os
 import sys
 
+import stubs  # noqa: F401  무거운 모듈 대역
+
 src, dst = sys.argv[1:3]
 J = json.load(open(src))
 open("config.ini", "w").write(f"""[OpenAI]

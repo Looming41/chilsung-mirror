@@ -5,6 +5,8 @@ import os
 import sqlite3
 import sys
 
+import stubs  # noqa: F401  무거운 모듈 대역
+
 src, dst = sys.argv[1:3]
 J = json.load(open(src))
 out = {"engine": "oasis", "answers": [], "events": []}
