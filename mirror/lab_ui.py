@@ -131,7 +131,7 @@ def _multiverse():
         if 0 < k < len(W) and len(lost):
             st.info(f"1등 시나리오가 **지는 {len(W) - k}개 세계**의 특징: " + ", ".join(f"{x['조건']}이(가) {'높음' if x['차이(표준편차)'] > 0 else '낮음'}" for _, x in lost.iterrows()))
         yes, no = U.representative(W, top.시나리오)
-        st.caption(f"대표 세계: 이긴 세계 {yes}번" + (f", 진 세계 {no}번" if no is not None else "") + ". 이 세계들의 이유는 '엔진 예측 비교' 탭에서 LLM에게 들을 수 있습니다.")
+        st.caption(f"대표 세계: 이긴 세계 {yes}번" + (f", 진 세계 {no}번" if no is not None else "") + ". 조건 차이가 0.3 표준편차보다 작으면 승패가 조건보다 우연과 주민 구성에 달렸다는 뜻입니다.")
 
 
 def _trust():
