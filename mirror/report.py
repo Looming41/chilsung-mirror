@@ -156,7 +156,7 @@ def prices(ws, k, extra=(), seed=3):
     n = len(ws)
     rate0 = np.array([w["buy"][k] for w in ws]) * ratio[k]
     eps, unit, disc = g.uniform(*ELASTIC, n), np.exp(np.log(per).mean() + g.normal(0, .35, n)), g.uniform(.72, .93, n)
-    q = lambda v: [float(x) for x in np.quantile(v, [.05, .5, .95])]
+    q = lambda v: [float(x) for x in np.quantile(v, [.25, .5, .75])]           # 가운데 절반(50% 범위)
     out, p0 = [], G.SPEC[W.IDS[k]]["srp"]
     for p in sorted({*PRICES[k], *extra}):
         r = np.clip(rate0 * demand(k, p, eps), 0, 1)
