@@ -16,6 +16,7 @@ import streamlit as st
 from . import consumer as C
 from . import engines as E
 from . import field as F
+from . import given_ui as GU
 from . import multiverse as U
 from . import people as P
 from . import reasons as Q
@@ -296,7 +297,9 @@ def _trust():
 
 def render():
     st.title("🧬 디지털 트윈 실험실")
-    t0, tf, tv, t1, t2, t3 = st.tabs(["🌌 다중우주", "📋 현장 설문", "✅ 신뢰 검증", "페르소나 생성 비교", "엔진 예측 비교", "인물 살펴보기"])
+    tg, t0, tf, tv, t1, t2, t3 = st.tabs(["🥤 본선 과제", "🌌 다중우주", "📋 현장 설문", "✅ 신뢰 검증", "페르소나 생성 비교", "엔진 예측 비교", "인물 살펴보기"])
+    with tg:
+        GU.render()
     with t0:
         _multiverse()
     with tf:
