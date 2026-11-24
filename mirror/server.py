@@ -370,16 +370,18 @@ def s_talk(c, x):
     who = U.synthetic(w, 6, seed=int(time.time()) % 1000)
     q = (f"편의점에서 이 신제품을 봤습니다: {c['name']}. {c['desc']} 가격 {c['price']}.\n솔직하게 답하세요. JSON 하나로만: "
          '{"score":1~5 정수(5=꼭 산다),"why":"이유 한 문장(40자 이내)"}')
-    out = []
+    out, why = [], "답을 읽지 못함"
     for i in range(len(who)):
         try:
             t = C.chat("당신은 아래 사람입니다. 마케터처럼 말하지 말고 이 사람의 처지대로 답하세요.\n" + "\n".join(P.memory(who.iloc[i])), q, model)
             m = json.loads(re.search(r"\{.*?\}", t, re.S).group(0))
             out.append({"누구": f"{who.age[i]} {who.sex[i]}", "점수": int(m["score"]), "이유": str(m["why"])[:60]})
-        except Exception:
-            continue
+        except Exception as e:
+            why = str(e) if type(e) is RuntimeError else type(e).__name__
+            if "잔액" in why:
+                break
     if not out:
-        raise RuntimeError("AI가 응답하지 않았습니다(무료 등급이 붐빔)")
+        raise RuntimeError(f"AI가 응답하지 않았습니다({why})")
     x["talk"] = out
     hi = sum(o["점수"] >= 4 for o in out)
     return f"가상 소비자 {len(out)}명 가운데 {hi}명이 4~5점. " + " / ".join(f"{o['누구']}: {o['이유']}" for o in out[:3]) + " (AI의 답이라 실제 조사와 맞는지 검증되지 않음)"

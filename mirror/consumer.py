@@ -236,7 +236,7 @@ def _chat_raw(system, user, model):
         cl = _clients.get(("gemini", GEMINI_KEY)) or _clients.setdefault(
             ("gemini", GEMINI_KEY), OpenAI(api_key=GEMINI_KEY, base_url=GEMINI_URL, timeout=60))
     else:
-        cl = _clients.setdefault("openai", OpenAI())
+        cl = _clients.get("openai") or _clients.setdefault("openai", OpenAI())   # 화면에서 연결한 것이 있으면 그것
     msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     for attempt in range(6):
         if model.startswith("gemini"):
@@ -246,6 +246,8 @@ def _chat_raw(system, user, model):
             break
         except RateLimitError as e:
             body = str(getattr(e, "body", e))
+            if "insufficient_quota" in body:            # 잔액 없음은 기다려도 안 풀린다
+                raise RuntimeError("OpenAI 계정에 잔액이 없습니다") from None
             if "per day" in body:
                 raise RuntimeError(f"{model} 무료 등급 하루 한도를 다 썼습니다. 다른 모델(예: flash-lite)을 고르거나 내일 다시 하세요.") from None
             m = re.search(r"retry in ([\d.]+)s", body)      # 분당 한도: 구글이 알려준 만큼 기다렸다 재시도
