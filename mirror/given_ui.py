@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from . import given as G
+from . import link as K
 from . import multiverse as U
 from . import people as P
 
@@ -35,7 +36,7 @@ def history(word=""):
     for ts, memo, a, r in rs:
         r = json.loads(r)
         out.append({"시각": ts[5:16].replace("T", " "), "메모": memo, "가정": ", ".join(f"{k.split('|')[-1]} {k.split('|')[0]} {v[0]:.0%}~{v[1]:.0%}" for k, v in json.loads(a).items()),
-                    "구매경험률": " · ".join(f"{x['컨셉']} {x['구매경험률']:.1%}" for x in r), "매출(억)": " · ".join(f"{x['컨셉']} {x['소매 매출(억)']:.0f}" for x in r)})
+                    "구매경험률": " · ".join(f"{x['컨셉']} {x['구매경험률']:.1%}" for x in r), "매출(억)": " · ".join(f"{x['컨셉']} {x['소매 매출(억)']:.0f}" for x in r), "소비자 반응": " · ".join(f"{x['컨셉']} {x.get('반응', '—')}" for x in r)})
     t = pd.DataFrame(out)
     return t[t.apply(lambda x: word in " ".join(map(str, x)), axis=1)] if word and len(t) else t
 
@@ -74,7 +75,9 @@ def render():
     st.dataframe(t.style.format({c: "{:.1%}" for c in pc} | {c: "{:.0f}" for c in ("소매 매출(억)", "매출 하한", "매출 상한", "출고 매출(억)")}), width="stretch", hide_index=True)
     st.caption("'1등'은 조건을 바꿔 계산한 횟수 중의 비율이지 성공 확률이 아닙니다. 매출은 1인당 구매 수량을 **밀키스 딸기·밀키스 제로 두 제품**에서 빌려 와 모든 컨셉에 적용했으므로 순서만 참고하고, 특히 쥬시모먼트 매출은 과대일 수 있습니다. 카니발은 빼지 않은 총매출입니다. "
                "대조: 밀키스 딸기 최고 85억 · 밀키스 수박 70억 · 프레시원 22억 · 델몬트 프리미엄 포도 31억 (제품자산DB).")
-    s1, s2, s3, s4, s5 = st.tabs(["근거", "조건 바꾸기", "구매층", "데이터 문제", "검토 이력"])
+    s1, s2, s3, s6, s4, s5 = st.tabs(["근거", "조건 바꾸기", "구매층", "소비자 반응", "데이터 문제", "검토 이력"])
+    with s6:
+        voice = _voice()
     with s1:
         _why()
     with s2:
@@ -97,7 +100,7 @@ def render():
         c = st.columns([3, 1])
         memo = c[0].text_input("검토 메모", placeholder="예: 프리즈 냉동 입점 협의 전 기준")
         if c[1].button("지금 결과 저장"):
-            save(memo, assume, t)
+            save(memo, assume, t.assign(반응=[f"직접 관련 글 {voice[c]['직접 관련']} (최근 30일 {voice[c]['최근 30일']}) {voice[c]['판정']}" for c in t.컨셉]))
             st.success("저장했습니다.")
         word = st.text_input("이력·자산 찾기", placeholder="예: 수박, 냉동, 프리미엄")
         h = history(word)
@@ -106,6 +109,36 @@ def render():
         st.markdown("**제품자산 DB (운영·단종·개발중단)**")
         d = G.sheet(G.A, "4_제품자산DB").astype(str).replace("nan", "")
         st.dataframe(d[d.apply(lambda x: word in " ".join(x), axis=1)] if word else d, width="stretch", hide_index=True)
+
+
+@st.cache_data(ttl=60, show_spinner="관측 자료 읽는 중…")
+def _items():
+    return K.items()[1]
+
+
+def _voice():
+    """관측(소비자 반응 모니터링)에 실제로 올라온 글 → 컨셉별 근거. 컨셉별 요약을 돌려준다."""
+    rows = _items()
+    ev = {c: K.evidence(c, rows) for c in G.CON}
+    st.caption(f"소비자 반응 모니터링이 모은 실제 글 {len(rows):,}건에서 컨셉과 맞는 글을 찾은 결과입니다(대회 가상 데이터가 아닌 실제 공개 글). 홍보·뉴스를 뺀 직접 관련 글이 최근 30일에 5건 이상이어야 참고할 수 있습니다. 채널과 걱정은 직접 관련 글만 셉니다.")
+    st.dataframe(pd.DataFrame([{"컨셉": c, "맞는 글": e["글"], "소비자 글": e["소비자 글"], "직접 관련": e["직접 관련"], "그중 최근 30일": e["최근 30일"], "판정": e["판정"], "채널": ", ".join(f"{k} {v}" for k, v in e["채널"].items()), "언급된 걱정": ", ".join(f"{k} {v}" for k, v in e["걱정"].items())} for c, e in ev.items()]), width="stretch", hide_index=True)
+    con = st.selectbox("글 보기", G.CON, key="voice_con")
+    d = pd.DataFrame(ev[con]["목록"])
+    if len(d):
+        st.dataframe(d, width="stretch", hide_index=True, height=260, column_config={"링크": st.column_config.LinkColumn(display_text="열기")})
+    if st.button(f"'{con}' 관련 글 더 찾기", help="빙 뉴스와 블루스카이에서 일반 검색어로 찾습니다. 출시 전 제품명은 보내지 않습니다. 검색어: " + ", ".join(K.TERMS[con]["queries"])):
+        bar = st.progress(0.0)
+        try:
+            f, n, bad = K.seek(con, bar.progress)
+            _items.clear()
+            st.success(f"{f}건 확인, 새 글 {n}건 저장" + (f" · 실패 {len(bad)}건: {bad[0]}" if bad else "") + ". 화면을 다시 열면 반영됩니다.")
+        except ValueError as e:
+            st.info(str(e))
+        bar.empty()
+    with st.expander("반응이 많으면 잘 팔리나 — 주어진 자료로 확인"):
+        st.dataframe(K.signal_test().style.format({"단순 상관": "{:.2f}", "기온·추세 제외": "{:.2f}", "p": "{:.2f}"}), width="stretch", hide_index=True)
+        st.caption("검색·SNS와 판매는 겉보기에 0.7~0.85로 붙어 있지만, 둘 다 여름에 오르기 때문입니다. 기온과 추세를 빼면 관계가 사라집니다(모두 p>0.19). 그래서 반응량을 매출 예측에 넣지 않고 후보 발굴·이유·위험 확인에만 씁니다. 18~23개월 월별 자료라 작은 효과는 잡지 못합니다.")
+    return ev
 
 
 def _why():

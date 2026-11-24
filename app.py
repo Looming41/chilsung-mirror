@@ -19,10 +19,18 @@ def pool():
 # ---------------- 사이드바: 실험 설계 ----------------
 sb = st.sidebar
 sb.title("칠성 신제품 검증")
-view = sb.radio("화면", ["신제품 검증", "소비자 모델 분석", "판매 시뮬레이션", "소비자 반응 모니터링"], key="view")
+view = sb.radio("화면", ["신제품 검증", "소비자 반응 모니터링", "판매 시뮬레이션", "소비자 모델 분석"], key="view")
 if view == "신제품 검증":
     from mirror import given_ui
     given_ui.render()
+    st.stop()
+if view == "소비자 반응 모니터링":
+    from mirror import media_ui
+    media_ui.render("gemini-3.5-flash-lite")
+    st.stop()
+if view == "소비자 모델 분석":
+    from mirror import lab_ui
+    lab_ui.render()
     st.stop()
 st.session_state.setdefault("concept_in", "자두맛 탄산음료. 새콤달콤한 자두 향에 톡 쏘는 탄산, 500ml 페트.")
 concept = sb.text_area("제품 콘셉트", key="concept_in")
@@ -173,15 +181,6 @@ def show_validation():
                "주의: 시뮬레이터는 기증자의 같은 문항 답을 복사하므로 '집단평균 복사'와 비슷한 게 당연하다(표본오차 수준). "
                "이 문항의 정답을 본 적 없는 LLM과의 비교는 공정하지 않으며 예측력의 증거가 아니다.")
 
-
-if view == "소비자 모델 분석":
-    from mirror import lab_ui
-    lab_ui.render()
-    st.stop()
-if view == "소비자 반응 모니터링":
-    from mirror import media_ui
-    media_ui.render("gemini-3.5-flash-lite" if C.GEMINI_KEY else model)
-    st.stop()
 
 res = st.session_state.get("res")
 if res is None:
