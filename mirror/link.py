@@ -141,7 +141,8 @@ def check():
             mk(8, "수박 농사"), mk(9, "밀키스 출시", platform="news"), mk(10, "밀키스정식님뜯어먹기")]
     e = evidence("밀키스 화채", rows, now)
     assert (e["글"], e["소비자 글"], e["직접 관련"], e["최근 30일"]) == (7, 4, 3, 3) and e["판정"] == "표본 부족" and e["걱정"] == {"단맛": 1, "맛·품질": 1, "가격": 1}, e
-    assert evidence("밀키스 화채", rows + [mk(i, "밀키스 좋아") for i in (20, 21)], now)["판정"] == "참고 가능" and evidence("쥬시모먼트", [], now)["글"] == 0
+    assert evidence("밀키스 화채", rows + rows, now)["글"] == 7                              # 같은 글은 한 번만 센다
+    assert evidence("밀키스 화채", rows + [mk(i, f"밀키스 좋아 {i}") for i in (20, 21)], now)["판정"] == "참고 가능" and evidence("쥬시모먼트", [], now)["글"] == 0
     for c, v in TERMS.items():                                   # 출시 전 제품명은 검색어에 없어야 한다
         assert not any(c.replace(" ", "") in q.replace(" ", "") or q.replace(" ", "") in ("쥬시모먼트", "레쓰비프리즈") for q in v["queries"])
     old, M.DB = M.DB, os.path.join(tempfile.mkdtemp(), "m.db")
