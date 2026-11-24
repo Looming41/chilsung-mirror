@@ -367,15 +367,22 @@ def s_talk(c, x):
     if not model:
         raise PermissionError("AI가 연결되지 않아 인터뷰를 건너뛰었습니다")
     w, _ = U.select({})
-    who = U.synthetic(w, 6, seed=int(time.time()) % 1000)
+    who = U.synthetic(w, 6, seed=0)      # 늘 같은 6명: 제품끼리 비교되고, 같은 컨셉은 저장된 답을 써서 비용이 없다
     q = (f"편의점에서 이 신제품을 봤습니다: {c['name']}. {c['desc']} 가격 {c['price']}.\n솔직하게 답하세요. JSON 하나로만: "
          '{"score":1~5 정수(5=꼭 산다),"why":"이유 한 문장(40자 이내)"}')
     out, why = [], "답을 읽지 못함"
     for i in range(len(who)):
         try:
-            t = C.chat("당신은 아래 사람입니다. 마케터처럼 말하지 말고 이 사람의 처지대로 답하세요.\n" + "\n".join(P.memory(who.iloc[i])), q, model)
-            m = json.loads(re.search(r"\{.*?\}", t, re.S).group(0))
-            out.append({"누구": f"{who.age[i]} {who.sex[i]}", "점수": int(m["score"]), "이유": str(m["why"])[:60]})
+            for more in ("", "\n다른 글 없이 JSON 하나만 출력하세요."):      # 못 읽는 답도 저장되므로 질문을 바꿔 한 번 더
+                t = C.chat("당신은 아래 사람입니다. 마케터처럼 말하지 말고 이 사람의 처지대로 답하세요.\n" + "\n".join(P.memory(who.iloc[i])), q + more, model)
+                try:
+                    m = json.loads(re.search(r"\{.*?\}", t, re.S).group(0))
+                    m = {"score": int(m["score"]), "why": str(m["why"])}
+                    break
+                except (AttributeError, KeyError, TypeError, ValueError):
+                    if more:
+                        raise
+            out.append({"누구": f"{who.age[i]} {who.sex[i]}", "점수": m["score"], "이유": m["why"][:60]})
         except Exception as e:
             why = str(e) if type(e) is RuntimeError else type(e).__name__
             if "잔액" in why:

@@ -216,6 +216,9 @@ def chat(system, user, model):
     return out
 
 
+NO_THINK = {"gpt-6-luna", "gpt-6.1-terra"}      # 생각 토큰도 출력 요금이라 끈다. gpt-6.2-sol 은 none 을 거부해서 기본값(공식 문서 2026-11-24)
+
+
 def _chat_raw(system, user, model):
     """한 번의 실제 API 호출. 모델 이름으로 공급자를 고른다."""
     if model.startswith("claude"):
@@ -242,7 +245,7 @@ def _chat_raw(system, user, model):
         if model.startswith("gemini"):
             _throttle()
         try:
-            r = cl.with_options(max_retries=0).chat.completions.create(model=model, messages=msgs)
+            r = cl.with_options(max_retries=0).chat.completions.create(model=model, messages=msgs, **({"reasoning_effort": "none"} if model in NO_THINK else {}))
             break
         except RateLimitError as e:
             body = str(getattr(e, "body", e))
