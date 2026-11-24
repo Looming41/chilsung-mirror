@@ -3,3 +3,9 @@ faster-whisper==1.2.1
 rapidocr==3.10.0
 # faster-whisper 1.2.1이 사용하는 metadata_errors 인자를 지원하는 버전.
 av==16.1.0
+
+# 다국어 임베딩은 기존 fastembed를 재사용한다.
+bertopic==0.17.4
+
+# 공개 영상 메타데이터 수집. 브라우저 쿠키나 사용자 로그인은 사용하지 않는다.
+yt-dlp==2026.11.23

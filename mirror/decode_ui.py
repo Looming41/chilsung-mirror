@@ -29,9 +29,14 @@ def run(label, fn):
 
 
 def render():
+    from .trend_ui import render as trend_render
+    trend_render()
+
+
+def render_campaign():
     st.subheader("Decode · Laya 콘텐츠 분석")
     st.caption("① 기존 수집 데이터 연결 → ② 대본·화면 자막 → ③ 포맷 분류 → ④ 중앙 조회수 비교 → ⑤ 콘텐츠별로 확인")
-    all_campaigns = D.campaigns()
+    all_campaigns = [c for c in D.campaigns() if c["id"] != "internet-live"]
     if "_decode_next" in st.session_state:
         st.session_state.decode_campaign = st.session_state.pop("_decode_next")
     opts = {c["id"]: c["name"] for c in all_campaigns}
@@ -68,7 +73,7 @@ def render():
     st.caption("기존 media.db와 뉴스·커뮤니티·SNS 수집기를 재사용합니다. 포맷 분류는 Laya 로컬 모델만 사용합니다.")
     with st.expander("JSON/CSV 가져오기"):
         upload = st.file_uploader("콘텐츠 JSON 또는 CSV", type=["json", "csv"], key="decode_upload")
-        platform = st.selectbox("가져올 데이터의 플랫폼", ["instagram", "tiktok", "youtube", "community", "news", "social"], key="decode_import_platform")
+        platform = st.selectbox("가져올 데이터의 플랫폼", ["instagram", "tiktok", "youtube", "threads", "community", "news", "social"], key="decode_import_platform")
         st.caption("기본 열: id, url, creator, caption, views, likes, comments, shares, thumbnail, video_url, transcript, on_screen_text, published. 일반적인 SNS 내보내기 필드도 인식합니다.")
         if st.button("파일 가져오기", disabled=upload is None):
             try:

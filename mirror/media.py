@@ -40,8 +40,8 @@ EMO_NEU = {"비장함", "깨달음", "놀람", "neutral"}
 MIN_GAP = 600                                  # 같은 소스 재요청 최소 간격(초)
 KST = dt.timezone(dt.timedelta(hours=9))
 
-QUERIES = ["칠성사이다", "롯데칠성", "펩시 제로", "밀키스", "코카콜라 제로", "제로 음료", "편의점 신상 음료", "에너지 음료", "하이볼 캔", "저당 음료"]
-TAGS = ["편의점", "음료", "탄산", "커피", "신상", "먹스타그램", "제로"]
+from .food_scope import QUERIES, HASHTAGS as TAGS
+
 WIKI = ["칠성사이다", "코카콜라", "펩시콜라", "밀키스", "스프라이트", "환타", "레드불", "몬스터 에너지", "박카스", "핫식스", "스타벅스",
         "CU (편의점)", "GS25", "세븐일레븐", "탄산음료", "에너지 음료", "커피", "녹차", "콤부차", "아스파탐", "수크랄로스", "알룰로스",
         "버블티", "하이볼", "말차", "두바이 초콜릿", "탕후루", "요거트 아이스크림", "소주", "맥주"]
@@ -79,7 +79,7 @@ def db():
     create table if not exists series(name text, day text, value real, primary key(name, day));
     create table if not exists drafts(id integer primary key, ts text, title text, basis text, body text, status text);
     """)
-    for col in ("emo", "feel"):                # emo: Level 세부 감정 JSON, feel: 긍정/중립/부정
+    for col in ("emo", "feel", "metrics", "thumbnail"):                # emo: Level 세부 감정 JSON, feel: 긍정/중립/부정
         if col not in {r[1] for r in c.execute("pragma table_info(items)")}:
             c.execute(f"alter table items add column {col} text")
     return c
@@ -109,18 +109,27 @@ def when(s):
 
 
 def save(c, source, kind, rows):
-    """rows: (text, url, published, engagement). 제목이 같은 전재 기사는 하나로 합친다. 반환 (전체, 신규)."""
+    """rows: (text, url, published, engagement). 소스별 원문 URL을 보존한다. 반환 (전체, 신규)."""
     new, t = 0, now()
-    for text, url, pub, eng in rows:
+    for row in rows:
+        if isinstance(row, dict):
+            text, url, pub, eng = row.get("text"), row.get("url"), row.get("published"), row.get("engagement", 0)
+            metrics, thumbnail = json.dumps(row.get("metrics", {})), row.get("thumbnail", "")
+        else:
+            text, url, pub, eng = row
+            metrics, thumbnail = "{}", ""
         text = clean(text)
         if len(text) < (2 if kind == "트렌드" else 6):
             continue
         key = re.sub(r"\W", "", re.sub(r" - [^-]{2,20}$", "", text))[:80].lower()
-        i = hashlib.sha1(key.encode()).hexdigest()
-        if c.execute("update items set last_seen=?, seen=seen+1, engagement=max(coalesce(engagement,0),?) where id=?", (t, eng or 0, i)).rowcount:
+        identity = (url or key) if kind != "트렌드" else key
+        legacy = c.execute("select id from items where source=? and ((? != '' and url=?) or (? = '' and text=?)) limit 1", (source, url or "", url or "", url or "", text)).fetchone() if kind != "트렌드" else c.execute("select id from items where source=? and text=? limit 1", (source, text)).fetchone()
+        i = legacy[0] if legacy else hashlib.sha1(f"{source}|{identity}".encode()).hexdigest()
+        if c.execute("update items set last_seen=?, seen=seen+1, engagement=max(coalesce(engagement,0),?),metrics=?,thumbnail=? where id=?", (t, eng or 0, metrics, thumbnail, i)).rowcount:
             continue
         c.execute("insert into items(id,source,kind,text,url,published,first_seen,last_seen,engagement,relevant,safety_kw) values(?,?,?,?,?,?,?,?,?,?,?)",
                   (i, source, kind, text, (url or "")[:600], pub, t, t, eng or 0, int(bool(REL.search(text))), int(bool(SAFE_KW.search(text) and (REL.search(text) or FOOD.search(text))))))
+        c.execute("update items set metrics=?,thumbnail=? where id=?", (metrics, thumbnail, i))
         new += 1
     c.commit()
     return len(rows), new
@@ -216,9 +225,11 @@ def gtrends():
 
 def bsky():
     out = []
-    for q in QUERIES[:6] + ["편의점 신상", "신상 음료"]:
+    for q in QUERIES:
         j = json.loads(get(f"https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?q={urllib.parse.quote(q)}&limit=50&lang=ko"))
-        out += [(p["record"].get("text"), "", when(p["record"].get("createdAt")), p.get("likeCount", 0) + p.get("repostCount", 0)) for p in j.get("posts", [])]
+        out += [dict(text=p["record"].get("text"), url="https://bsky.app/profile/" + p["author"]["did"] + "/post/" + p["uri"].rsplit("/", 1)[-1],
+                     published=when(p["record"].get("createdAt")), metrics={"likes": p.get("likeCount"), "comments": p.get("replyCount"), "reposts": p.get("repostCount")},
+                     thumbnail=next((i.get("thumb", "") for i in (p.get("embed") or {}).get("images", [])), "")) for p in j.get("posts", [])]
         time.sleep(1)
     return out
 
@@ -228,9 +239,19 @@ def mastodon(host):
     for t in TAGS:
         for p in json.loads(get(f"https://{host}/api/v1/timelines/tag/{urllib.parse.quote(t)}?limit=40")):
             if not (p.get("account") or {}).get("noindex"):          # 검색 노출을 거부한 계정은 제외
-                out.append((p.get("content"), p.get("url"), when(p.get("created_at")), p.get("favourites_count", 0) + p.get("reblogs_count", 0)))
+                out.append(dict(text=p.get("content"), url=p.get("url"), published=when(p.get("created_at")),
+                                metrics={"likes": p.get("favourites_count"), "comments": p.get("replies_count"), "reposts": p.get("reblogs_count")},
+                                thumbnail=next((m.get("preview_url", "") for m in p.get("media_attachments", [])), "")))
         time.sleep(.5)
     return out
+
+
+def hackernews():
+    """HN 공식 공개 Algolia 검색의 최신 글. points는 좋아요로 바꾸지 않는다."""
+    data = json.loads(_raw("https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=50"))
+    return [dict(text=p.get("title"), url="https://news.ycombinator.com/item?id=" + p["objectID"],
+                 published=when(p.get("created_at")), metrics={"points": p.get("points"), "comments": p.get("num_comments")})
+            for p in data.get("hits", [])]
 
 
 BOARDS = {  # 이름: (목록 URL, 글 링크 패턴)
@@ -272,29 +293,10 @@ def youtube():
                 try:
                     for th in api("commentThreads", part="snippet", videoId=v["id"]["videoId"], maxResults=50, order="relevance", textFormat="plainText")["items"]:
                         s = th["snippet"]["topLevelComment"]["snippet"]
-                        out.append((s["textDisplay"], u, when(s["publishedAt"]), s.get("likeCount", 0)))
+                        out.append((s["textDisplay"], u + "&lc=" + th["snippet"]["topLevelComment"]["id"], when(s["publishedAt"]), s.get("likeCount", 0)))
                 except urllib.error.HTTPError:          # 댓글 사용 중지 영상
                     pass
     return out
-
-
-APIFY = {  # 토큰 필요(유료). 실제 호출은 아직 시험하지 못함 — 응답 필드명은 pick 으로 흡수
-    "Threads 검색": ("watcher.data~search-threads-by-keywords", lambda: {"keywords": QUERIES[:5], "maxItemsPerKeyword": 20, "sortByRecent": True}),
-    "인스타 릴스": ("apify~instagram-hashtag-scraper", lambda: {"hashtags": ["편의점신상", "제로음료", "칠성사이다"], "resultsType": "reels", "resultsLimit": 20}),
-    "틱톡": ("clockworks~tiktok-scraper", lambda: {"hashtags": ["편의점신상", "제로음료"], "resultsPerPage": 20}),
-    "네이버 블로그·카페": ("zen-studio~naver-blog-cafe-scraper", lambda: {"keywords": QUERIES[:4], "includeNews": False, "maxItemsPerKeyword": 25}),
-    "쿠팡 리뷰": ("delicious_zebu~coupang-reviews-scraper", lambda: {"productUrls": os.environ["COUPANG_URLS"].split(","), "maxReviews": 50, "sortBy": "newest"}),
-}
-RISKY = {"네이버 블로그·카페": "ALLOW_NAVER", "쿠팡 리뷰": "ALLOW_COUPANG"}     # 약관 위험: .env 에 =1 로 명시해야만 켜짐
-
-
-def apify(name):
-    actor, inp = APIFY[name]
-    u = f"https://api.apify.com/v2/acts/{actor}/run-sync-get-dataset-items?timeout=240&maxTotalChargeUsd=0.30&maxItems=100"
-    j = json.loads(_raw(u, 260, {"Authorization": "Bearer " + os.environ["APIFY_TOKEN"], "Content-Type": "application/json"}, json.dumps(inp()).encode()))
-    pick = lambda o, *ks: next((o[k] for k in ks if o.get(k)), None)
-    return [(pick(o, "text", "caption", "content", "reviewContent", "review", "body", "title"), pick(o, "url", "postUrl", "permalink", "webVideoUrl", "link"),
-             when(str(pick(o, "timestamp", "createTimeISO", "createdAt", "publishedAt", "date") or "")), float(pick(o, "likeCount", "likesCount", "diggCount") or 0)) for o in j if isinstance(o, dict)]
 
 
 NEWS = {"식품음료신문": "https://www.thinkfood.co.kr/rss/allArticle.xml", "식품저널": "https://www.foodnews.co.kr/rss/allArticle.xml",
@@ -305,17 +307,12 @@ NEWS = {"식품음료신문": "https://www.thinkfood.co.kr/rss/allArticle.xml", 
 def sources():
     """{이름: (종류, 함수, 켜짐, 꺼진 이유)}"""
     on = lambda k: bool(os.environ.get(k))
-    s = {"빙 뉴스(검색)": ("뉴스", bing, True, ""), "구글 트렌드 KR": ("트렌드", gtrends, True, ""), "블루스카이": ("SNS", bsky, True, ""),
+    s = {"Hacker News": ("뉴스", hackernews, True, ""), "빙 뉴스(검색)": ("뉴스", bing, True, ""), "구글 트렌드 KR": ("트렌드", gtrends, True, ""), "블루스카이": ("SNS", bsky, True, ""),
          "마스토돈 planet.moe": ("SNS", lambda: mastodon("planet.moe"), True, ""), "마스토돈 qdon": ("SNS", lambda: mastodon("qdon.space"), True, ""),
          "뽐뿌 자유게시판": ("커뮤니티", lambda: rss("https://www.ppomppu.co.kr/rss.php?id=freeboard"), True, "")}
     s |= {n: ("뉴스", lambda u=u: rss(u), True, "") for n, u in NEWS.items()}
     s |= {n: ("커뮤니티", lambda u=u, p=p: parse_board(get(u), u, p), True, "") for n, (u, p) in BOARDS.items()}
     s["유튜브 영상·댓글"] = ("영상", youtube, on("YOUTUBE_API_KEY"), "YOUTUBE_API_KEY 없음")
-    for n in APIFY:
-        need = RISKY.get(n)
-        ok = on("APIFY_TOKEN") and (not need or os.environ.get(need) == "1") and (n != "쿠팡 리뷰" or on("COUPANG_URLS"))
-        why = "APIFY_TOKEN 없음" if not on("APIFY_TOKEN") else f"약관 위험 — .env 에 {need}=1 필요" if need and os.environ.get(need) != "1" else "COUPANG_URLS 없음"
-        s[n] = ("블로그·리뷰" if need else "SNS", lambda n=n: apify(n), ok, "" if ok else why)
     return s
 
 
@@ -328,7 +325,7 @@ def collect(only_sources=None):
         if only_sources is not None and n not in only_sources:
             continue
         ago = (dt.datetime.now(KST) - dt.datetime.fromisoformat(last[n])).total_seconds() if n in last else 1e9
-        if on and ago > (6 * 3600 if n in APIFY or "유튜브" in n else MIN_GAP):      # 유료·쿼터 소스는 6시간
+        if on and ago > (6 * 3600 if "유튜브" in n else MIN_GAP):      # 유료·쿼터 소스는 6시간
             todo[n] = (kind, fn)
     with cf.ThreadPoolExecutor(8) as ex:
         fut = {ex.submit(fn): (n, kind) for n, (kind, fn) in todo.items()}
@@ -596,6 +593,9 @@ if __name__ == "__main__":
         while True:
             t0 = time.time()
             k = collect()
+            from . import trends
+            trends.sync()
+            trends.watch(once=True, collect_sources=False)
             print(now(), f"수집 {k}개 소스 {time.time() - t0:.0f}s", flush=True)
             n, s = classify()
             print(now(), f"분류 {n}건 {s:.0f}s", flush=True)

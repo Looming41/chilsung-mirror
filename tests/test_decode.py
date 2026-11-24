@@ -39,7 +39,8 @@ class DecodeTests(unittest.TestCase):
         self.assertIsNone(D.number(True))
 
     def test_only_existing_non_apify_sources(self):
-        self.assertFalse(any("media:" + name in D.source_options() for name in D.M.APIFY))
+        self.assertFalse(hasattr(D.M, "apify"))
+        self.assertFalse(hasattr(D.M, "APIFY"))
         with self.assertRaises(ValueError):
             D.configure("bad", "brand", ["media:인스타 릴스"], [], self.cfg["formats"])
 
@@ -144,11 +145,10 @@ class DecodeTests(unittest.TestCase):
 
     def test_refresh_reuses_only_selected_collectors(self):
         self.seed_existing()
-        with patch.object(D.F, "community", return_value={"인벤": "1건"}) as board, patch.object(D.M, "collect") as media, patch.object(D.M, "apify") as paid:
+        with patch.object(D.F, "community", return_value={"인벤": "1건"}) as board, patch.object(D.M, "collect") as media:
             D.collect(self.cid, self.cfg, refresh=True)
         board.assert_called_once_with(names=["인벤"])
         media.assert_called_once_with(only_sources=["블루스카이"])
-        paid.assert_not_called()
 
     def test_media_collector_honors_source_filter(self):
         free, paid = Mock(return_value=[]), Mock(return_value=[])

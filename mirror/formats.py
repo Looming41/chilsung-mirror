@@ -53,7 +53,7 @@ CELL = {
     "인벤": (r'class="view">\s*([\d,]+)', r'class="reco">\s*([\d,]+)', r'class="con-comment">\[(\d+)', r'class="date">\s*([^<]+?)\s*<'),
     "오늘의유머": (r'class="hits">\s*([\d,]+)', r'class="oknok">\s*(\d+)', r"list_memo_count_span'>\s*\[(\d+)", r'class="date">\s*([^<]+?)\s*<'),
 }
-YT_QUERIES = ["편의점 신상 리뷰", "신상 음료 리뷰", "제로 음료 비교", "편의점 먹방", "음료 레시피", "탄산음료 추천"]
+from .food_scope import QUERIES as YT_QUERIES
 
 
 # ---------- 저장 ----------
@@ -75,19 +75,22 @@ def version(f=None):
 def save(rows):
     """rows: dict(key, lane, grp, title, url, published, views, likes, comments, dur). 조회수 등은 최신값으로 갱신. 반환 새 글 수."""
     c, t, new = db(), M.now(), 0
-    for r in rows:
-        title = M.clean(r["title"])
-        if len(title) < 4 or not r.get("views"):
-            continue
-        i = hashlib.sha1(f'{r["lane"]}|{r["grp"]}|{r["key"]}'.encode()).hexdigest()
-        v = (r["views"], r.get("likes"), r.get("comments"), t, i)
-        if not c.execute("update content set views=?, likes=?, comments=?, last_seen=? where id=?", v).rowcount:
-            c.execute("insert into content(id,lane,grp,title,url,published,views,likes,comments,dur,first_seen,last_seen,food) values(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                      (i, r["lane"], r["grp"], title, r.get("url", ""), r.get("published"), r["views"], r.get("likes"), r.get("comments"), r.get("dur"), t, t,
-                       int(bool(M.REL.search(title)))))
-            new += 1
-    c.commit()
-    return new
+    try:
+        for r in rows:
+            title = M.clean(r["title"])
+            if len(title) < 4 or r.get("views") is None:
+                continue
+            i = hashlib.sha1(f'{r["lane"]}|{r["grp"]}|{r["key"]}'.encode()).hexdigest()
+            v = (r["views"], r.get("likes"), r.get("comments"), t, i)
+            if not c.execute("update content set views=?, likes=?, comments=?, last_seen=? where id=?", v).rowcount:
+                c.execute("insert into content(id,lane,grp,title,url,published,views,likes,comments,dur,first_seen,last_seen,food) values(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                          (i, r["lane"], r["grp"], title, r.get("url", ""), r.get("published"), r["views"], r.get("likes"), r.get("comments"), r.get("dur"), t, t,
+                           int(bool(M.REL.search(title)))))
+                new += 1
+        c.commit()
+        return new
+    finally:
+        c.close()
 
 
 # ---------- 커뮤니티 ----------
@@ -143,7 +146,7 @@ def parse(name, page, base):
     return out
 
 
-def community(pages=5, names=None):
+def community(pages=5, names=None, predicate=None):
     """각 게시판 앞쪽 몇 쪽만, 쪽마다 1.5초 간격. 반환 {게시판: 건수 또는 오류}."""
     rep = {}
     for n, (url, first, _, _) in PAGES.items():
@@ -160,6 +163,8 @@ def community(pages=5, names=None):
                 time.sleep(1.5)
         except Exception as e:
             err = f" · 중단: {type(e).__name__} {str(e)[:60]}"
+        if predicate:
+            rows = [r for r in rows if predicate(r)]
         rep[n] = f"{len(rows)}건 (새 글 {save(rows)}){err}"
     return rep
 
@@ -177,7 +182,7 @@ def yt_rows(items):
         if "viewCount" in st:
             d = iso_dur(v.get("contentDetails", {}).get("duration"))
             out.append(dict(key=v["id"], lane="유튜브 쇼츠" if d and d <= 180 else "유튜브 영상", grp=s["channelId"], title=s["title"], url="https://www.youtube.com/watch?v=" + v["id"],
-                            published=M.when(s["publishedAt"]), views=float(st["viewCount"]), likes=float(st.get("likeCount", 0)), comments=float(st.get("commentCount", 0)), dur=d))
+                            published=M.when(s["publishedAt"]), views=float(st["viewCount"]), likes=float(st["likeCount"]) if "likeCount" in st else None, comments=float(st["commentCount"]) if "commentCount" in st else None, dur=d))
     return out
 
 
@@ -409,5 +414,8 @@ if __name__ == "__main__":
             print(n, r, flush=True)
         if os.environ.get("YOUTUBE_API_KEY"):
             print("유튜브 (전체, 새 글)", youtube(), flush=True)
+        from . import trends
+        trends.sync()
+        trends.watch(once=True, collect_sources=False)
         t0 = time.time()
         print("laya 분류", classify("laya", limit=3000), f"{time.time() - t0:.0f}s", flush=True)
