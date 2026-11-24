@@ -40,6 +40,7 @@ def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.
     src, dst = np.repeat(np.arange(n), deg), np.concatenate(nbrs)
     u_post, u_sat, order = rng.random(n), rng.random(n), rng.random(n)
     bought, first_day = np.zeros(n, bool), np.full(n, -1)
+    first_seen, via_friend, post_day, post_pos = np.full(n, -1), np.zeros(n, bool), np.full(n, -1), np.zeros(n, bool)   # 한 사람씩의 기록
     neg_seen, expo = np.zeros(n), np.zeros(n)
     wp, wn = np.zeros(n), np.zeros(n)            # 게시물의 남은 영향력(긍정·부정)
     seen = np.zeros(len(src), bool)              # 이 관계에서 추천을 본 적이 있나
@@ -57,7 +58,11 @@ def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.
         hit = u_edge < wp[src] * shortform * 0.5
         neg_seen += np.bincount(dst[1 - u_edge < wn[src] * shortform * 0.5], minlength=n)
         ex = u_ad < ad_reach
-        ex[dst[hit]] = True
+        fr = np.zeros(n, bool)
+        fr[dst[hit]] = True
+        ex |= fr
+        fresh = ex & (first_seen < 0)
+        first_seen[fresh], via_friend[fresh] = d, fr[fresh]
         out["exposed"][d] = ex.sum()
         seen |= hit
         expo += ex
@@ -83,6 +88,7 @@ def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.
         post = new[u_post[new] < np.minimum(1.0, np.asarray(post_rate)[new] * shortform)]
         good = u_sat[post] < np.asarray(satisfaction)[post]
         wp[post[good]], wn[post[~good]] = 1.0, 1.0
+        post_day[post], post_pos[post] = d, good
         if d < early:
             is_parent[post] = True
         out["pos"][d], out["neg"][d] = good.sum(), (~good).sum()
@@ -93,6 +99,7 @@ def simulate(intent, post_rate, satisfaction, nbrs, deg, *, days=28, ad_reach=0.
     out["n_star"] = float(kids[is_parent].sum() / (is_parent.sum() + 1))
     out["adopters"] = int(bought.sum())
     out["first_day"] = first_day
+    out["log"] = {"seen": first_seen, "friend": via_friend, "post": post_day, "pos": post_pos, "neg_seen": neg_seen}
     return out
 
 

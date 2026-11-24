@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>window.__resources={"https://unpkg.com/react@18.3.1/umd/react.production.min.js":"vendor/react.js","https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js":"vendor/react-dom.js"};</script>
+<title>칠성 미러마켓</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="ds/styles.css">
+
+<script src="data.js"></script>
+<script src="stage.js"></script>
+<style>
+@font-face{font-family:"Pretendard Variable";src:url(vendor/PretendardVariable.woff2) format("woff2");font-weight:45 920;font-display:swap}
+html,body{margin:0;background:#0a0a0a;overflow-x:hidden}
+body{word-break:keep-all;overflow-wrap:anywhere}
+body,button,input,select,textarea{font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif}
+h1,h2,h3,h4{font-family:inherit}
+a{color:#E60012;text-underline-offset:3px}a:hover{color:#b8000e}
+input[type=range]{accent-color:#E60012}
+@keyframes mmwait{from{opacity:.15}to{opacity:1}}@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;color:#111;background:#F3F2F2;letter-spacing:-0.005em">
+  <nav style="height:56px;flex:none;display:flex;align-items:stretch;gap:0;background:#0a0a0a;border-bottom:2px solid #2a2a2a;padding:0 clamp(12px,2vw,24px);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;margin-right:clamp(12px,3vw,40px);flex:none">
+      <span style="width:14px;height:14px;background:#E60012;display:block"></span>
+      <span style="color:#fff;font-weight:800;font-size:16px;letter-spacing:-0.02em;white-space:nowrap">칠성 미러마켓</span>
+    </div>
+    <div style="display:flex;align-items:stretch;gap:clamp(8px,2vw,28px);min-width:0;flex-wrap:nowrap">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+        <button onClick="{{ n.go }}" style="background:none;border:0;border-bottom:2px solid {{ n.bar }};margin-bottom:-2px;color:{{ n.color }};font-size:clamp(12px,1.1vw,15px);font-weight:600;padding:0 2px;cursor:pointer;white-space:nowrap" style-hover="color:#ffffff">{{ n.label }}</button>
+      </sc-for>
+    </div>
+    <a href="http://127.0.0.1:8518" target="_blank" rel="noopener" style="margin-left:auto;align-self:center;color:#a3a3a3;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="color:#ffffff">상세 도구</a>
+  </nav>
+
+  <section data-screen-label="실험" style="display:{{ expDisplay }};flex:1;flex-direction:column;background:#0a0a0a;color:#f2f2f2;min-height:calc(100vh - 56px)">
+    <div style="position:relative;flex:1;min-height:380px;overflow:hidden">
+      <canvas ref="{{ cv }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;outline:none;touch-action:none"></canvas>
+
+      <sc-if value="{{ showCounter }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:clamp(16px,2.4vw,32px);top:clamp(16px,2.4vw,28px);display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px 32px;pointer-events:none;max-width:calc(100% - 32px)">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:13px;font-weight:600;color:#a3a3a3">{{ counterKicker }}</div>
+            <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+              <span style="font-size:clamp(30px,3.4vw,48px);font-weight:800;letter-spacing:-0.03em;line-height:1">{{ counterN }}</span>
+              <span style="font-size:18px;font-weight:600;color:#d0d0d0">개 세상</span>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <sc-for list="{{ tallyList }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:7px;font-size:17px;font-weight:700">
+                  <span style="width:10px;height:10px;display:block;background:{{ t.color }};border-radius:{{ t.radius }};transform:{{ t.rot }}"></span>
+                  <span>{{ t.id }}</span><span style="color:#d0d0d0;font-weight:600">{{ t.count }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:2px">
+            <div style="font-size:12px;color:#a3a3a3">{{ leadLabel }}</div>
+            <svg width="240" height="56" viewBox="0 0 240 56" style="display:block;overflow:visible">
+              <line x1="0" y1="56" x2="240" y2="56" stroke="rgba(255,255,255,0.25)" stroke-width="1"></line>
+              <line x1="0" y1="0" x2="240" y2="0" stroke="rgba(255,255,255,0.1)" stroke-width="1"></line>
+              <path d="{{ bandPath }}" fill="rgba(255,255,255,0.16)"></path>
+              <path d="{{ linePath }}" fill="none" stroke="#ffffff" stroke-width="1.5"></path>
+            </svg>
+            <div style="font-size:13px;font-weight:600">{{ leadValue }}</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showSortAxis }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:clamp(16px,2.4vw,32px);right:clamp(16px,2.4vw,32px);bottom:14px;display:flex;justify-content:space-between;gap:12px;font-size:14px;font-weight:600;pointer-events:none;border-top:2px solid rgba(255,255,255,0.25);padding-top:8px">
+          <span>← {{ sortLo }}</span><span>{{ sortHi }} →</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hoverCard }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:{{ hoverCard.left }}px;top:{{ hoverCard.top }}px;width:290px;background:#111111;border:1px solid rgba(255,255,255,0.22);padding:14px 16px;display:flex;flex-direction:column;gap:10px;pointer-events:none;box-shadow:0 12px 32px rgba(0,0,0,0.5)">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="font-size:18px;font-weight:800">세상 #{{ hoverCard.num }}</span>
+            <span style="font-size:12px;color:#a3a3a3">{{ hoverCard.clarity }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700">
+            <span style="width:10px;height:10px;display:block;background:{{ hoverCard.wColor }};border-radius:{{ hoverCard.wRadius }};transform:{{ hoverCard.wRot }}"></span>{{ hoverCard.wName }} 승
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <sc-for list="{{ hoverCard.vals }}" as="v" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:46px 1fr 64px;align-items:center;gap:8px;font-size:13px">
+                <span style="font-weight:700">{{ v.id }}</span>
+                <span style="height:6px;background:rgba(255,255,255,0.1);display:block"><span style="display:block;height:6px;width:{{ v.w }}%;background:{{ v.color }}"></span></span>
+                <span style="text-align:right">{{ v.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:12px;color:#a3a3a3">이 세상에서 일어난 일 · 누적 구매경험률</div>
+            <svg width="256" height="64" viewBox="0 0 256 64" style="display:block">
+              <line x1="0" y1="63" x2="256" y2="63" stroke="rgba(255,255,255,0.25)"></line>
+              <sc-for list="{{ hoverCard.curves }}" as="c" hint-placeholder-count="3">
+                <path d="{{ c.d }}" fill="none" stroke="{{ c.color }}" stroke-width="1.6" stroke-dasharray="{{ c.dash }}"></path>
+              </sc-for>
+            </svg>
+            <sc-for list="{{ hoverCard.events }}" as="e" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:52px 1fr;gap:8px;font-size:13px"><span style="color:#a3a3a3">{{ e.d }}</span><span>{{ e.t }}</span></div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:12px;color:#a3a3a3">평균과 가장 다른 조건</div>
+            <sc-for list="{{ hoverCard.diffs }}" as="d" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>{{ d.label }}</span><span style="color:#a3a3a3">{{ d.pct }}</span></div>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;color:#ffffff;font-weight:600">{{ hoverCard.hint }}</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWorld }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:clamp(16px,2.4vw,32px);top:clamp(14px,2vw,22px);display:flex;flex-direction:column;gap:10px;max-width:calc(100% - 32px)">
+          <button onClick="{{ back }}" style="align-self:flex-start;display:flex;align-items:center;gap:8px;background:#f2f2f2;color:#0a0a0a;border:0;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer" style-hover="background:#ffffff">← 객석으로</button>
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <span style="font-size:clamp(22px,2.2vw,30px);font-weight:800;letter-spacing:-0.02em;white-space:nowrap">세상 #{{ worldNum }}</span>
+            <span style="font-size:15px;color:#d0d0d0">{{ worldSub }}</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ person }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;right:12px;top:12px;width:min(330px,calc(100% - 24px));background:#111111;border:1px solid rgba(255,255,255,0.22);padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <span style="font-size:18px;font-weight:800">사람 #{{ person.num }}</span>
+            <button onClick="{{ closePerson }}" aria-label="닫기" style="background:none;border:1px solid rgba(255,255,255,0.3);color:#f2f2f2;width:28px;height:28px;cursor:pointer;font-size:14px" style-hover="background:rgba(255,255,255,0.1)">✕</button>
+          </div>
+          <div style="font-size:15px;font-weight:600">{{ person.who }}</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px">
+            <span style="color:#a3a3a3">성향</span><span>{{ person.trait }}</span>
+            <span style="color:#a3a3a3">SNS 친구</span><span>{{ person.friends }}명</span>
+            <span style="color:#a3a3a3">살 수 있는 곳</span><span>{{ person.access }}</span>
+            <span style="color:#a3a3a3">처음 본 날</span><span>{{ person.seen }}</span>
+            <span style="color:#a3a3a3">산 날</span><span>{{ person.bought }}</span>
+            <span style="color:#a3a3a3">올린 글</span><span>{{ person.posted }}</span>
+          </div>
+          <div style="border-top:2px solid rgba(255,255,255,0.25);padding-top:10px;display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:12px;color:#a3a3a3">{{ person.whyLabel }}</span>
+            <span style="font-size:17px;font-weight:700;line-height:1.4">{{ person.why }}</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isConclusion }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:clamp(16px,2.4vw,32px);top:clamp(16px,2.4vw,28px);right:clamp(16px,2.4vw,32px);display:flex;flex-direction:column;gap:8px;pointer-events:none">
+          <div style="font-size:13px;font-weight:600;color:#a3a3a3">결론</div>
+          <div style="font-size:clamp(24px,2.8vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.22;max-width:1100px;text-wrap:pretty">{{ conclusionLine }}</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ table }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:0;right:0;bottom:0;width:min(660px,100%);background:#0f0f0f;border-left:2px solid rgba(255,255,255,0.25);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:2px solid rgba(255,255,255,0.25)">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:800">표로 보기</span><span style="font-size:12px;color:#a3a3a3">{{ tableSub }}</span></div>
+            <div style="display:flex;gap:6px">
+              <button onClick="{{ tablePrev }}" style="background:none;border:1px solid rgba(255,255,255,0.3);color:#f2f2f2;padding:6px 10px;cursor:pointer;font-size:13px" style-hover="background:rgba(255,255,255,0.1)">이전</button>
+              <button onClick="{{ tableNext }}" style="background:none;border:1px solid rgba(255,255,255,0.3);color:#f2f2f2;padding:6px 10px;cursor:pointer;font-size:13px" style-hover="background:rgba(255,255,255,0.1)">다음</button>
+              <button onClick="{{ toggleTable }}" aria-label="표 닫기" style="background:#f2f2f2;color:#0a0a0a;border:0;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:700">닫기</button>
+            </div>
+          </div>
+          <div style="overflow:auto;flex:1">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead><tr style="text-align:left;color:#a3a3a3;font-size:12px">
+                <th style="padding:8px 18px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">세상</th>
+                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">이긴 제품</th>
+                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">{{ tableMetric }}</th>
+                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">2등과 차이</th>
+                <th style="padding:8px 18px 8px 8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">가장 다른 조건</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="12">
+                  <tr tabIndex="0" onClick="{{ r.go }}" onKeyDown="{{ r.key }}" style="cursor:pointer" style-hover="background:rgba(255,255,255,0.06)">
+                    <td style="padding:7px 18px;border-bottom:1px solid rgba(255,255,255,0.1);font-weight:700">#{{ r.num }}</td>
+                    <td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.1)">{{ r.winner }}</td>
+                    <td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.1);color:#d0d0d0">{{ r.vals }}</td>
+                    <td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.1)">{{ r.margin }}</td>
+                    <td style="padding:7px 18px 7px 8px;border-bottom:1px solid rgba(255,255,255,0.1);color:#d0d0d0">{{ r.diff }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ showSetupBar }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative;flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:14px clamp(16px,2.4vw,32px) 16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px clamp(20px,3vw,44px)">
+        <div style="display:flex;flex-direction:column;gap:7px;min-width:0">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">비교할 제품 · {{ prodCount }} / 8</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ prodChips }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.toggle }}" aria-pressed="{{ p.on }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;background:{{ p.bg }};color:{{ p.fg }};border:1px solid {{ p.border }};font-size:14px;font-weight:700;cursor:pointer" style-hover="border-color:#ffffff">
+                <span style="width:10px;height:10px;display:block;background:{{ p.color }};border-radius:{{ p.radius }};transform:{{ p.rot }}"></span>{{ p.name }}
+              </button>
+            </sc-for>
+            <button onClick="{{ goConcept }}" style="height:38px;padding:0 12px;background:none;color:#d0d0d0;border:1px dashed rgba(255,255,255,0.35);font-size:14px;cursor:pointer" style-hover="color:#ffffff;border-color:#ffffff">+ 추가</button>
+          </div>
+        </div>
+        <div style="position:relative;display:flex;flex-direction:column;gap:7px;min-width:0">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">대상 소비자</div>
+          <button onClick="{{ toggleTarget }}" aria-expanded="{{ targetOpen }}" style="height:38px;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 12px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer;max-width:340px;text-align:left" style-hover="border-color:#ffffff">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ targetLabel }}</span><span style="color:#a3a3a3">▾</span>
+          </button>
+          <div style="font-size:13px;color:#d0d0d0">{{ popLine }}</div>
+          <sc-if value="{{ targetOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:0;bottom:calc(100% + 12px);width:min(520px,calc(100vw - 32px));background:#111111;border:1px solid rgba(255,255,255,0.25);padding:16px;display:flex;flex-direction:column;gap:14px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,0.5)">
+              <sc-for list="{{ segGroups }}" as="g" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <span style="font-size:12px;color:#a3a3a3;font-weight:600">{{ g.label }}</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="5">
+                      <button onClick="{{ it.toggle }}" aria-pressed="{{ it.on }}" style="height:34px;padding:0 12px;background:{{ it.bg }};color:{{ it.fg }};border:1px solid rgba(255,255,255,0.35);font-size:13px;font-weight:600;cursor:pointer">{{ it.id }}</button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:2px solid rgba(255,255,255,0.2);padding-top:12px">
+                <span style="font-size:13px;color:#d0d0d0">{{ popLine }}</span>
+                <div style="display:flex;gap:6px">
+                  <button onClick="{{ selectAll }}" style="height:32px;padding:0 12px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:13px;cursor:pointer">전체</button>
+                  <button onClick="{{ toggleTarget }}" style="height:32px;padding:0 12px;background:#f2f2f2;color:#0a0a0a;border:0;font-size:13px;font-weight:700;cursor:pointer">확인</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">세상 개수</div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
+            <sc-for list="{{ nOpts }}" as="o" hint-placeholder-count="4">
+              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <button onClick="{{ run }}" disabled="{{ running }}" style="height:46px;min-width:180px;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 18px;background:#E60012;color:#ffffff;border:0;font-size:16px;font-weight:800;cursor:pointer;margin-left:auto" style-hover="background:#c4000f">
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 1 L13 7 L2 13 Z" fill="#ffffff"></path></svg>{{ runLabel }}
+        </button>
+        <sc-if value="{{ runErr }}" hint-placeholder-val="{{ false }}"><div style="flex-basis:100%;font-size:14px;font-weight:600;color:#ff8a8a">{{ runErr }}</div></sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showExploreBar }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:12px clamp(16px,2.4vw,32px);display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px clamp(16px,2.4vw,32px)">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">보기</div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
+            <sc-for list="{{ viewOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="sortSel" style="font-size:12px;color:#a3a3a3;font-weight:600">자리 배치</label>
+          <select id="sortSel" value="{{ sort }}" onChange="{{ pickSort }}" disabled="{{ sortDisabled }}" style="height:38px;background:#0a0a0a;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);border-radius:0;padding:0 10px;font-size:14px;min-width:160px">
+            <option value="">계산 순서</option>
+            <sc-for list="{{ condOpts }}" as="c" hint-placeholder-count="11"><option value="{{ c }}">{{ c }} 순</option></sc-for>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">이긴 기준</div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
+            <sc-for list="{{ metricOpts }}" as="o" hint-placeholder-count="2">
+              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#a3a3a3;line-height:1.5;max-width:260px;padding-bottom:2px">{{ exploreHint }}</div>
+        <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button onClick="{{ toggleTable }}" style="height:38px;padding:0 14px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,0.08)">표로 보기</button>
+          <button onClick="{{ resetRun }}" style="height:38px;padding:0 14px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,0.08)">다시 설정</button>
+          <button onClick="{{ conclude }}" style="height:38px;min-width:150px;display:flex;align-items:center;justify-content:flex-start;padding:0 14px;background:#E60012;color:#ffffff;border:0;font-size:14px;font-weight:800;cursor:pointer" style-hover="background:#c4000f">결론 보기 →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isWorld }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:12px clamp(16px,2.4vw,32px);display:flex;flex-wrap:wrap;align-items:center;gap:14px clamp(16px,2.4vw,36px)">
+        <div style="display:flex;align-items:center;gap:12px;flex:1 1 320px;min-width:0">
+          <button onClick="{{ togglePlay }}" aria-label="{{ playLabel }}" style="width:42px;height:42px;flex:none;background:#f2f2f2;color:#0a0a0a;border:0;cursor:pointer;font-size:15px;font-weight:800" style-hover="background:#ffffff">{{ playIcon }}</button>
+          <input type="range" min="1" max="28" step="1" value="{{ day }}" onChange="{{ pickDay }}" aria-label="날짜" style="flex:1;min-width:80px">
+          <span style="font-size:16px;font-weight:800;min-width:56px">{{ dayText }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:auto auto auto;gap:3px 14px;font-size:13px;align-items:center">
+          <span></span><span style="color:#a3a3a3;font-size:12px">{{ legendA }}</span><span style="color:#a3a3a3;font-size:12px">{{ legendB }}</span>
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+            <span style="display:flex;align-items:center;gap:8px"><span style="width:11px;height:11px;display:block;flex:none;background:{{ l.fill }};border:{{ l.border }};border-radius:{{ l.radius }};box-shadow:{{ l.shadow }}"></span>{{ l.label }}</span>
+            <span style="font-weight:700">{{ l.a }}</span><span style="font-weight:700;color:#d0d0d0">{{ l.b }}</span>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">같은 세상에서 다른 제품을 냈다면</div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
+            <sc-for list="{{ compareOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:13px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isConclusion }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:16px clamp(16px,2.4vw,32px) 20px;display:flex;flex-direction:column;gap:14px">
+        <div style="overflow-x:auto">
+          <div style="min-width:760px;display:grid;grid-template-columns:150px minmax(200px,1.6fr) 110px 150px minmax(180px,1.4fr);font-size:14px">
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">제품</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">{{ sumHead }} · 중앙값과 90% 범위</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">1등 비율</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">나쁜 세상에서 손실</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">지는 세상들의 공통점</span>
+            <sc-for list="{{ sumRows }}" as="s" hint-placeholder-count="3">
+              <span style="display:flex;align-items:center;gap:8px;font-weight:700;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.12)"><span style="width:10px;height:10px;display:block;background:{{ s.color }};border-radius:{{ s.radius }};transform:{{ s.rot }}"></span>{{ s.name }}</span>
+              <span style="display:flex;align-items:center;gap:12px;padding:10px 16px 10px 0;border-bottom:1px solid rgba(255,255,255,0.12)">
+                <span style="font-weight:700;min-width:52px">{{ s.median }}</span>
+                <span style="position:relative;flex:1;height:14px;display:block;border-left:1px solid rgba(255,255,255,0.25)">
+                  <span style="position:absolute;top:6px;height:2px;left:{{ s.lo }}%;width:{{ s.w }}%;background:{{ s.barColor }};display:block"></span>
+                  <span style="position:absolute;top:1px;height:12px;width:3px;left:{{ s.mid }}%;background:{{ s.barColor }};display:block"></span>
+                </span>
+                <span style="color:#d0d0d0;min-width:92px;font-size:13px">{{ s.range }}</span>
+              </span>
+              <span style="font-weight:800;font-size:16px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.12)">{{ s.share }}</span>
+              <span style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.12);color:#d0d0d0">{{ s.regret }}</span>
+              <span style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.12);color:#d0d0d0">{{ s.lose }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:#ffffff"><span style="background:#E60012;color:#fff;font-size:12px;font-weight:800;padding:3px 8px">주의</span>계산한 세상 중의 비율이며, 실제로 성공할 확률이 아닙니다.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{ toggleEvid }}" aria-expanded="{{ evid }}" style="height:38px;padding:0 14px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,0.08)">{{ evidLabel }}</button>
+            <button onClick="{{ backToExplore }}" style="height:38px;padding:0 14px;background:#f2f2f2;color:#0a0a0a;border:0;font-size:14px;font-weight:700;cursor:pointer">객석으로</button>
+          </div>
+        </div>
+        <sc-if value="{{ evid }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));border-top:2px solid rgba(255,255,255,0.25)">
+            <div style="padding:14px 20px 4px 0;display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:15px;font-weight:800">구매의향 보정</span>
+              <sc-for list="{{ evidFunnel }}" as="f" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span style="color:#d0d0d0">{{ f.name }}</span><span>{{ f.steps }}</span></div></sc-for>
+              <span style="font-size:12px;color:#a3a3a3">5점 중 4~5점 응답 → 불성실 응답 제외 → 인구 구성 가중. 쥬시모먼트는 유도 문항만큼 더 깎음</span>
+            </div>
+            <div style="padding:14px 20px 4px;border-left:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:15px;font-weight:800">살 수 있는 점포 비율</span>
+              <sc-for list="{{ evidStore }}" as="f" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span style="color:#d0d0d0">{{ f.name }}</span><span>{{ f.v }}</span></div></sc-for>
+              <span style="font-size:12px;color:#a3a3a3">채널 비중 × 냉동·냉장 인프라 × 입점률 가정</span>
+            </div>
+            <div style="padding:14px 0 4px 20px;border-left:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:15px;font-weight:800">과거 실적 환산</span>
+              <sc-for list="{{ evidConv }}" as="f" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span style="color:#d0d0d0">{{ f.name }}</span><span>{{ f.v }}</span></div></sc-for>
+              <span style="font-size:12px;color:#a3a3a3">의향이 실제 구매로 이어진 비율. 과거 출시 5개 제품으로 환산(가상 데이터)</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </section>
+
+  <sc-if value="{{ isVerify }}" hint-placeholder-val="{{ false }}">
+    <section data-screen-label="신제품 검증" style="flex:1;background:#F3F2F2;color:#111">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">후보 3개 · 대회 제공 가상 데이터</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">신제품 검증</span></div>
+        </div>
+
+        <sc-if value="{{ vBasic }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:48px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));border-top:2px solid #111;border-left:2px solid #111">
+              <sc-for list="{{ vCards }}" as="c" hint-placeholder-count="3">
+                <button onClick="{{ c.pick }}" aria-pressed="{{ c.on }}" style="text-align:left;background:{{ c.bg }};color:{{ c.fg }};border:0;border-right:2px solid #111;border-bottom:2px solid #111;padding:22px 22px 24px;display:flex;flex-direction:column;gap:14px;cursor:pointer" style-hover="background:{{ c.hover }}">
+                  <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700"><span style="width:10px;height:10px;display:block;background:{{ c.color }};border:1px solid #111;border-radius:{{ c.radius }};transform:{{ c.rot }}"></span>{{ c.name }}</span>
+                  <span style="font-size:22px;font-weight:800;letter-spacing:-0.02em">{{ c.concept }}</span>
+                  <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:44px;font-weight:800;letter-spacing:-0.03em;line-height:1">{{ c.final }}</span><span style="font-size:14px">12개월 구매경험률</span></span>
+                  <span style="font-size:13px;opacity:0.8">구매의향 {{ c.raw }} → 보정 {{ c.adj }} → 점포 {{ c.store }} → 전환 {{ c.conv }}</span>
+                  <span style="font-size:13px;opacity:0.8">90% 범위 {{ c.range }} · 제시 가격을 낸다는 사람 {{ c.pay }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:40px">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매의향 보정 · {{ vName }}</span><span style="font-size:13px;color:#555">단계별</span></div>
+                <sc-for list="{{ vFlow }}" as="f" hint-placeholder-count="5">
+                  <div style="display:grid;grid-template-columns:120px 1fr 64px;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
+                    <span style="font-size:14px;font-weight:700">{{ f.label }}</span>
+                    <span style="display:flex;flex-direction:column;gap:4px"><span style="height:14px;background:rgba(17,17,17,0.08);display:block"><span style="display:block;height:14px;width:{{ f.w }}%;background:{{ f.color }}"></span></span><span style="font-size:12px;color:#555">{{ f.note }}</span></span>
+                    <span style="font-size:16px;font-weight:800;text-align:right">{{ f.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">가정 조절</span><button onClick="{{ resetAssume }}" style="background:none;border:0;color:#b8000e;font-size:13px;font-weight:700;cursor:pointer;padding:0">처음 값</button></div>
+                <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:700">살 수 있는 점포 비율</span><span style="font-weight:800">{{ vStoreText }}</span></div><input type="range" min="0.05" max="1" step="0.01" value="{{ vStore }}" onChange="{{ setStore }}" aria-label="살 수 있는 점포 비율"></div>
+                <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:700">말-행동 전환율</span><span style="font-weight:800">{{ vConvText }}</span></div><input type="range" min="0.1" max="0.4" step="0.01" value="{{ vConv }}" onChange="{{ setConv }}" aria-label="말-행동 전환율"></div>
+                <div style="font-size:13px;color:#555;line-height:1.6">바꾼 값은 이 화면의 구매경험률에만 반영됩니다. 점포 비율 가정의 근거: {{ vWhy }}</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:40px">
+              <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid #111;padding-bottom:10px">
+                  <span style="font-size:20px;font-weight:800">데이터에서 찾은 문제 {{ issueCount }}건</span>
+                  <div style="display:flex;border:1px solid #111"><sc-for list="{{ issueFilters }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="height:30px;padding:0 10px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid #111;font-size:12px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
+                </div>
+                <div style="max-height:420px;overflow:auto">
+                  <sc-for list="{{ issues }}" as="i" hint-placeholder-count="8">
+                    <div style="display:grid;grid-template-columns:44px 74px 1fr 60px;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px">
+                      <span style="font-size:12px;font-weight:700;color:{{ i.sevColor }}">{{ i.sev }}</span><span style="font-size:12px;color:#555">{{ i.area }}</span><span>{{ i.text }}</span><span style="font-size:12px;text-align:right;color:{{ i.stColor }}">{{ i.status }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">검토 이력</span></div>
+                <div style="display:flex;gap:8px"><input value="{{ memo }}" onChange="{{ setMemo }}" aria-label="검토 메모" placeholder="검토 메모" style="flex:1;min-width:0;height:38px;padding:0 12px;border:1px solid rgba(17,17,17,0.4);background:#fff;font-size:14px;border-radius:0"><button onClick="{{ saveMemo }}" style="height:38px;padding:0 14px;background:#111;color:#fff;border:0;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">지금 결과 저장</button></div>
+                <sc-if value="{{ noReviews }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#555">아직 저장한 검토가 없습니다.</span></sc-if>
+                <sc-for list="{{ reviews }}" as="r" hint-placeholder-count="5">
+                  <div style="display:grid;grid-template-columns:96px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
+                    <span style="font-size:13px;color:#555">{{ r.t }}</span>
+                    <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:700">{{ r.who }}</span><span style="font-size:14px">{{ r.text }}</span></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        
+        
+        
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isReact }}" hint-placeholder-val="{{ false }}">
+    <section data-screen-label="소비자 반응" style="flex:1;background:#F3F2F2;color:#111">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">{{ rHead }}</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">소비자 반응</span></div>
+        </div>
+        <sc-if value="{{ rLoading }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px;font-weight:700">{{ rLoading }}</span></sc-if>
+        <sc-if value="{{ rBasic }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:48px">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:20px;font-weight:800">최근 글 흐름</span><span style="font-size:14px">28일 동안 {{ rTotal }}건 · 11월 22일부터 모아 최근 글이 많아 보임</span></div>
+              <div style="display:flex;align-items:flex-end;gap:3px;height:140px;border-bottom:2px solid #111">
+                <sc-for list="{{ rDaily }}" as="d" hint-placeholder-count="28"><span title="{{ d.t }}" style="flex:1;height:{{ d.h }}%;background:{{ d.c }};display:block"></span></sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#555"><span>28일 전</span><span>오늘</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">모은 글</span><span style="font-size:14px">{{ pHead }}</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pChannels }}" as="o" hint-placeholder-count="6"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:1px solid #111;font-size:13px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center">
+                <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pCons }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:1px solid #111;font-size:13px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pSorts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:1px solid #111;font-size:13px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
+                <input value="{{ pQ }}" onChange="{{ setPQ }}" aria-label="글에서 찾기" placeholder="글에서 찾기" style="flex:1;min-width:160px;height:34px;padding:0 12px;border:1px solid #111;background:#fff;font-size:14px;border-radius:0">
+              </div>
+              <sc-if value="{{ pErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#b8000e">{{ pErr }}</span></sc-if>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));border-top:1px solid rgba(17,17,17,0.2);border-left:1px solid rgba(17,17,17,0.2)">
+                <sc-for list="{{ pRows }}" as="p" hint-placeholder-count="9">
+                  <a href="{{ p.url }}" target="_blank" rel="noopener noreferrer" style="display:flex;flex-direction:column;gap:10px;padding:16px;border-right:1px solid rgba(17,17,17,0.2);border-bottom:1px solid rgba(17,17,17,0.2);color:#111;text-decoration:none;min-width:0" style-hover="background:rgba(17,17,17,0.05)">
+                    <sc-if value="{{ p.thumb }}" hint-placeholder-val="{{ false }}"><img src="{{ p.thumb }}" alt="" loading="lazy" referrerPolicy="no-referrer" onError="{{ p.hide }}" style="width:100%;height:170px;object-fit:cover;display:block;background:#ddd"></sc-if>
+                    <span style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#555"><span style="font-weight:700;color:#111">{{ p.ch }}</span><span>{{ p.at }}</span></span>
+                    <span style="font-size:15px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden">{{ p.text }}</span>
+                    <span style="margin-top:auto;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px"><span style="color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">{{ p.who }}</span><span style="font-weight:700">{{ p.nums }}</span></span>
+                  </a>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ pPrev }}" style="height:38px;padding:0 16px;background:none;border:1px solid #111;font-size:14px;font-weight:700;cursor:pointer">이전</button><span style="font-size:14px">{{ pPage }}</span><button onClick="{{ pNext }}" style="height:38px;padding:0 16px;background:none;border:1px solid #111;font-size:14px;font-weight:700;cursor:pointer">다음</button></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">관측 지도</span><button onClick="{{ toggleObs }}" style="background:none;border:0;color:#b8000e;font-size:14px;font-weight:700;cursor:pointer;padding:0">{{ obsLabel }}</button></div>
+              <sc-if value="{{ obs }}" hint-placeholder-val="{{ false }}"><iframe src="/observe" title="관측 지도" style="width:100%;height:1400px;border:1px solid rgba(17,17,17,0.3);background:#fff"></iframe></sc-if>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">뜨는 음식 · 테마</span><span style="font-size:13px;color:#555">작성자 3명 이상, 최근 글 3건 이상</span></div>
+              <sc-for list="{{ rTrend }}" as="t" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 104px 80px 90px auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px">
+                  <span style="font-weight:800">{{ t.rank }}</span>
+                  <span style="display:flex;align-items:baseline;gap:8px;min-width:0"><span style="font-size:16px;font-weight:800">{{ t.name }}</span><span style="font-size:12px;color:#555">{{ t.kind }}</span></span>
+                  <span style="font-weight:700;color:{{ t.cColor }}">{{ t.change }}</span>
+                  <span style="color:#333">{{ t.posts }}건</span>
+                  <span style="color:#555">작성자 {{ t.authors }}</span>
+                  <button onClick="{{ t.go }}" style="height:32px;padding:0 12px;background:none;color:#111;border:1px solid #111;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#111;color:#fff">새 컨셉으로 만들기</button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));border-top:2px solid #111;border-left:2px solid #111">
+              <sc-for list="{{ rProducts }}" as="p" hint-placeholder-count="3">
+                <div style="border-right:2px solid #111;border-bottom:2px solid #111;padding:20px;display:flex;flex-direction:column;gap:12px">
+                  <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700"><span style="width:10px;height:10px;display:block;background:{{ p.color }};border:1px solid #111;border-radius:{{ p.radius }};transform:{{ p.rot }}"></span>{{ p.name }} · 직접 관련 글 {{ p.posts }}건 (최근 30일 {{ p.recent }}건, {{ p.verdict }})</span>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#555;font-weight:600">언급된 걱정</span><sc-for list="{{ p.worries }}" as="w" hint-placeholder-count="2"><span style="font-size:16px;font-weight:700">{{ w }}</span></sc-for></div>
+                  <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid rgba(17,17,17,0.2);padding-top:10px"><sc-for list="{{ p.quotes }}" as="q" hint-placeholder-count="2"><span style="font-size:14px;line-height:1.5">“{{ q.t }}” <span style="font-size:12px;color:#555">· {{ q.s }}</span></span></sc-for></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">수집 상태</span></div>
+              <sc-for list="{{ rChannels }}" as="c" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:1fr 110px 90px;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px"><span style="font-weight:700">{{ c.name }}</span><span style="font-weight:700;color:{{ c.color }}">{{ c.status }}</span><span style="text-align:right">{{ c.n }}건</span></div>
+              </sc-for>
+              <span style="font-size:13px;color:#555;margin-top:10px;line-height:1.6">낱말 규칙으로 찾은 글이라 관련 없는 글이 절반쯤 섞여 있습니다(43건을 읽어 보니 47%만 진짜). 반응량은 예측에 넣지 않습니다.</span>
+            </div>
+          </div>
+        </sc-if>
+        
+        
+        
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isConcept }}" hint-placeholder-val="{{ false }}">
+    <section data-screen-label="새 컨셉" style="flex:1;background:#F3F2F2;color:#111">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">컨셉 한 장 → 보고서</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">새 컨셉</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:48px">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">컨셉 한 장</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><label for="cName" style="font-size:13px;font-weight:600;color:#333">제품 이름</label><input id="cName" value="{{ cName }}" onChange="{{ setCName }}" disabled="{{ cLocked }}" style="height:44px;padding:0 12px;border:1px solid rgba(17,17,17,0.4);background:#fff;font-size:16px;border-radius:0"></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><label for="cDesc" style="font-size:13px;font-weight:600;color:#333">한 줄 설명</label><textarea id="cDesc" value="{{ cDesc }}" onChange="{{ setCDesc }}" disabled="{{ cLocked }}" rows="3" style="padding:10px 12px;border:1px solid rgba(17,17,17,0.4);background:#fff;font-size:15px;line-height:1.5;border-radius:0;resize:vertical"></textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px"><label for="cPrice" style="font-size:13px;font-weight:600;color:#333">가격</label><input id="cPrice" value="{{ cPrice }}" onChange="{{ setCPrice }}" disabled="{{ cLocked }}" style="height:44px;padding:0 12px;border:1px solid rgba(17,17,17,0.4);background:#fff;font-size:16px;border-radius:0"></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><label for="cTarget" style="font-size:13px;font-weight:600;color:#333">주 대상</label><input id="cTarget" value="{{ cTarget }}" onChange="{{ setCTarget }}" disabled="{{ cLocked }}" style="height:44px;padding:0 12px;border:1px solid rgba(17,17,17,0.4);background:#fff;font-size:16px;border-radius:0"></div>
+            </div>
+            <button onClick="{{ cStart }}" disabled="{{ cLocked }}" style="align-self:flex-start;height:46px;min-width:200px;display:flex;align-items:center;padding:0 18px;background:#E60012;color:#fff;border:0;font-size:16px;font-weight:800;cursor:pointer" style-hover="background:#c4000f">{{ cStartLabel }}</button>
+            <span style="font-size:13px;color:#555;line-height:1.6">가상 소비자 인터뷰 단계에서 적은 내용과 합성 인물의 특성이 외부 AI(Gemini)로 전송됩니다. 대회에서 받은 컨셉은 보내지 않습니다.</span>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <div style="border-bottom:2px solid #111;padding-bottom:10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:20px;font-weight:800">진행</span><span style="font-size:13px;color:#555">{{ cProgressText }}</span></div>
+            <sc-for list="{{ cSteps }}" as="s" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:28px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
+                <span style="font-size:15px;font-weight:800;color:{{ s.color }}">{{ s.mark }}</span>
+                <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:16px;font-weight:700;color:{{ s.color }}">{{ s.label }}</span><span style="font-size:13px;color:{{ s.color }};font-weight:600">{{ s.status }}</span></div>
+                  <sc-if value="{{ s.active }}" hint-placeholder-val="{{ false }}"><span style="height:4px;background:rgba(17,17,17,0.1);display:block;overflow:hidden"><span style="display:block;height:4px;width:100%;background:#111;animation:mmwait 1.2s ease-in-out infinite alternate"></span></span></sc-if>
+                  <sc-if value="{{ s.result }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;line-height:1.55;color:#333">{{ s.result }}</span></sc-if>
+                  <sc-if value="{{ s.failed }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;line-height:1.55;color:#b8000e">{{ s.failed }}</span></div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isEvid }}" hint-placeholder-val="{{ false }}">
+    <section data-screen-label="근거" style="flex:1;background:#F3F2F2;color:#111">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">식품소비행태조사 2025 + 대회 제공 가상 데이터</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">근거</span></div>
+        </div>
+        <sc-if value="{{ eBasic }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:48px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border-top:2px solid #111;border-left:2px solid #111">
+              <sc-for list="{{ eStats }}" as="s" hint-placeholder-count="4">
+                <div style="border-right:2px solid #111;border-bottom:2px solid #111;padding:20px;display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600;color:#333">{{ s.label }}</span><span style="font-size:36px;font-weight:800;letter-spacing:-0.03em;line-height:1.1">{{ s.v }}</span><span style="font-size:13px;color:#555">{{ s.note }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:40px">
+              <div style="display:flex;flex-direction:column">
+                <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">집단별 표본과 오차</span></div>
+                <sc-for list="{{ eSegs }}" as="s" hint-placeholder-count="7">
+                  <div style="display:grid;grid-template-columns:1fr 90px 80px;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px"><span style="font-weight:700">{{ s.id }}</span><span style="text-align:right">{{ s.n }}명</span><span style="text-align:right;font-weight:700;color:{{ s.color }}">±{{ s.m }}%p</span></div>
+                </sc-for>
+                <span style="font-size:13px;color:#555;margin-top:10px;line-height:1.6">오차는 유효 표본 기준 95% 범위입니다. ±5%p를 넘는 집단은 빨간색으로 표시합니다.</span>
+              </div>
+              <div style="display:flex;flex-direction:column;min-width:0">
+                <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">검증 결과</span></div>
+                <sc-for list="{{ eVal }}" as="v" hint-placeholder-count="6">
+                  <div style="display:flex;flex-direction:column;gap:4px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
+                    <span style="font-size:15px;font-weight:700">{{ v.name }}</span>
+                    <span style="display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px"><span>모형 {{ v.model }}</span><span style="color:#555">기준 {{ v.base }}</span></span>
+                    <span style="font-size:13px;color:#b8000e;font-weight:600">{{ v.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border-top:2px solid #111;padding-top:16px;font-size:14px;line-height:1.7;max-width:820px;color:#333">가상 소비자는 독립 표본이 아니므로 범위는 계산 안의 불확실성입니다. 규칙 기반 계수는 가정값이며, 과거 출시 제품으로 보정해야 실제 예측력을 말할 수 있습니다.</div>
+          </div>
+        </sc-if>
+        
+        
+        
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'exp', scene: 'setup', ready: false,
+    sel: { products: ['화채', '프리즈', '쥬시'], age: ['20대', '30대', '40대', '50대'], sex: ['여자', '남자'], region: ['수도권', '중부', '영남', '호남·제주'] },
+    n: 1500, targetOpen: false, prog: null, view: 'theater', sort: '', metric: 'buy', hover: null, table: false, tablePage: 0,
+    world: null, dayInfo: null, person: null, compare: null, evid: false, theme: '',
+    vSt: '기본', vProd: '화채', memo: '', R: null, rErr: '', runErr: '', calc: 0, job: null, cErr: '', assume: {}, issueFilter: '전체', rSt: '기본', cSt: '입력', cStep: 0, cPct: 0, eSt: '기본',
+    cName: '', cDesc: '', cPrice: '', cTarget: ''
+  };
+  cv = React.createRef();
+  componentDidMount() {
+    const go = () => { if (!window.DATA && window.BOOT && window.BOOT.error !== this._be) { this._be = window.BOOT.error; this.forceUpdate(); }
+      if (!window.TheaterStage || !window.DATA || !this.cv.current) { this._t = setTimeout(go, 40); return; } this.init(); };
+    go();
+  }
+  componentDidCatch(e) { console.error('DC error: ' + (e && e.message)); }
+  componentWillUnmount() { clearTimeout(this._t); this.stage && this.stage.destroy(); }
+  init() {
+    const c = this.cv.current; c.tabIndex = 0; c.setAttribute('role', 'application');
+    c.setAttribute('aria-label', '객석. 화살표 키로 좌석을 옮기고 Enter로 그 세상에 들어갑니다. 같은 내용은 표로 보기에서 볼 수 있습니다.');
+    try { this._init2(c); } catch (e) { console.error('init failed: ' + e.message + ' ' + e.stack); }
+  }
+  _init2(c) {
+    this.stage = window.__stage = new window.TheaterStage(c, {
+      data: window.DATA,
+      onProgress: p => this.setState(s => ({ prog: p, scene: p.done && s.scene === 'running' ? 'explore' : s.scene })),
+      onHover: h => this.setState({ hover: h }),
+      onSelect: i => this.enter(i),
+      onEnter: w => this.setState({ scene: 'world', world: w, hover: null, person: null, compare: null, table: false }),
+      onDay: d => this.setState({ dayInfo: d }),
+      onPerson: p => this.setState({ person: p }),
+      onExit: () => this.back()
+    });
+    this.applySel(); this.setState({ ready: true });
+  }
+  syncInsets(s) {
+    if (!this.stage) return;
+    {
+      const mob = window.innerWidth < 700, ins = { top: 0, right: 0, bottom: 0, left: 0 };
+      if (s.scene === 'world') { ins.top = mob ? 120 : 100; ins.right = s.person && !mob ? 350 : 0; }
+      else if (s.scene === 'conclusion') { ins.top = mob ? 190 : 150; ins.bottom = 6; }
+      else if (s.view !== 'theater') { ins.top = mob ? 190 : 150; ins.bottom = 12; ins.right = s.table && !mob ? 660 : 0; }
+      const key = JSON.stringify(ins); if (key !== this._insKey) { this._insKey = key; this.stage.setInsets(ins); }
+    }
+  }
+  applySel() { if (!this.stage) return; const sel = this.state.sel; this.stage.setProducts(sel.products); this.stage.setMods(window.MM.modifiers(sel)); }
+  enter(i) { const sc = this.state.scene; if (!this.stage || !(sc === 'explore' || sc === 'conclusion')) return; this.setState({ table: false, runErr: '' });
+    const pid = window.DATA.products[this.stage.win[i]].id; if (this._busy) return; this._busy = true;
+    window.MM.loadSociety(i, pid).then(() => this.stage.enterWorld(i)).catch(e => this.setState({ runErr: e.message })).finally(() => { this._busy = false; }); }
+  back() { if (!this.stage) return; this.stage.exitWorld(); this.setState({ scene: 'explore', person: null, compare: null, view: this.stage.view }); }
+  fmt(v) { return this.state.metric === 'rev' ? Math.round(v).toLocaleString() + '원' : (v * 100).toFixed(1) + '%'; }
+  glyph(p) { return { color: p.color, radius: p.shape === 'circle' ? '50%' : '0', rot: p.shape === 'diamond' ? 'rotate(45deg) scale(0.85)' : 'none' }; }
+  seg(opts, cur, pick, dark) {
+    return opts.map(o => { const v = typeof o === 'object' ? o.v : o, label = typeof o === 'object' ? o.l : o, on = v === cur; return { label, on, pick: () => pick(v), bg: on ? (dark ? '#f2f2f2' : '#111') : 'transparent', fg: on ? (dark ? '#0a0a0a' : '#fff') : (dark ? '#f2f2f2' : '#111') }; });
+  }
+  renderVals() {
+    const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM);
+    const P = ready ? D.products : [], pById = id => P.find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
+    const go = scr => () => { this.setState({ screen: scr, targetOpen: false }); window.scrollTo(0, 0); };
+    const navDefs = [['verify', '신제품 검증'], ['exp', '실험'], ['react', '소비자 반응'], ['concept', '새 컨셉'], ['evid', '근거']];
+    const out = {
+      cv: this.cv,
+      navItems: navDefs.map(([id, label]) => ({ label, go: go(id), color: s.screen === id ? '#ffffff' : '#a3a3a3', bar: s.screen === id ? '#E60012' : 'transparent' })),
+      expDisplay: s.screen === 'exp' ? 'flex' : 'none',
+      isVerify: s.screen === 'verify', isReact: s.screen === 'react', isConcept: s.screen === 'concept', isEvid: s.screen === 'evid',
+      goConcept: go('concept'), goExp: go('exp'), theme: s.theme
+    };
+    const sc = s.scene;
+    out.isSetup = sc === 'setup'; out.isWorld = sc === 'world'; out.isConclusion = sc === 'conclusion';
+    out.showSetupBar = sc === 'setup' || sc === 'running'; out.showExploreBar = sc === 'explore';
+    out.running = sc === 'running'; out.runLabel = sc !== 'running' ? (ready ? '실행' : '준비 중') : s.calc >= 0 ? `계산 중 ${s.calc.toLocaleString()} / ${s.n.toLocaleString()}` : '세상을 만드는 중';
+
+    // 설정 막대
+    out.prodCount = s.sel.products.length;
+    out.prodChips = P.map(p => { const on = s.sel.products.includes(p.id); return Object.assign(this.glyph(p), { name: p.name, on, bg: on ? 'rgba(255,255,255,0.06)' : 'transparent', fg: on ? '#ffffff' : '#7a7a7a', border: on ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', toggle: () => { if (sc !== 'setup') return; const cur = s.sel.products; const next = on ? (cur.length > 2 ? cur.filter(x => x !== p.id) : cur) : cur.concat(p.id); this.setState({ sel: Object.assign({}, s.sel, { products: P.map(x => x.id).filter(x => next.includes(x)) }) }, () => this.applySel()); } }); });
+    const segLabels = { age: '연령', sex: '성별', region: '지역' };
+    out.segGroups = ready ? ['age', 'sex', 'region'].map(g => ({ label: segLabels[g], items: D.segments[g].map(x => { const on = s.sel[g].includes(x.id); return { id: x.id, on, bg: on ? '#f2f2f2' : 'transparent', fg: on ? '#0a0a0a' : '#d0d0d0', toggle: () => { const cur = s.sel[g]; const next = on ? (cur.length > 1 ? cur.filter(v => v !== x.id) : cur) : cur.concat(x.id); this.setState({ sel: Object.assign({}, s.sel, { [g]: D.segments[g].map(v => v.id).filter(v => next.includes(v)) }) }, () => this.applySel()); } }; }) })) : [];
+    const allSel = ready && ['age', 'sex', 'region'].every(g => s.sel[g].length === D.segments[g].length);
+    out.targetLabel = allSel ? '19~59세 전체' : ['age', 'sex', 'region'].map(g => ready && s.sel[g].length === D.segments[g].length ? (g === 'age' ? '전 연령' : g === 'sex' ? '남녀' : '전국') : s.sel[g].join('·')).join(' · ');
+    const pop = ready ? MM.population(s.sel) : { people: 0, respondents: 0, margin: 0 };
+    out.popLine = `대표 인구 ${Math.round(pop.people / 1e4).toLocaleString()}만 명 · 실제 응답자 ${pop.respondents.toLocaleString()}명 · 사람 표본 오차 ±${pop.margin.toFixed(1)}%p · 구매의향(패널) ±${ready ? D.evidence.panel.margin.toFixed(1) : 0}%p`;
+    out.targetOpen = s.targetOpen; out.toggleTarget = () => this.setState({ targetOpen: !s.targetOpen });
+    out.selectAll = () => this.setState({ sel: Object.assign({}, s.sel, { age: D.segments.age.map(x => x.id), sex: D.segments.sex.map(x => x.id), region: D.segments.region.map(x => x.id) }) }, () => this.applySel());
+    out.nOpts = this.seg([{ v: 200, l: '200' }, { v: 500, l: '500' }, { v: 1000, l: '1,000' }, { v: 1500, l: '1,500' }], s.n, v => { if (sc === 'setup') this.setState({ n: v }); }, true);
+    out.runErr = s.runErr || (!ready && window.BOOT && window.BOOT.error ? '서버를 기다리는 중 · ' + window.BOOT.error : '');
+    out.run = async () => {
+      if (!this.stage || sc !== 'setup') return;
+      this.setState({ scene: 'running', targetOpen: false, hover: null, runErr: '', calc: allSel ? -1 : 0, prog: null });
+      try {
+        if (allSel) { D.worlds = D.all; D.run = 'default'; }
+        else {
+          const j = await MM.api('/api/run', { n: s.n, age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
+          const r = await MM.job(j.job, x => this.setState({ calc: x.n }));
+          D.worlds = r.worlds; D.run = r.run;
+        }
+        this.stage.setData(D, s.n); this.applySel(); this.stage.setMetric(s.metric); this.stage.run();
+        this.setState({ calc: -1, scene: this.stage.reduced ? 'explore' : 'running' });
+        this.cv.current && this.cv.current.focus({ preventScroll: true });
+      } catch (e) { this.setState({ scene: 'setup', runErr: e.message, calc: -1 }); }
+    };
+
+    // 진행 숫자와 1등 비율 선
+    const pr = s.prog, showCounter = !!pr && (sc === 'running' || sc === 'explore');
+    out.showCounter = showCounter;
+    if (pr) {
+      out.counterKicker = sc === 'running' ? '지금까지' : (s.metric === 'rev' ? '매출 기준' : '구매경험률 기준');
+      out.counterN = pr.n.toLocaleString();
+      out.tallyList = Object.keys(pr.tallies).filter(k => pr.tallies[k] > 0).sort((a, b) => pr.tallies[b] - pr.tallies[a]).map(k => Object.assign(this.glyph(pById(k)), { id: k, count: pr.tallies[k].toLocaleString() }));
+      const h = pr.hist || [], last = h[h.length - 1], N = pr.N || 1;
+      const X = n => (n / N * 240).toFixed(1), Y = v => (56 - v * 56).toFixed(1);
+      out.linePath = h.length ? 'M' + h.map(p => X(p.n) + ' ' + Y(p.p)).join(' L') : '';
+      out.bandPath = h.length ? 'M' + h.map(p => X(p.n) + ' ' + Y(p.hi)).join(' L') + ' L' + h.slice().reverse().map(p => X(p.n) + ' ' + Y(p.lo)).join(' L') + ' Z' : '';
+      out.leadLabel = last ? `${pById(last.lead).name}의 1등 비율과 범위` : '1등 비율';
+      out.leadValue = last ? `${(last.p * 100).toFixed(1)}% · ${(last.lo * 100).toFixed(1)}~${(last.hi * 100).toFixed(1)}%` : '';
+    } else { out.tallyList = []; out.linePath = ''; out.bandPath = ''; }
+
+    // 둘러보기
+    out.viewOpts = this.seg([{ v: 'theater', l: '객석' }, { v: 'graph', l: '연결' }, { v: 'bars', l: '비교' }], s.view, v => { this.stage.setView(v); this.setState({ view: v }); }, true);
+    out.metricOpts = this.seg([{ v: 'buy', l: '구매경험률' }, { v: 'rev', l: '매출' }], s.metric, v => { this.stage.setMetric(v); this.setState({ metric: v }); }, true);
+    out.condOpts = ready ? D.conditions : []; out.sort = s.sort; out.sortDisabled = s.view !== 'theater';
+    out.pickSort = e => { const v = e.target.value; this.stage.setSort(v || null); this.setState({ sort: v }); };
+    out.showSortAxis = sc === 'explore' && s.view === 'theater' && !!s.sort;
+    out.sortLo = s.sort && ready ? D.condLabels[s.sort][0] : ''; out.sortHi = s.sort && ready ? D.condLabels[s.sort][1] : '';
+    out.exploreHint = s.view === 'theater' ? '끌어서 둘러보기 · 휠로 다가가기 · 화살표와 Enter로 좌석 이동' : s.view === 'graph' ? '조건이 비슷한 세상끼리 이어집니다 · 점을 끌어 보세요' : '구역의 크기가 1등 비율입니다';
+    out.resetRun = () => { this.stage.reset(); this.setState({ scene: 'setup', prog: null, view: 'theater', sort: '', table: false, hover: null }); };
+    out.conclude = () => { this.stage.setView('bars'); this.stage.focus = -1; this.setState({ scene: 'conclusion', view: 'bars', table: false, hover: null }); };
+    out.backToExplore = () => this.setState({ scene: 'explore', evid: false });
+
+    // 렌즈 옆 카드
+    const hv = s.hover;
+    if (hv && (sc === 'explore' || sc === 'conclusion') && ready && this.stage) {
+      const H = this.stage.h, W = this.stage.w, wp = pById(hv.winner), max = Math.max(...hv.vals.map(v => v.v)) || 1;
+      let left = hv.side === 'right' ? hv.x + hv.r + 16 : hv.x - hv.r - 16 - 290; left = Math.max(8, Math.min(W - 298, left));
+      const top = Math.max(8, Math.min(H - 470, hv.y - hv.r));
+      const cmax = Math.max(...hv.curves.map(c => c.pts[28])) || 1;
+      out.hoverCard = Object.assign({ left: Math.round(left), top: Math.round(top), num: hv.id + 1, wName: wp.name, wColor: wp.color, wRadius: this.glyph(wp).radius, wRot: this.glyph(wp).rot,
+        clarity: hv.margin < 0.12 ? '2등과 차이 작음' : hv.margin < 0.35 ? '2등과 차이 보통' : '2등과 차이 큼',
+        vals: hv.vals.map(v => ({ id: v.id, w: Math.round(v.v / max * 100), color: pById(v.id).color, text: this.fmt(v.v) })),
+        curves: hv.curves.map(c => ({ color: pById(c.id).color, dash: c.id === hv.winner ? 'none' : '3 3', d: 'M' + c.pts.map((v, d) => (d / 28 * 256).toFixed(1) + ' ' + (62 - v / cmax * 58).toFixed(1)).join(' L') })),
+        events: hv.events, diffs: hv.diffs, hint: hv.keyboard ? 'Enter를 누르면 이 세상 안으로 들어갑니다' : '클릭하면 이 세상 안으로 들어갑니다' });
+    } else out.hoverCard = null;
+
+    // 표
+    out.table = s.table; out.toggleTable = () => this.setState({ table: !s.table, tablePage: 0 });
+    if (s.table && this.stage) {
+      const N = this.stage.N, ids = []; for (let i = 0; i < N; i++) ids.push(i);
+      if (s.sort) ids.sort((a, b) => D.worlds[a].cond[s.sort] - D.worlds[b].cond[s.sort]);
+      const pages = Math.ceil(N / 50), pg = Math.min(s.tablePage, pages - 1);
+      out.tableSub = `${N.toLocaleString()}개 세상 · ${s.sort ? s.sort + ' 순' : '계산 순서'} · ${pg + 1} / ${pages}쪽`;
+      out.tableMetric = (s.metric === 'rev' ? '1인당 매출 ' : '구매경험률 ') + this.stage.pIds.join(' / ');
+      out.tablePrev = () => this.setState({ tablePage: Math.max(0, pg - 1) }); out.tableNext = () => this.setState({ tablePage: Math.min(pages - 1, pg + 1) });
+      out.tableRows = ids.slice(pg * 50, pg * 50 + 50).map(i => { const inf = this.stage.info(i); return { num: i + 1, winner: pById(inf.winner).name, vals: inf.vals.map(v => this.fmt(v.v)).join(' / '), margin: Math.round(inf.margin * 100) + '%', diff: inf.diffs[0].label, go: () => this.enter(i), key: e => { if (e.key === 'Enter') this.enter(i); } }; });
+    } else out.tableRows = [];
+
+    // 한 세상 안
+    const wd = s.world, di = s.dayInfo;
+    out.worldNum = wd ? wd.worldId + 1 : ''; out.back = () => this.back();
+    if (wd && ready) { const wv = D.worlds[wd.worldId]; out.worldSub = `${MM.eul(pById(wd.product).name)} 냈을 때 · 600명 · 12개월 구매경험률 ${(wv.buy[wd.product] * 100).toFixed(1)}%`; }
+    out.day = di ? di.day : 1; const SD = ready ? D.step_days : 13, dt = d => `${d * SD}일째`; out.dayText = dt(out.day); out.playIcon = di && di.playing ? 'Ⅱ' : '▶'; out.playLabel = di && di.playing ? '멈춤' : '재생';
+    out.togglePlay = () => { if (!this.stage) return; di && di.playing ? this.stage.pause() : this.stage.play(); };
+    out.pickDay = e => this.stage && this.stage.setDay(+e.target.value);
+    const aP = wd ? pById(wd.product) : null, bP = s.compare ? pById(s.compare) : null;
+    out.legendA = aP ? aP.name : ''; out.legendB = bP ? bP.name : '';
+    const lg = [['exposed', '광고·추천을 본 사람', 'transparent', '1.5px solid #d6d6d6', '50%', 'none'], ['bought', '산 사람', aP ? aP.color : '#E60012', '0', '50%', 'none'], ['positive', '추천 글을 올린 사람', aP ? aP.color : '#E60012', '0', '50%', '0 0 0 2px #0a0a0a, 0 0 0 3.5px #ffffff'], ['negative', '불만 글을 올린 사람', '#9a9a9a', '0', '0', 'none']];
+    out.legend = lg.map(([k, label, fill, border, radius, shadow]) => ({ label, fill, border, radius, shadow, a: di && di.a ? di.a[k] : 0, b: di && di.b ? di.b[k] : '' }));
+    out.compareOpts = wd ? [{ v: null, l: '끄기' }].concat(P.filter(p => p.id !== wd.product).map(p => ({ v: p.id, l: p.name }))).map(o => { const on = o.v === s.compare; return { label: o.l, on, bg: on ? '#f2f2f2' : 'transparent', fg: on ? '#0a0a0a' : '#f2f2f2', pick: () => { (o.v ? window.MM.loadSociety(wd.worldId, o.v) : Promise.resolve()).then(() => { this.stage.setCompare(o.v); this.setState({ compare: o.v, person: null }); }).catch(e => this.setState({ runErr: e.message })); } }; }) : [];
+    const pe = s.person;
+    out.person = pe ? { num: pe.id + 1, who: `${pe.age} ${pe.sex}`, trait: pe.trait, friends: pe.friends, access: pe.access ? '있음' : '없음', seen: pe.exposed ? `${dt(pe.exposed)} · ${pe.via === 'friend' ? '친구 추천 글' : '광고'}` : '보지 못함', bought: pe.bought ? dt(pe.bought) : '사지 않음', posted: pe.posted ? `${dt(pe.posted)} · ${pe.positive ? '추천 글' : '불만 글'}` : '없음', whyLabel: pe.bought ? '산 이유 (모델이 본 것)' : '안 산 이유 (모델이 본 것)', why: pe.why } : null;
+    out.closePerson = () => { this.stage.person = null; this.setState({ person: null }); };
+
+    // 결론
+    if (sc === 'conclusion' && ready && this.stage) {
+      const N = this.stage.N, sum = MM.summarize(D.worlds.slice(0, N), this.stage.pIds, s.metric, this.stage.mods).sort((a, b) => b.share - a.share);
+      const top = sum[0], tp = pById(top.id);
+      out.conclusionLine = `${N.toLocaleString()}개 세상 중 ${top.wins.toLocaleString()}개에서 ${tp.name}의 ${s.metric === 'rev' ? '매출이' : '구매경험률이'} 가장 높았습니다.`;
+      out.sumHead = s.metric === 'rev' ? '1인당 매출(가격 × 구매경험률)' : '12개월 구매경험률';
+      const hiMax = Math.max(...sum.map(x => x.hi)) * 1.05;
+      out.sumRows = sum.map(x => { const p = pById(x.id); return Object.assign(this.glyph(p), { name: p.name, median: this.fmt(x.median), range: `${this.fmt(x.lo)}~${this.fmt(x.hi)}`, lo: (x.lo / hiMax * 100).toFixed(1), w: ((x.hi - x.lo) / hiMax * 100).toFixed(1), mid: (x.median / hiMax * 100).toFixed(1), barColor: p.color === '#EFEBE4' ? '#EFEBE4' : p.color, share: (x.share * 100).toFixed(1) + '%', regret: x.regret < 5e-4 ? '없음' : (s.metric === 'rev' ? '−' + Math.round(x.regret) + '원' : '−' + (x.regret * 100).toFixed(1) + '%p'), lose: x.wins === N ? '지는 세상 없음' : x.wins === 0 ? '이긴 세상 없음' : (x.loseWhen.length ? x.loseWhen.join(' · ') : '뚜렷한 공통점 없음') }); });
+      const F = D.verify.funnel, pc = v => Math.round(v * 100) + '%';
+      out.evidFunnel = this.stage.pIds.map(id => ({ name: pById(id).name, steps: `${pc(F[id].raw)} → ${pc(F[id].clean)} → ${pc(F[id].weighted)}` + (F[id].lead < 1 ? ` → ${pc(F[id].weighted * F[id].lead)}` : '') }));
+      out.evidStore = this.stage.pIds.map(id => ({ name: pById(id).name, v: pc(F[id].store) }));
+      out.evidConv = this.stage.pIds.map(id => ({ name: pById(id).name, v: F[id].conv.toFixed(2) }));
+    } else { out.sumRows = []; out.evidFunnel = []; out.evidStore = []; out.evidConv = []; }
+    out.evid = s.evid; out.evidLabel = s.evid ? '근거 접기' : '근거 보기'; out.toggleEvid = () => this.setState({ evid: !s.evid });
+
+    // 신제품 검증
+    const stSeg = (key, opts) => this.seg(opts, s[key], v => this.setState({ [key]: v }), false);
+    out.vBasic = ready;
+    if (ready) {
+      const F = D.verify.funnel, A = id => Object.assign({ store: F[id].store, conv: F[id].conv }, s.assume[id] || {});
+      const pc1 = v => (v * 100).toFixed(1) + '%', pc0 = v => Math.round(v * 100) + '%';
+      out.vCards = P.map(p => { const f = F[p.id], a = A(p.id), on = s.vProd === p.id; return Object.assign(this.glyph(p), { name: p.name, concept: p.concept, final: pc1(f.weighted * f.lead * a.store * a.conv), raw: pc0(f.raw), adj: pc0(f.weighted * f.lead), range: pc1(f.lo) + '~' + pc1(f.hi), pay: pc0(f.pay), store: pc0(a.store), conv: a.conv.toFixed(2), on, bg: on ? '#111' : 'transparent', fg: on ? '#fff' : '#111', hover: on ? '#111' : 'rgba(17,17,17,0.06)', pick: () => this.setState({ vProd: p.id }) }); });
+      const f = F[s.vProd], a = A(s.vProd); out.vName = pById(s.vProd).name;
+      const base = f.weighted * f.lead;
+      const steps = [['원본 의향', f.raw, '5점 중 4~5점 응답, 304명'], ['정제', f.clean, `중복·불성실·나이 모순 ${D.verify.excluded}명 제외`], ['가중', f.weighted, '인구 구성과 제시 순서를 맞춤']].concat(f.lead < 1 ? [['유도 문항', base, `좋게 설명하고 물은 만큼 ${f.lead.toFixed(2)}배 (가정)`]] : []).concat([['살 수 있는 점포', base * a.store, `점포 ${pc0(a.store)}에서 판매`], ['구매경험률', base * a.store * a.conv, `과거 5개 제품의 전환 ${a.conv.toFixed(2)}`]]);
+      out.vFlow = steps.map(([label, v, note], k) => ({ label, note, v: pc1(v), w: (v / f.raw * 100).toFixed(1), color: k === steps.length - 1 ? '#E60012' : '#111' }));
+      out.vWhy = f.why;
+      out.vStore = a.store; out.vConv = a.conv; out.vStoreText = pc0(a.store); out.vConvText = a.conv.toFixed(2);
+      const setA = (k, v) => this.setState({ assume: Object.assign({}, s.assume, { [s.vProd]: Object.assign({}, s.assume[s.vProd] || {}, { [k]: v }) }) });
+      out.setStore = e => setA('store', +e.target.value); out.setConv = e => setA('conv', +e.target.value);
+      out.resetAssume = () => this.setState({ assume: {} });
+      const iss = D.verify.issues.filter(i => s.issueFilter === '전체' || (s.issueFilter === '높음' ? i[0] === '높음' : i[3] === '검토 중'));
+      out.issueCount = D.verify.issues.length;
+      out.issueFilters = stSeg('issueFilter', ['전체', '높음', '검토 중']);
+      out.issues = iss.map(i => ({ sev: i[0], area: i[1], text: i[2], status: i[3], sevColor: i[0] === '높음' ? '#b8000e' : '#111', stColor: i[3] === '해결' ? '#555' : i[3] === '검토 중' ? '#111' : '#b8000e' }));
+      out.reviews = D.verify.reviews.map(r => ({ t: r[0], who: r[1], text: r[2] })); out.noReviews = !D.verify.reviews.length;
+      out.memo = s.memo; out.setMemo = e => this.setState({ memo: e.target.value }); out.saveMemo = () => MM.api('/api/review', { memo: s.memo }).then(r => { D.verify.reviews = r.reviews; this.setState({ memo: '' }); }).catch(e => this.setState({ memo: '저장 실패: ' + e.message }));
+    } else { out.vCards = []; out.vFlow = []; out.issues = []; out.reviews = []; out.issueFilters = []; out.vSteps = []; }
+
+    // 소비자 반응
+    if (s.screen === 'react' && !s.R && !this._rl) { this._rl = true; window.MM.api('/api/reactions').then(R => this.setState({ R, rErr: '' })).catch(e => this.setState({ rErr: e.message })).finally(() => setTimeout(() => { this._rl = false; if (this.state.rErr) this.forceUpdate(); }, 3000)); }
+    out.rBasic = !!s.R; out.rLoading = s.R ? '' : s.rErr ? '불러오지 못했습니다: ' + s.rErr : '모은 글을 읽는 중입니다';
+    const PQ = s.pf || { ch: '', con: '', sort: 'recent', q: '', page: 0 };
+    const load = f => { this.setState({ pf: f }); clearTimeout(this._pt); this._pt = setTimeout(() => window.MM.api('/api/posts?' + new URLSearchParams(f)).then(r => this.setState({ PO: r, pErr: '' })).catch(e => this.setState({ pErr: '글을 불러오지 못했습니다: ' + e.message })), 250); };
+    if (s.screen === 'react' && !s.PO && !this._pl) { this._pl = true; load(PQ); }
+    const pick = (k, v) => () => load(Object.assign({}, PQ, { [k]: v, page: 0 })), chip = (k, opts) => opts.map(([v, label]) => ({ label, on: PQ[k] === v, pick: pick(k, v), bg: PQ[k] === v ? '#111' : 'transparent', fg: PQ[k] === v ? '#fff' : '#111' }));
+    const PO = s.PO, fm = v => v >= 10000 ? (v / 10000).toFixed(1) + '만' : Math.round(v).toLocaleString();
+    out.pChannels = PO ? chip('ch', [['', `전체 ${PO.total.toLocaleString()}`]].concat(PO.channels.map(c => [c[0], `${c[0]} ${c[1].toLocaleString()}`]))) : [];
+    out.pCons = chip('con', [['', '모든 글'], ['롯데칠성', '롯데칠성 브랜드']].concat(P.map(p => [p.id, p.name + ' 관련'])));
+    out.pSorts = chip('sort', [['recent', '최신순'], ['likes', '좋아요순'], ['views', '조회순'], ['comments', '댓글순']]);
+    out.pQ = PQ.q; out.setPQ = e => load(Object.assign({}, PQ, { q: e.target.value, page: 0 })); out.pErr = s.pErr || '';
+    out.pHead = PO ? `${PO.count.toLocaleString()}건 · 누르면 원문이 열립니다` : '불러오는 중';
+    out.pRows = PO ? PO.rows.map(r => Object.assign({}, r, { hide: e => { e.target.style.display = 'none'; }, nums: [['조회', r.views], ['좋아요', r.likes], ['댓글', r.comments]].filter(x => x[1] != null).map(x => x[0] + ' ' + fm(x[1])).join(' · ') })) : [];
+    out.pPage = PO ? `${PO.page + 1} / ${PO.pages}` : ''; out.pPrev = () => PO && PO.page > 0 && load(Object.assign({}, PQ, { page: PO.page - 1 })); out.pNext = () => PO && PO.page + 1 < PO.pages && load(Object.assign({}, PQ, { page: PO.page + 1 }));
+    out.obs = !!s.obs; out.obsLabel = s.obs ? '닫기' : '열기'; out.toggleObs = () => this.setState({ obs: !s.obs });
+    out.rHead = s.R ? `실제 공개 글 ${s.R.total.toLocaleString()}건 · ${s.R.at} 기준` : '실제 공개 글';
+    if (ready && s.R) {
+      const R = s.R, mx = Math.max(1, ...R.daily), tot = R.daily.reduce((a, b) => a + b, 0), w1 = R.daily.slice(-7).reduce((a, b) => a + b, 0), w0 = R.daily.slice(-14, -7).reduce((a, b) => a + b, 0);
+      out.rTotal = tot.toLocaleString(); out.rWeek = w0 ? (w1 >= w0 ? '+' : '') + Math.round((w1 / w0 - 1) * 100) + '%' : '비교 불가';
+      out.rDaily = R.daily.map((v, k) => ({ h: (v / mx * 100).toFixed(1), c: k >= 21 ? '#111' : 'rgba(17,17,17,0.35)', t: `${28 - k}일 전 · ${v}건` }));
+      out.rTrend = R.trending.map((t, k) => ({ rank: k + 1, name: t.name, kind: t.kind, change: t.status, cColor: t.status === '증가 확인' ? '#b8000e' : '#111', posts: t.posts.toLocaleString(), authors: t.authors.toLocaleString(), go: () => { this.setState({ cName: t.name + ' 음료', cDesc: t.name + '을(를) 살린 음료', cPrice: '1,800원', cTarget: '20~30대', screen: 'concept', cSt: '입력', job: null }); window.scrollTo(0, 0); } }));
+      out.rProducts = P.map(p => { const r = R.products[p.id]; return Object.assign(this.glyph(p), { name: p.name, posts: r.posts, recent: r.recent, verdict: r.verdict, worries: r.worries, quotes: r.quotes.map(q => ({ s: q[0], t: q[1] })) }); });
+      out.rChannels = R.channels.map(c => ({ name: c[0], status: c[1], n: c[2], color: c[1] === '완료' ? '#111' : c[1] === '대기' ? '#767676' : '#b8000e' }));
+    } else { out.rDaily = []; out.rTrend = []; out.rProducts = []; out.rChannels = []; }
+
+    // 새 컨셉
+    out.cName = s.cName; out.cDesc = s.cDesc; out.cPrice = s.cPrice; out.cTarget = s.cTarget;
+    out.setCName = e => this.setState({ cName: e.target.value }); out.setCDesc = e => this.setState({ cDesc: e.target.value });
+    out.setCPrice = e => this.setState({ cPrice: e.target.value }); out.setCTarget = e => this.setState({ cTarget: e.target.value });
+    const J = s.job, run = s.cSt === '진행 중';
+    out.cLocked = run; out.cStartLabel = run ? '진행 중' : s.cSt === '입력' ? '시작 →' : '다시 시작 →';
+    out.cStart = async () => {
+      this.setState({ cSt: '진행 중', job: null, cErr: '' });
+      try { const j = await MM.api('/api/concept', { name: s.cName, desc: s.cDesc, price: s.cPrice, target: s.cTarget }); await MM.job(j.job, x => this.setState({ job: x })); this.setState({ cSt: '완료' }); }
+      catch (e) { this.setState({ cSt: '실패', cErr: e.message }); }
+    };
+    if (ready) {
+      const mk = { done: '✓', skip: '–', fail: '!', run: '…', wait: '' }, nm = { done: '완료', skip: '건너뜀', fail: '실패', run: '진행 중', wait: '대기' };
+      const st = D.concept.steps.map((label, k) => Object.assign({ label }, J && J.steps ? J.steps[k] : { state: 'wait', text: '' }));
+      out.cSteps = st.map((x, k) => ({ label: x.label, mark: mk[x.state] || String(k + 1), color: x.state === 'fail' ? '#b8000e' : x.state === 'wait' ? '#767676' : '#111', status: nm[x.state], active: x.state === 'run', result: x.state === 'done' || x.state === 'skip' ? x.text : '', failed: x.state === 'fail' ? x.text : '' }));
+      const dn = st.filter(x => ['done', 'skip', 'fail'].includes(x.state)).length;
+      out.cProgressText = s.cErr ? s.cErr : s.cSt === '입력' ? '시작 전' : `${dn} / 5`;
+    } else out.cSteps = [];
+
+    // 근거
+    out.eBasic = ready;
+    if (ready) {
+      const E = D.evidence, p0 = E.population, f0 = n => n.toLocaleString();
+      out.eStats = [{ label: '사람 표본 (19~59세)', v: f0(p0.respondents) + '명', note: `유효 ${f0(p0.effective)}명 · 오차 ±${p0.margin}%p · 인구 ${f0(Math.round(p0.people / 1e4))}만 명` }, { label: '구매의향 패널', v: f0(E.panel.effective) + '명분', note: `304명 → 정제 ${E.panel.clean}명 → 유효 ${E.panel.effective}명 · 오차 ±${E.panel.margin}%p` }, { label: '세상', v: f0(D.all.length) + '개', note: '세상마다 사람 600명, 12개월' }, { label: '과거 실적으로 거른 조건', v: f0(E.kept) + '벌분', note: `후보 ${f0(E.tried)}벌 중 과거 5개 제품을 재현한 만큼` }];
+      const all = { age: D.segments.age.map(x => x.id), sex: D.segments.sex.map(x => x.id), region: D.segments.region.map(x => x.id) };
+      const segRows = [].concat(D.segments.age.map(x => ['age', x.id]), D.segments.region.map(x => ['region', x.id]));
+      out.eSegs = segRows.map(([g, id]) => { const pp = MM.population(Object.assign({}, all, { [g]: [id] })); return { id, n: pp.respondents.toLocaleString(), m: pp.margin.toFixed(1), color: pp.margin > 5 ? '#b8000e' : '#111' }; });
+      out.eVal = D.evidence.validation.map(v => ({ name: v[0], model: v[1], base: v[2], note: v[3] }));
+    } else { out.eStats = []; out.eSegs = []; out.eVal = []; }
+    this.syncInsets(s);
+    return out;
+  }
+}
+</script>
+</body>
+</html>
