@@ -239,16 +239,18 @@ def past_runs():
              "steps": json.loads(r[7]) if r[7] else [], "result": r[8] or ""} for r in rs]
 
 
+BOARD = {"화채": "image5.jpg", "프리즈": "image4.jpg", "쥬시": "image3.jpg"}                  # 과제 설명서의 컨셉보드
+
+
 def log_experiment(ws, flt, i=None, ts=None):
-    """실험 한 번을 이력에 남긴다."""
-    i = i or uuid.uuid4().hex[:10]
-    med = {k: np.quantile([w["buy"][k] for w in ws], [.05, .5, .95]) for k in W.IDS}
-    win = pd.Series([w["winner"] for w in ws]).value_counts(normalize=True)
-    put(i, kind="실험", name=" · ".join(W.IDS.values()), info=f"{', '.join(x for v in flt.values() for x in v) or '19~59세 전체'} · 세상 {len(ws):,}개", state="완료", result=f"{W.IDS[win.index[0]]} 1등 {win.iloc[0]:.0%}",
-        steps=[[W.IDS[k], f"구매경험률 {m:.1%} (90% 범위 {a:.1%}~{b:.1%}), 1등 {win.get(k, 0):.1%}"] for k, (a, m, b) in med.items()])
-    if ts:
-        with hdb() as c:
-            c.execute("update verify set ts=? where id=?", (ts, i))
+    """실험 한 번을 제품마다 따로 이력에 남긴다(서로 비교한 값은 남기지 않는다)."""
+    i = i or uuid.uuid4().hex[:8]
+    tgt = f"{', '.join(x for v in flt.values() for x in v) or '19~59세 전체'} · 세상 {len(ws):,}개"
+    for p in products():
+        put(f"{i}-{p['id']}", kind="신제품", name=p["name"], info=f"{p['concept']} · {p['price']:,}원", photo="board:" + BOARD[p["id"]], state="완료", steps=[["대상", tgt], ["컨셉", p["concept"]]], result="")
+        if ts:
+            with hdb() as c:
+                c.execute("update verify set ts=? where id=?", (ts, f"{i}-{p['id']}"))
 
 
 def save_photo(s):
@@ -274,7 +276,8 @@ async def photo(req):
         return PlainTextResponse("forbidden", 403)
     with hdb() as c:
         r = c.execute("select photo from verify where id=?", (req.path_params["hid"],)).fetchone()
-    f = os.path.join(PHOTOS, os.path.basename(r[0])) if r and r[0] else ""
+    f = r[0] if r and r[0] else ""
+    f = os.path.join(G.DIR, "img", os.path.basename(f[6:])) if f.startswith("board:") else os.path.join(PHOTOS, os.path.basename(f)) if f else ""
     return FileResponse(f, media_type={v[0]: v[1] for v in IMG.values()}[f.rsplit(".", 1)[1]]) if f and os.path.exists(f) else PlainTextResponse("", 404)
 
 
@@ -441,6 +444,15 @@ def a_report(req, j):
     return {"products": r["report"], "worlds": len(r["worlds"]), "target": ", ".join(x for v in r["flt"].values() for x in v) or "19~59세 전체", "panel": int(len(G.panel()[0]))}
 
 
+def a_price(req, j):
+    """가격별 전국 예상 매출(대상 소비자와 관계없이 전국 기준의 기본 실험으로 계산)."""
+    base()
+    k, x = req.query_params["product"], [int(v) for v in req.query_params.get("extra", "").split(",") if v]
+    if k not in W.IDS or len(x) > 6 or any(not 300 <= v <= 20000 for v in x):
+        raise ValueError("가격은 300원에서 20,000원 사이로 적어 주세요")
+    return RP.prices(RUNS["default"]["worlds"], k, x)
+
+
 def a_concept(req, j):
     c = {k: str(j.get(k, "")).strip()[:m] for k, m in (("name", 60), ("desc", 300), ("price", 20), ("target", 40))}
     if not c["name"] or not c["desc"]:
@@ -456,7 +468,7 @@ def a_review(req, j):
 
 
 app = Starlette(routes=[Route("/api/data", api(lambda r, j: base())), Route("/api/reactions", api(lambda r, j: react())), Route("/api/posts", api(a_posts)), Route("/observe", observe), Route("/api/run", api(a_run), methods=["POST"]), Route("/api/job/{jid}", api(a_job)), Route("/api/society", api(a_society)),
-                        Route("/api/report", api(a_report)), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", StaticFiles(directory=WEB, html=True, check_dir=False))])
+                        Route("/api/report", api(a_report)), Route("/api/price", api(a_price)), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", StaticFiles(directory=WEB, html=True, check_dir=False))])
 
 
 def check():
@@ -472,6 +484,8 @@ def check():
     s = c.get("/api/society", params={"run": "default", "world": 4, "product": "화채"}).json()
     assert len(s["nodes"]) == W.N and abs(sum(x["bought"] is not None for x in s["nodes"]) / W.N - d["worlds"][4]["buy"]["화채"]) < 1e-3
     assert c.get("/api/society", params={"run": "default", "world": 99999, "product": "화채"}).status_code == 400 and c.post("/api/run", json={"age": [], "sex": [], "region": [], "n": 200}).status_code == 400
+    z = c.get("/api/price", params={"product": "쥬시", "extra": "2700"}).json()
+    assert len(z["rows"]) == 6 and c.get("/api/price", params={"product": "쥬시", "extra": "5"}).status_code == 400
     z = c.get("/api/report").json()
     assert z["worlds"] == 1500 and set(z["products"]) == set(W.IDS) and c.get("/api/report", params={"run": "x"}).status_code == 400
     p = c.get("/api/posts", params={"sort": "likes"}).json()
@@ -491,7 +505,7 @@ def check():
         STEPS[2] = old
     assert z["state"] == "done" and [x["state"] for x in z["steps"]] == ["done", "done", "skip", "done", "done"], z
     h = c.get("/api/history").json()["rows"]
-    assert h[0]["id"] == hid and h[0]["state"] == "완료" and len(h[0]["steps"]) == 5 and h[0]["photo"] and any(x["kind"] == "실험" for x in h)
+    assert h[0]["id"] == hid and h[0]["state"] == "완료" and len(h[0]["steps"]) == 5 and h[0]["photo"] and sum(x["name"] in W.IDS.values() and x["photo"] and not x["result"] for x in h) == 3
     assert c.get("/api/photo/" + hid).headers["content-type"] == "image/png" and c.get("/api/photo/x").status_code == 404 and c.get("/api/photo/" + hid, headers={"host": "evil.com"}).status_code == 403
     assert c.post("/api/concept", json={"name": "a", "desc": "b", "photo": "data:image/png;base64," + base64.b64encode(b"<script>").decode()}).status_code == 400
     try:
