@@ -1,12 +1,16 @@
 """미디어 대응실 화면(Streamlit). 수집·분류는 별도 프로세스로 돌려 끝나면 모델 메모리를 돌려준다."""
 import json
 import os
+import re
 import subprocess
 import sys
 
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
+from . import formats as F
 from . import media as M
 
 LOG = os.path.join(M.ROOT, "data", "media.log")
@@ -18,17 +22,17 @@ def _running():
     return p is not None and p.poll() is None
 
 
-def _start():
+def _start(mod="mirror.media"):
     if not _running():
         with open(LOG, "w") as f:
-            st.session_state.media_proc = subprocess.Popen([sys.executable, "-u", "-m", "mirror.media", "collect"], cwd=M.ROOT,
+            st.session_state.media_proc = subprocess.Popen([sys.executable, "-u", "-m", mod, "collect"], cwd=M.ROOT,
                                                            stdout=f, stderr=subprocess.STDOUT)
 
 
 @st.fragment(run_every=5)
 def _status():
     if _running():
-        tail = [l for l in open(LOG).read().splitlines() if l.startswith("20")][-1:]
+        tail = [l for l in open(LOG).read().splitlines() if re.match(r"[가-힣0-9]", l)][-1:]
         st.info("수집·분류 중… " + (tail[0] if tail else "소스에 접속하는 중"))
     elif st.session_state.pop("media_proc", None) is not None:
         st.rerun(scope="app")
@@ -37,6 +41,115 @@ def _status():
 def _to_sim(text):
     st.session_state.concept_in = text          # 콜백: 다음 실행에서 시뮬레이터 콘셉트 입력란에 채워짐
     st.session_state.view = "시뮬레이터"
+
+
+@st.cache_data(show_spinner="포맷 분석 중…")
+def _fmt(engine, food, lanes, selected, stamp):
+    return F.load(engine, food, list(lanes), selected)
+
+
+@st.cache_data(show_spinner="한 곳씩 빼며 확인 중…")
+def _rank(_d, key):
+    return F.robust(_d, F.rank(_d))
+
+
+def _formats(model):
+    """어떤 포맷이 터지나: 많이 쓰이는 포맷과 성과 좋은 포맷을 가른다."""
+    c = F.db()
+    n, nl, ng, last = c.execute("select count(*), sum(fmt_laya is not null), sum(fmt_llm is not null), max(last_seen) from content").fetchone()
+    b = st.columns([1.3, 1.6, 1.6, 1.5])
+    b[0].button("▶ 콘텐츠 새로 모으기", on_click=_start, args=("mirror.formats",), disabled=_running(), help="게시판 8곳의 앞 5쪽, 키가 있으면 유튜브까지. 2~4분")
+    engine = b[1].radio("분류기", ["llm", "laya"], format_func=lambda x: {"llm": f"LLM ({ng or 0:,}건)", "laya": f"laya ({nl or 0:,}건)"}[x], horizontal=True)
+    food = b[2].toggle("식음료 콘텐츠만")
+    sel = b[2].toggle("인기글 모음 게시판 포함", True, help="베스트 게시판은 이미 터진 글만 모여 있어 포맷 차이가 작게 보입니다.")
+    if b[3].button("남은 글 LLM으로 분류", disabled=not n or ng == n, help="제목이 선택한 LLM 서비스로 전송됩니다."):
+        bar = st.progress(0.0)
+        try:
+            F.classify("llm", model, limit=2000, tick=bar.progress)
+        except Exception as e:
+            st.warning(f"중간에 멈춤(한 것까지는 저장됨): {str(e)[:150]}")
+    lanes = [r[0] for r in c.execute("select distinct lane from content")]
+    lanes = st.multiselect("어디 콘텐츠", lanes, lanes, label_visibility="collapsed") if len(lanes) > 1 else lanes
+    d = _fmt(engine, food, tuple(lanes), sel, (last, nl, ng, F.version())) if n else pd.DataFrame()
+    if len(d) < 20:
+        st.info("분석할 콘텐츠가 20건보다 적습니다. 새로 모으거나, 식음료 필터를 끄거나, 아래에서 CSV를 올려 주세요.")
+    else:
+        r = _rank(d, (engine, food, tuple(lanes), sel, last, nl, ng))
+        real = r[(r.포맷 != F.NONE) & (r.개수 >= 5)]
+        k = st.columns(4)
+        k[0].metric("분석한 콘텐츠", f"{len(d):,}", f"{d.grp.nunique()}개 채널·게시판", delta_color="off")
+        k[1].metric("중앙 조회수", f"{d.views.median():,.0f}")
+        if len(real):
+            win = real[real.판정 == "터지는 포맷"]
+            m, h = real.loc[real.개수.idxmax()], (win if len(win) else real).iloc[0]
+            k[2].metric("가장 많이 쓰는 포맷", m.포맷, f"{m.개수:.0f}건 · {m.배수:.2f}배", delta_color="off")
+            k[3].metric("실제로 터지는 포맷" if len(win) else "배수가 가장 높은 포맷", h.포맷, f"{h.배수:.2f}배 · {h.판정}", delta_color="off")
+        f = st.pills("포맷을 누르면 산점도에서 강조됩니다", real.포맷.tolist(), default=real.포맷.iloc[0] if len(real) else None)
+        x = d[d.likes.fillna(0) > 0]
+        left, right = st.columns([1.15, 1])
+        with left:
+            if len(x) >= 10:
+                fig = go.Figure()
+                for nm, g, col, op in (("그 외", x[x.fmt != f], "#b9b9b9", .45), (f or "", x[x.fmt == f], "#E60012", .9)):
+                    fig.add_scatter(x=g.views, y=g.likes, mode="markers", name=nm, text=g.title.str[:60], hovertemplate="%{text}<br>조회 %{x:,} · 추천 %{y:,}<extra></extra>",
+                                    marker=dict(color=col, opacity=op, size=8))
+                fig.update_xaxes(type="log", title="조회수").update_yaxes(type="log", title="추천·좋아요")
+                fig.update_layout(height=430, margin=dict(t=10, b=0), legend=dict(orientation="h"))
+                st.plotly_chart(fig, width="stretch")
+            else:
+                st.info("추천 수가 있는 콘텐츠가 적어 산점도를 그리지 않습니다.")
+        with right:
+            q = real.sort_values("배수")
+            col = q.판정.map({"터지는 포맷": "#E60012", "안 터지는 포맷": "#4a6fa5"}).fillna("#999999")
+            fig = go.Figure(go.Scatter(x=q.배수, y=q.포맷, mode="markers", marker=dict(size=11, color=col),
+                                       error_x=dict(type="data", symmetric=False, array=q.상한 - q.배수, arrayminus=q.배수 - q.하한, color="#bbb")))
+            fig.add_vline(x=1, line_dash="dot", line_color="#888")
+            fig.update_layout(height=430, margin=dict(t=10, b=0), xaxis_title="배수 (비슷한 때 같은 곳에 올라온 글 대비, 1 = 평소)")
+            st.plotly_chart(fig, width="stretch")
+        st.dataframe(r[["포맷", "판정", "의존한 곳", "개수", "사용 비중", "중앙 조회수", "배수", "하한", "상한", "2배 이상 터진 비율", "q"]].style.format(
+            {"사용 비중": "{:.0%}", "중앙 조회수": "{:,.0f}", "배수": "{:.2f}", "하한": "{:.2f}", "상한": "{:.2f}", "2배 이상 터진 비율": "{:.0%}", "q": "{:.3f}"}, na_rep="—"), width="stretch", hide_index=True)
+        ev = os.path.join(M.ROOT, "data", "format_eval.json")
+        e = json.load(open(ev)) if os.path.exists(ev) else None
+        st.caption("배수: 같은 게시판·채널에서 비슷한 때 올라온 글들의 조회수 중앙값 대비. 빨강/파랑은 나머지와의 차이가 우연이 아니고(BH 보정 q<0.05) 게시판·채널을 하나씩 빼도 유지될 때만. 5개 미만은 판단하지 않습니다. "
+                   + (f"분류 정확도(1인 라벨 {e['n']}건): LLM {e['llm']:.0%}, laya {e['laya']:.0%}. " if e else "") + "관찰 자료라 '이 포맷으로 하면 터진다'는 인과는 아닙니다.")
+        if f:
+            g = d[d.fmt == f].sort_values("mult", ascending=False)
+            st.markdown(f"**{f}** — 배수가 높은 콘텐츠")
+            st.dataframe(g[["mult", "title", "grp", "views", "likes", "comments", "url"]].head(30).rename(columns={"mult": "배수", "title": "제목", "grp": "게시판·채널", "views": "조회", "likes": "추천", "comments": "댓글", "url": "링크"})
+                         .style.format({"배수": "{:.1f}", "조회": "{:,.0f}", "추천": "{:,.0f}", "댓글": "{:,.0f}"}, na_rep="—"), width="stretch", hide_index=True, height=260,
+                         column_config={"링크": st.column_config.LinkColumn(display_text="열기")})
+            p1, p2 = st.columns([3, 1])
+            prod = p1.text_input("이 포맷으로 만들 제품", st.session_state.get("concept_in", "")[:80])
+            if p2.button("훅 아이디어 5개"):
+                try:
+                    with st.spinner("작성 중…"):
+                        st.session_state.fmt_ideas = F.ideas(f, g.title.head(8).tolist(), prod, model)
+                except Exception as e2:
+                    st.error(f"실패: {str(e2)[:150]}")
+            if st.session_state.get("fmt_ideas"):
+                st.markdown(st.session_state.fmt_ideas)
+        hk = F.hooks(d)
+        if len(hk):
+            with st.expander("제목 표면 특징별 차이 (분류기를 쓰지 않은 교차 확인)"):
+                st.dataframe(hk.style.format({"있을 때 배수": "{:.2f}", "없을 때 배수": "{:.2f}", "p": "{:.3f}", "q": "{:.3f}"}), width="stretch", hide_index=True)
+    with st.expander("포맷 목록 고치기"):
+        ed = st.data_editor(pd.DataFrame(list(F.formats().items()), columns=["포맷", "한 줄 설명"]), num_rows="dynamic", width="stretch", hide_index=True)
+        if st.button("저장 (다음 분류부터 적용, 기존 분류는 다시 함)"):
+            new = {str(a).strip(): str(b).strip() for a, b in ed.dropna().values if str(a).strip()}
+            if 2 <= len(new) <= 30 and F.NONE not in new:
+                json.dump(new, open(F.FILE, "w"), ensure_ascii=False, indent=1)
+                st.rerun()
+            st.error(f"포맷은 2~30개여야 하고 '{F.NONE}'은 자동으로 들어갑니다.")
+    with st.expander("릴스·틱톡 등 CSV 올리기"):
+        up = st.file_uploader("제목(또는 캡션·대본)과 조회수가 있는 CSV", type="csv", key="fmt_csv")
+        if up is not None:
+            df = pd.read_csv(up, nrows=5000)
+            cs, no = list(df.columns), ["(없음)", *df.columns]
+            u = st.columns(5)
+            a = [u[0].selectbox("제목", cs), u[1].selectbox("조회수", cs), u[2].selectbox("좋아요", no), u[3].selectbox("계정", no), u[4].selectbox("게시일", no)]
+            if st.button("넣기"):
+                nn = [None if z == "(없음)" else z for z in a[2:]]
+                st.success("%d건 중 새 콘텐츠 %d건" % F.from_csv(df, a[0], a[1], *nn, name="업로드: " + up.name[:30]))
 
 
 def render(model):
@@ -54,7 +167,10 @@ def render(model):
     k[4].metric("마지막 수집", last[5:16].replace("T", " ") if last else "없음")
     st.button("▶ 지금 수집·분류", on_click=_start, disabled=_running(), type="primary", help="소스마다 10분에 한 번만 요청합니다.")
     _status()
-    t1, t2, t3, t4, t5, t6 = st.tabs(["🚨 위험", "📈 추세", "📰 글", "✍️ 지정 분석", "📝 대응 초안", "🔌 소스"])
+    t0, t1, t2, t3, t4, t5, t6 = st.tabs(["🏆 포맷", "🚨 위험", "📈 추세", "📰 글", "✍️ 지정 분석", "📝 대응 초안", "🔌 소스"])
+
+    with t0:
+        _formats(model)
 
     with t1:
         st.caption("안전 키워드(이물·배탈·회수 등)가 있는 식음료 글입니다. 오경보가 섞이니 사람이 확인해야 합니다. "
