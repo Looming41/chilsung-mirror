@@ -32,7 +32,7 @@ REPORTS = os.path.join(P.ROOT, "data", "reports")
 PHOTOS = os.path.join(P.ROOT, "data", "photos")
 HIST = os.environ.get("MM_HISTORY", os.path.join(P.ROOT, "data", "verify.db"))
 IMG = {b"\x89PNG\r\n\x1a\n": ("png", "image/png"), b"\xff\xd8\xff": ("jpg", "image/jpeg"), b"RIFF": ("webp", "image/webp")}
-JOBS, RUNS, LOCK, LOCK2 = {}, {}, threading.Lock(), threading.Lock()
+JOBS, RUNS, LOCK, LOCK2, LOCK3 = {}, {}, threading.Lock(), threading.Lock(), threading.Lock()
 
 
 # ---------- 화면에 넘길 자료 ----------
@@ -163,14 +163,15 @@ _base = {}
 
 
 def base():
-    if not _base:
-        ws = W.default()
-        RUNS["default"] = {"flt": {}, "worlds": ws}
-        if os.path.exists(W.CACHE):                              # 미리 계산해 둔 기본 실험도 실제로 돌린 것이니 그 시각으로 남긴다
-            log_experiment(ws, {}, "base-" + W._sig()[:8], time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(os.path.getmtime(W.CACHE))))
-        ev = evidence()
-        _base.update(products=products(), conditions=W.COND, condLabels={k: list(v) for k, v in W.LABEL.items()}, segments=segments(), cross=W.cross(), population=ev["population"], worlds=lean(ws), run="default",
-                     verify=verify(), evidence=ev, concept={"steps": [x for x, _ in STEPS], "results": []}, step_days=13)
+    with LOCK3:                                                  # 동시에 들어온 첫 요청들이 같은 준비를 여러 번 하지 않게
+        if not _base:
+            ws = W.default()
+            RUNS["default"] = {"flt": {}, "worlds": ws}
+            if os.path.exists(W.CACHE):                              # 미리 계산해 둔 기본 실험도 실제로 돌린 것이니 그 시각으로 남긴다
+                log_experiment(ws, {}, "base-" + W._sig()[:8], time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(os.path.getmtime(W.CACHE))))
+            ev = evidence()
+            _base.update(products=products(), conditions=W.COND, condLabels={k: list(v) for k, v in W.LABEL.items()}, segments=segments(), cross=W.cross(), population=ev["population"], worlds=lean(ws), run="default",
+                         verify=verify(), evidence=ev, concept={"steps": [x for x, _ in STEPS], "results": []}, step_days=13)
     return _base | {"verify": _base["verify"] | {"reviews": reviews()}}
 
 
@@ -430,6 +431,7 @@ def a_society(req, j):
 
 
 def a_report(req, j):
+    base()
     r = RUNS.get(req.query_params.get("run", "default"))
     if not r:
         raise ValueError("다시 실행해 주세요")
