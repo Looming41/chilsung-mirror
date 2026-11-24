@@ -14,3 +14,4 @@ scikit-learn==1.9.1
 laya==0.5.3
 torch==2.15.0
 transformers==5.24.0
+segno==1.6.6
