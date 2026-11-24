@@ -36,7 +36,8 @@ input[type=range]{accent-color:#E60012}
         <button onClick="{{ n.go }}" style="background:none;border:0;border-bottom:2px solid {{ n.bar }};margin-bottom:-2px;color:{{ n.color }};font-size:clamp(12px,1.1vw,15px);font-weight:600;padding:0 2px;cursor:pointer;white-space:nowrap" style-hover="color:#ffffff">{{ n.label }}</button>
       </sc-for>
     </div>
-    <a href="http://127.0.0.1:8518" target="_blank" rel="noopener" style="flex:none;padding-left:clamp(12px,2vw,28px);margin-left:auto;align-self:center;color:#a3a3a3;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="color:#ffffff">상세 도구</a>
+    <button onClick="{{ openAI }}" style="flex:none;margin-left:auto;align-self:center;height:34px;padding:0 14px;display:flex;align-items:center;gap:8px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.4);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="border-color:#ffffff"><span style="width:8px;height:8px;border-radius:50%;background:{{ aiDot }};display:block"></span>{{ aiLabel }}</button>
+    <a href="http://127.0.0.1:8518" target="_blank" rel="noopener" style="flex:none;padding-left:clamp(12px,2vw,28px);align-self:center;color:#a3a3a3;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="color:#ffffff">상세 도구</a>
   </nav>
 
   <section data-screen-label="실험" style="display:{{ expDisplay }};flex:1;flex-direction:column;background:#0a0a0a;color:#f2f2f2;min-height:calc(100vh - 56px)">
@@ -212,7 +213,6 @@ input[type=range]{accent-color:#E60012}
           <button onClick="{{ toggleTarget }}" aria-expanded="{{ targetOpen }}" style="height:38px;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 12px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer;max-width:340px;text-align:left" style-hover="border-color:#ffffff">
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ targetLabel }}</span><span style="color:#a3a3a3">▾</span>
           </button>
-          <div style="font-size:13px;color:#d0d0d0">{{ popLine }}</div>
           <sc-if value="{{ targetOpen }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute;left:0;bottom:calc(100% + 12px);width:min(520px,calc(100vw - 32px));background:#111111;border:1px solid rgba(255,255,255,0.25);padding:16px;display:flex;flex-direction:column;gap:14px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,0.5)">
               <sc-for list="{{ segGroups }}" as="g" hint-placeholder-count="3">
@@ -226,7 +226,7 @@ input[type=range]{accent-color:#E60012}
                 </div>
               </sc-for>
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:2px solid rgba(255,255,255,0.2);padding-top:12px">
-                <span style="font-size:13px;color:#d0d0d0">{{ popLine }}</span>
+                <span></span>
                 <div style="display:flex;gap:6px">
                   <button onClick="{{ selectAll }}" style="height:32px;padding:0 12px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:13px;cursor:pointer">전체</button>
                   <button onClick="{{ toggleTarget }}" style="height:32px;padding:0 12px;background:#f2f2f2;color:#0a0a0a;border:0;font-size:13px;font-weight:700;cursor:pointer">확인</button>
@@ -429,6 +429,18 @@ input[type=range]{accent-color:#E60012}
     </section>
   </sc-if>
 
+  <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-label="OpenAI 연결" style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="width:min(460px,100%);background:#fff;color:#111;padding:28px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:22px;font-weight:800">OpenAI 연결</span><button onClick="{{ closeAI }}" aria-label="닫기" style="width:34px;height:34px;background:none;border:1px solid rgba(17,17,17,0.4);font-size:15px;cursor:pointer">✕</button></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><label for="aiKey" style="font-size:13px;font-weight:600">API 키</label><input id="aiKey" type="password" autoComplete="off" value="{{ aiKey }}" onChange="{{ setAIKey }}" onKeyDown="{{ aiEnter }}" placeholder="{{ aiHolder }}" style="height:44px;padding:0 12px;border:1px solid rgba(17,17,17,0.4);font-size:16px;border-radius:0"></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">모델</span><div style="display:flex;border:1px solid #111"><sc-for list="{{ aiModels }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="flex:1;height:40px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid #111;font-size:13px;font-weight:700;cursor:pointer">{{ o.label }}</button></sc-for></div></div>
+        <sc-if value="{{ aiMsg }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;font-weight:700;color:{{ aiMsgColor }}">{{ aiMsg }}</span></sc-if>
+        <div style="display:flex;gap:10px"><button onClick="{{ aiGo }}" disabled="{{ aiBusy }}" style="flex:1;height:46px;background:#E60012;color:#fff;border:0;font-size:16px;font-weight:800;cursor:pointer" style-hover="background:#c4000f">{{ aiGoLabel }}</button><sc-if value="{{ aiOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ aiOff }}" style="height:46px;padding:0 18px;background:none;border:1px solid #111;font-size:15px;font-weight:700;cursor:pointer">연결 끊기</button></sc-if></div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ zoom }}" hint-placeholder-val="{{ false }}">
     <div onClick="{{ closeZoom }}" role="dialog" aria-label="{{ zoomName }}" style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;cursor:zoom-out">
       <img src="{{ zoom }}" alt="{{ zoomName }}" style="max-width:min(900px,100%);max-height:80vh;object-fit:contain;display:block;background:#fff">
@@ -553,6 +565,15 @@ class Component extends DCLogic {
       isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: () => { this.setState({ screen: 'out', targetOpen: false, oProd: window.DATA && window.DATA.cur }); window.scrollTo(0, 0); }, isConcept: s.screen === 'concept',
       goConcept: go('concept'), goExp: go('exp'), theme: s.theme
     };
+    const AI = s.AI || { on: false, model: '', models: [] }, aiPost = (b, ok) => { this.setState({ aiBusy: true, aiMsg: '' }); return MM.api('/api/openai', b).then(r => this.setState({ AI: r, aiKey: '', aiMsg: ok, aiBad: false })).catch(e => this.setState({ aiMsg: e.message, aiBad: true, aiKey: '' })).finally(() => this.setState({ aiBusy: false })); };
+    if (MM && !this._ai) { this._ai = true; MM.api('/api/openai').then(r => this.setState({ AI: r })).catch(() => { this._ai = false; }); }
+    out.aiOpen = !!s.aiOpen; out.aiOn = AI.on; out.aiDot = AI.on ? '#2FBF71' : '#7a7a7a'; out.aiLabel = AI.on ? 'OpenAI 연결됨' : 'OpenAI 연결';
+    out.openAI = () => this.setState({ aiOpen: true, aiMsg: '', aiKey: '' }); out.closeAI = () => this.setState({ aiOpen: false, aiKey: '' });
+    out.aiKey = s.aiKey || ''; out.setAIKey = e => this.setState({ aiKey: e.target.value }); out.aiHolder = AI.on ? '연결됨 · 바꾸려면 새 키' : 'sk-';
+    out.aiModels = AI.models.map(m => ({ label: m.id, on: m.id === AI.model, bg: m.id === AI.model ? '#111' : '#fff', fg: m.id === AI.model ? '#fff' : m.ok ? '#111' : '#999', pick: () => aiPost({ model: m.id }, '') }));
+    out.aiMsg = s.aiMsg || ''; out.aiMsgColor = s.aiBad ? '#b8000e' : '#1c7c46'; out.aiBusy = !!s.aiBusy; out.aiGoLabel = s.aiBusy ? '확인 중' : '연결';
+    out.aiGo = () => { if (!(s.aiKey || '').trim()) return this.setState({ aiMsg: '키를 넣어 주세요', aiBad: true }); aiPost({ key: s.aiKey.trim() }, '연결했습니다'); };
+    out.aiEnter = e => { if (e.key === 'Enter') out.aiGo(); }; out.aiOff = () => aiPost({ off: true }, '연결을 끊었습니다');
     const sc = s.scene;
     out.isSetup = sc === 'setup'; out.isWorld = sc === 'world'; out.isConclusion = sc === 'conclusion';
     out.showSetupBar = sc === 'setup' || sc === 'running'; out.showExploreBar = sc === 'explore';
@@ -564,8 +585,6 @@ class Component extends DCLogic {
     out.segGroups = ready ? ['age', 'sex', 'region'].map(g => ({ label: segLabels[g], items: D.segments[g].map(x => { const on = s.sel[g].includes(x.id); return { id: x.id, on, bg: on ? '#f2f2f2' : 'transparent', fg: on ? '#0a0a0a' : '#d0d0d0', toggle: () => { const cur = s.sel[g]; const next = on ? (cur.length > 1 ? cur.filter(v => v !== x.id) : cur) : cur.concat(x.id); this.setState({ sel: Object.assign({}, s.sel, { [g]: D.segments[g].map(v => v.id).filter(v => next.includes(v)) }) }, () => this.applySel()); } }; }) })) : [];
     const allSel = ready && ['age', 'sex', 'region'].every(g => s.sel[g].length === D.segments[g].length);
     out.targetLabel = allSel ? '19~59세 전체' : ['age', 'sex', 'region'].map(g => ready && s.sel[g].length === D.segments[g].length ? (g === 'age' ? '전 연령' : g === 'sex' ? '남녀' : '전국') : s.sel[g].join('·')).join(' · ');
-    const pop = ready ? MM.population(s.sel) : { people: 0, respondents: 0, margin: 0 };
-    out.popLine = `대표 인구 ${Math.round(pop.people / 1e4).toLocaleString()}만 명 · 실제 응답자 ${pop.respondents.toLocaleString()}명 · 사람 표본 오차 ±${pop.margin.toFixed(1)}%p · 구매의향(패널) ±${ready ? D.evidence.panel.margin.toFixed(1) : 0}%p`;
     out.targetOpen = s.targetOpen; out.toggleTarget = () => this.setState({ targetOpen: !s.targetOpen });
     out.selectAll = () => this.setState({ sel: Object.assign({}, s.sel, { age: D.segments.age.map(x => x.id), sex: D.segments.sex.map(x => x.id), region: D.segments.region.map(x => x.id) }) }, () => this.applySel());
     out.nOpts = this.seg([{ v: 200, l: '200' }, { v: 500, l: '500' }, { v: 1000, l: '1,000' }, { v: 1500, l: '1,500' }], s.n, v => { if (sc === 'setup') this.setState({ n: v }); }, true);
@@ -727,7 +746,7 @@ class Component extends DCLogic {
     if (s.screen === 'concept' && ready && this._hs !== s.screen) hist();
     this._hs = s.screen;
     out.zoom = s.zoom || ''; out.zoomName = s.zoomName || ''; out.closeZoom = () => this.setState({ zoom: '' });
-    if (!this._esc) { this._esc = e => { if (e.key === 'Escape' && this.state.zoom) this.setState({ zoom: '' }); }; window.addEventListener('keydown', this._esc); }
+    if (!this._esc) { this._esc = e => { if (e.key === 'Escape') this.setState({ zoom: '', aiOpen: false, aiKey: '' }); }; window.addEventListener('keydown', this._esc); }
     out.hCount = s.H ? `${s.H.length}건` : ''; out.hMsg = s.hErr ? '이력을 불러오지 못했습니다: ' + s.hErr : !s.H ? '불러오는 중' : s.H.length ? '' : '아직 검증한 것이 없습니다';
     out.hRows = (s.H || []).map(h => ({ kind: h.kind, name: h.name, info: h.info, result: h.result, ts: h.ts, state: h.state, sc: h.state === '완료' ? '#555' : '#b8000e', img: h.photo ? '/api/photo/' + h.id : '', cols: h.photo ? '58px minmax(0,1fr)' : 'minmax(0,1fr)', zoom: () => this.setState({ zoom: '/api/photo/' + h.id, zoomName: h.name }), zoomLabel: h.name + ' 사진 크게 보기', open: s.hOpen === h.id, toggle: () => this.setState({ hOpen: s.hOpen === h.id ? '' : h.id }), steps: h.steps.map(x => ({ n: x[0], t: x[1] })) }));
 

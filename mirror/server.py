@@ -217,6 +217,54 @@ def run_job(flt, n, only):
     return fn
 
 
+# ---------- OpenAI 연결 ----------
+MODELS = {"gpt-6-luna": (.10, .50), "gpt-6.1-terra": (1.0, 5.0), "gpt-6.2-sol": (2.0, 10.0)}      # $/100만 토큰 (입력, 출력), developers.openai.com 2026-11-24 확인
+AI = {"on": False, "model": "gpt-6-luna"}
+
+
+def connect(key):
+    """키를 확인하고 메모리에만 둔다(파일·기록에 남기지 않음). 실패하면 이유만 말하고 키는 되돌려 주지 않는다."""
+    from openai import APIConnectionError, AuthenticationError, OpenAI, PermissionDeniedError
+
+    from . import consumer as C
+    try:
+        cl = OpenAI(api_key=key, timeout=20, max_retries=1)
+        have = {m.id for m in cl.models.list()}
+    except (AuthenticationError, PermissionDeniedError):
+        raise ValueError("키가 맞지 않거나 권한이 없습니다") from None
+    except APIConnectionError:
+        raise ValueError("OpenAI에 연결하지 못했습니다. 인터넷을 확인하세요") from None
+    except Exception as e:
+        raise ValueError("연결하지 못했습니다: " + type(e).__name__) from None
+    C._clients["openai"] = cl
+    AI.update(on=True, have=sorted(m for m in MODELS if m in have))
+    if AI["have"] and AI["model"] not in AI["have"]:
+        AI["model"] = AI["have"][0]
+
+
+def ai_state():
+    return {"on": AI["on"], "model": AI["model"], "models": [{"id": m, "ok": m in AI.get("have", MODELS)} for m in MODELS]}
+
+
+def a_openai(req, j):
+    from . import consumer as C
+    if req.method == "POST":
+        if j.get("off"):
+            C._clients.pop("openai", None)
+            AI.update(on=False)
+            AI.pop("have", None)
+        if j.get("model"):
+            if j["model"] not in MODELS:
+                raise ValueError("쓸 수 없는 모델입니다")
+            AI["model"] = j["model"]
+        key = str(j.get("key", "")).strip()
+        if key:
+            if not re.fullmatch(r"sk-[A-Za-z0-9_-]{16,250}", key):
+                raise ValueError("OpenAI 키는 sk- 로 시작합니다")
+            connect(key)
+    return ai_state()
+
+
 # ---------- 검증 이력 ----------
 def hdb():
     c = sqlite3.connect(HIST, timeout=10)
@@ -315,8 +363,9 @@ def s_talk(c, x):
     from . import multiverse as U
     if any(re.sub(r"\s", "", v) in re.sub(r"\s", "", c["name"] + c["desc"]) for v in W.IDS.values()):
         raise PermissionError("대회 제공 컨셉은 외부 AI로 보내도 되는지 확인되지 않아 인터뷰하지 않았습니다")
-    if not C.GEMINI_KEY:
-        raise PermissionError("AI 키가 없어 인터뷰를 건너뛰었습니다")
+    model = AI["model"] if AI["on"] else "gemini-3.5-flash-lite" if C.GEMINI_KEY else ""
+    if not model:
+        raise PermissionError("AI가 연결되지 않아 인터뷰를 건너뛰었습니다")
     w, _ = U.select({})
     who = U.synthetic(w, 6, seed=int(time.time()) % 1000)
     q = (f"편의점에서 이 신제품을 봤습니다: {c['name']}. {c['desc']} 가격 {c['price']}.\n솔직하게 답하세요. JSON 하나로만: "
@@ -324,7 +373,7 @@ def s_talk(c, x):
     out = []
     for i in range(len(who)):
         try:
-            t = C.chat("당신은 아래 사람입니다. 마케터처럼 말하지 말고 이 사람의 처지대로 답하세요.\n" + "\n".join(P.memory(who.iloc[i])), q, "gemini-3.5-flash-lite")
+            t = C.chat("당신은 아래 사람입니다. 마케터처럼 말하지 말고 이 사람의 처지대로 답하세요.\n" + "\n".join(P.memory(who.iloc[i])), q, model)
             m = json.loads(re.search(r"\{.*?\}", t, re.S).group(0))
             out.append({"누구": f"{who.age[i]} {who.sex[i]}", "점수": int(m["score"]), "이유": str(m["why"])[:60]})
         except Exception:
@@ -470,7 +519,7 @@ class Fresh(StaticFiles):
 
 
 app = Starlette(routes=[Route("/api/data", api(lambda r, j: base())), Route("/api/reactions", api(lambda r, j: react())), Route("/api/posts", api(a_posts)), Route("/observe", observe), Route("/api/run", api(a_run), methods=["POST"]), Route("/api/job/{jid}", api(a_job)), Route("/api/society", api(a_society)),
-                        Route("/api/report", api(a_report)), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", Fresh(directory=WEB, html=True, check_dir=False))])
+                        Route("/api/report", api(a_report)), Route("/api/openai", api(a_openai), methods=["GET", "POST"]), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", Fresh(directory=WEB, html=True, check_dir=False))])
 
 
 def check():
@@ -492,6 +541,10 @@ def check():
     p = c.get("/api/posts", params={"sort": "likes"}).json()
     assert p["total"] > 500 and len(p["rows"]) == 24 and all(not r["url"] or r["url"].startswith("http") for r in p["rows"]) and c.get("/api/posts", params={"q": "없는낱말없는낱말"}).json()["count"] == 0
     assert "trend-data" in c.get("/observe").text and ".workspace,#insight-clear{display:none" in c.get("/observe").text and c.get("/observe", headers={"host": "evil.com"}).status_code == 403
+    bad = c.post("/api/openai", json={"key": "sk-" + "x" * 5})
+    assert bad.status_code == 400 and "xxxxx" not in bad.text and c.get("/api/openai").json()["on"] is False
+    assert c.post("/api/openai", json={"model": "gpt-6.1-terra"}).json()["model"] == "gpt-6.1-terra" and c.post("/api/openai", json={"model": "아무거나"}).status_code == 400
+    assert c.post("/api/openai", json={"off": True}, headers={"origin": "https://evil.com"}).status_code == 403
     old = STEPS[2]
     STEPS[2] = (old[0], lambda c_, x: (_ for _ in ()).throw(PermissionError("시험")))
     try:
