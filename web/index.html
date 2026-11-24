@@ -569,7 +569,7 @@ class Component extends DCLogic {
     if (MM && !this._ai) { this._ai = true; MM.api('/api/openai').then(r => this.setState({ AI: r })).catch(() => { this._ai = false; }); }
     out.aiOpen = !!s.aiOpen; out.aiOn = AI.on; out.aiDot = AI.on ? '#2FBF71' : '#7a7a7a'; out.aiLabel = AI.on ? 'OpenAI 연결됨' : 'OpenAI 연결';
     out.openAI = () => this.setState({ aiOpen: true, aiMsg: '', aiKey: '' }); out.closeAI = () => this.setState({ aiOpen: false, aiKey: '' });
-    out.aiKey = s.aiKey || ''; out.setAIKey = e => this.setState({ aiKey: e.target.value }); out.aiHolder = AI.on ? '연결됨 · 바꾸려면 새 키' : 'sk-';
+    out.aiKey = s.aiKey || ''; out.setAIKey = e => this.setState({ aiKey: e.target.value }); out.aiHolder = AI.on ? '연결됨 · 바꾸려면 새 키' : '대회에서 받은 키';
     out.aiModels = AI.models.map(m => ({ label: m.id, on: m.id === AI.model, bg: m.id === AI.model ? '#111' : '#fff', fg: m.id === AI.model ? '#fff' : m.ok ? '#111' : '#999', pick: () => aiPost({ model: m.id }, '') }));
     out.aiMsg = s.aiMsg || ''; out.aiMsgColor = s.aiBad ? '#b8000e' : '#1c7c46'; out.aiBusy = !!s.aiBusy; out.aiGoLabel = s.aiBusy ? '확인 중' : '연결';
     out.aiGo = () => { if (!(s.aiKey || '').trim()) return this.setState({ aiMsg: '키를 넣어 주세요', aiBad: true }); aiPost({ key: s.aiKey.trim() }, '연결했습니다'); };

@@ -223,23 +223,40 @@ AI = {"on": False, "model": "gpt-6-luna"}
 
 
 def connect(key):
-    """키를 확인하고 메모리에만 둔다(파일·기록에 남기지 않음). 실패하면 이유만 말하고 키는 되돌려 주지 않는다."""
-    from openai import APIConnectionError, AuthenticationError, OpenAI, PermissionDeniedError
+    """대회 주소로 모델마다 짧게 한 번 불러 확인하고, 키는 메모리에만 둔다(파일·기록에 남기지 않음). 실패하면 이유만 말한다."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from openai import APIConnectionError, APIStatusError, AuthenticationError, RateLimitError
 
     from . import consumer as C
-    try:
-        cl = OpenAI(api_key=key, timeout=20, max_retries=1)
-        have = {m.id for m in cl.models.list()}
-    except (AuthenticationError, PermissionDeniedError):
-        raise ValueError("키가 맞지 않거나 권한이 없습니다") from None
-    except APIConnectionError:
-        raise ValueError("OpenAI에 연결하지 못했습니다. 인터넷을 확인하세요") from None
-    except Exception as e:
-        raise ValueError("연결하지 못했습니다: " + type(e).__name__) from None
+    cl = C.gateway(key)
+
+    def probe(m):
+        try:
+            C.ask_openai(cl.with_options(timeout=25), m, "짧게", "안녕", max_output_tokens=16)
+        except Exception as e:
+            return e
+    with ThreadPoolExecutor(len(MODELS)) as ex:
+        res = dict(zip(MODELS, ex.map(probe, MODELS)))
+    have = [m for m, e in res.items() if e is None]
+    if not have:
+        e = next(iter(res.values()))
+        raise ValueError("키가 맞지 않습니다" if isinstance(e, AuthenticationError) else "사용 한도에 걸렸습니다. 잠시 뒤 다시 하세요" if isinstance(e, RateLimitError)
+                         else "대회 서버에 연결하지 못했습니다. 인터넷을 확인하세요" if isinstance(e, APIConnectionError)
+                         else f"연결하지 못했습니다(서버 응답 {e.status_code})" if isinstance(e, APIStatusError) else "연결하지 못했습니다: " + type(e).__name__)
     C._clients["openai"] = cl
-    AI.update(on=True, have=sorted(m for m in MODELS if m in have))
-    if AI["have"] and AI["model"] not in AI["have"]:
-        AI["model"] = AI["have"][0]
+    AI.update(on=True, have=have)
+    if AI["model"] not in have:
+        AI["model"] = have[0]
+
+
+def auto_connect():
+    """.env 나 환경변수에 GATEWAY_KEY 가 있으면 켤 때 연결한다."""
+    if os.environ.get("GATEWAY_KEY"):
+        try:
+            connect(os.environ["GATEWAY_KEY"])
+        except ValueError as e:
+            print("OpenAI 자동 연결 실패:", e, flush=True)
 
 
 def ai_state():
@@ -254,13 +271,13 @@ def a_openai(req, j):
             AI.update(on=False)
             AI.pop("have", None)
         if j.get("model"):
-            if j["model"] not in MODELS:
+            if j["model"] not in AI.get("have", MODELS):
                 raise ValueError("쓸 수 없는 모델입니다")
             AI["model"] = j["model"]
         key = str(j.get("key", "")).strip()
         if key:
-            if not re.fullmatch(r"sk-[A-Za-z0-9_-]{16,250}", key):
-                raise ValueError("OpenAI 키는 sk- 로 시작합니다")
+            if not re.fullmatch(r"[!-~]{16,400}", key):
+                raise ValueError("키 모양이 아닙니다. 받은 키를 그대로 넣어 주세요")
             connect(key)
     return ai_state()
 
@@ -550,7 +567,7 @@ def check():
     p = c.get("/api/posts", params={"sort": "likes"}).json()
     assert p["total"] > 500 and len(p["rows"]) == 24 and all(not r["url"] or r["url"].startswith("http") for r in p["rows"]) and c.get("/api/posts", params={"q": "없는낱말없는낱말"}).json()["count"] == 0
     assert "trend-data" in c.get("/observe").text and ".workspace,#insight-clear{display:none" in c.get("/observe").text and c.get("/observe", headers={"host": "evil.com"}).status_code == 403
-    bad = c.post("/api/openai", json={"key": "sk-" + "x" * 5})
+    bad = c.post("/api/openai", json={"key": "x" * 5})
     assert bad.status_code == 400 and "xxxxx" not in bad.text and c.get("/api/openai").json()["on"] is False
     assert c.post("/api/openai", json={"model": "gpt-6.1-terra"}).json()["model"] == "gpt-6.1-terra" and c.post("/api/openai", json={"model": "아무거나"}).status_code == 400
     assert c.post("/api/openai", json={"off": True}, headers={"origin": "https://evil.com"}).status_code == 403
@@ -585,5 +602,7 @@ if __name__ == "__main__":
         check()
     else:
         import uvicorn
+        from . import consumer      # .env 읽기
+        threading.Thread(target=auto_connect, daemon=True).start()
         threading.Thread(target=base, daemon=True).start()       # 첫 화면을 빨리 열기 위해 미리 계산
         uvicorn.run(app, host="127.0.0.1", port=int(sys.argv[1]) if len(sys.argv) > 1 else 8517, log_level="warning")

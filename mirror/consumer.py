@@ -149,7 +149,7 @@ def gemini_models(key):
 
 def llm_available():
     """Claude(API 키 또는 `ant auth login`), Gemini 키, OpenAI 키 중 하나라도 있으면 True."""
-    return bool(GEMINI_KEY or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    return bool(GEMINI_KEY or os.environ.get("GATEWAY_KEY") or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
                 or os.path.exists(os.path.expanduser("~/.config/anthropic/credentials"))
                 or os.environ.get("OPENAI_API_KEY"))
 
@@ -216,6 +216,20 @@ def chat(system, user, model):
     return out
 
 
+GATEWAY_URL = "https://gateway-us.pydantic.dev/proxy/lotte-ax-challenge"      # 대회가 준 OpenAI 주소(responses 방식)
+
+
+def gateway(key):
+    from openai import OpenAI
+    return OpenAI(base_url=GATEWAY_URL, api_key=key, timeout=60, max_retries=0)
+
+
+def ask_openai(cl, model, system, user, **kw):
+    """→ (답, 입력 토큰, 출력 토큰). 생각 끄기를 받는 모델은 끈다."""
+    r = cl.responses.create(model=model, instructions=system, input=user, store=False, **({"reasoning": {"effort": "none"}} if model in NO_THINK else {}), **kw)
+    return (r.output_text or "").strip(), (r.usage.input_tokens if r.usage else 0), (r.usage.output_tokens if r.usage else 0)
+
+
 NO_THINK = {"gpt-6-luna", "gpt-6.1-terra"}      # 생각 토큰도 출력 요금이라 끈다. gpt-6.2-sol 은 none 을 거부해서 기본값(공식 문서 2026-11-24)
 
 
@@ -239,13 +253,20 @@ def _chat_raw(system, user, model):
         cl = _clients.get(("gemini", GEMINI_KEY)) or _clients.setdefault(
             ("gemini", GEMINI_KEY), OpenAI(api_key=GEMINI_KEY, base_url=GEMINI_URL, timeout=60))
     else:
-        cl = _clients.get("openai") or _clients.setdefault("openai", OpenAI())   # 화면에서 연결한 것이 있으면 그것
+        cl = _clients.get("openai")                         # 화면에서 연결한 것이 있으면 그것
+        if not cl:
+            key = os.environ.get("GATEWAY_KEY")
+            cl = _clients.setdefault("openai", gateway(key) if key else OpenAI())
     msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     for attempt in range(6):
         if model.startswith("gemini"):
             _throttle()
         try:
-            r = cl.with_options(max_retries=0).chat.completions.create(model=model, messages=msgs, **({"reasoning_effort": "none"} if model in NO_THINK else {}))
+            if not model.startswith("gemini"):
+                text, tin, tout = ask_openai(cl.with_options(max_retries=0), model, system, user)
+                _track(tin, tout)
+                return text
+            r = cl.with_options(max_retries=0).chat.completions.create(model=model, messages=msgs)
             break
         except RateLimitError as e:
             body = str(getattr(e, "body", e))
