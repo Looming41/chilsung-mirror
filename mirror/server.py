@@ -156,7 +156,8 @@ async def observe(req):
     if not local(req):
         return PlainTextResponse("forbidden", 403)
     from . import trends as T
-    return HTMLResponse(await run_in_threadpool(lambda: T.html(T.snapshot(168))))
+    h = await run_in_threadpool(lambda: T.html(T.snapshot(168)))
+    return HTMLResponse(h.replace("</head>", "<style>.workspace,#insight-clear{display:none!important}</style></head>", 1))      # 콘텐츠 레이더 칸은 보이지 않게(화면 코드가 그 요소를 쓰므로 지우지는 않는다)
 
 
 _base = {}
@@ -475,7 +476,7 @@ def check():
     assert z["worlds"] == 1500 and set(z["products"]) == set(W.IDS) and c.get("/api/report", params={"run": "x"}).status_code == 400
     p = c.get("/api/posts", params={"sort": "likes"}).json()
     assert p["total"] > 500 and len(p["rows"]) == 24 and all(not r["url"] or r["url"].startswith("http") for r in p["rows"]) and c.get("/api/posts", params={"q": "없는낱말없는낱말"}).json()["count"] == 0
-    assert "trend-data" in c.get("/observe").text and c.get("/observe", headers={"host": "evil.com"}).status_code == 403
+    assert "trend-data" in c.get("/observe").text and ".workspace,#insight-clear{display:none" in c.get("/observe").text and c.get("/observe", headers={"host": "evil.com"}).status_code == 403
     old = STEPS[2]
     STEPS[2] = (old[0], lambda c_, x: (_ for _ in ()).throw(PermissionError("시험")))
     try:

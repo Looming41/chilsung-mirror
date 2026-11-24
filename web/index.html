@@ -409,10 +409,10 @@ input[type=range]{accent-color:#E60012}
   </sc-if>
 
   <sc-if value="{{ isReact }}" hint-placeholder-val="{{ false }}">
-    <section data-screen-label="소비자 반응" style="flex:1;background:#F3F2F2;color:#111">
+    <section data-screen-label="트렌드 분석" style="flex:1;background:#F3F2F2;color:#111">
       <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
-          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">{{ rHead }}</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">소비자 반응</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">{{ rHead }}</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">트렌드 분석</span></div>
         </div>
         <sc-if value="{{ rLoading }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px;font-weight:700">{{ rLoading }}</span></sc-if>
         <sc-if value="{{ rBasic }}" hint-placeholder-val="{{ true }}">
@@ -552,7 +552,7 @@ class Component extends DCLogic {
     const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM);
     const P = ready ? D.products : [], pById = id => P.find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
     const go = scr => () => { this.setState({ screen: scr, targetOpen: false }); window.scrollTo(0, 0); };
-    const navDefs = [['exp', '실험'], ['out', '결과'], ['react', '소비자 반응'], ['concept', '신제품 검증']];
+    const navDefs = [['exp', '실험'], ['out', '결과'], ['react', '트렌드 분석'], ['concept', '신제품 검증']];
     const out = {
       cv: this.cv,
       navItems: navDefs.map(([id, label]) => ({ label, go: go(id), color: s.screen === id ? '#ffffff' : '#a3a3a3', bar: s.screen === id ? '#E60012' : 'transparent' })),
