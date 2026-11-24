@@ -2,9 +2,11 @@
 
 실행: python -m mirror.server [포트=8517] · 자체검사: python -m mirror.server check
 """
+import base64
 import json
 import os
 import re
+import sqlite3
 import sys
 import threading
 import time
@@ -14,7 +16,7 @@ import numpy as np
 import pandas as pd
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
-from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -27,6 +29,9 @@ from . import worlds as W
 
 WEB = os.path.join(P.ROOT, "web")
 REPORTS = os.path.join(P.ROOT, "data", "reports")
+PHOTOS = os.path.join(P.ROOT, "data", "photos")
+HIST = os.environ.get("MM_HISTORY", os.path.join(P.ROOT, "data", "verify.db"))
+IMG = {b"\x89PNG\r\n\x1a\n": ("png", "image/png"), b"\xff\xd8\xff": ("jpg", "image/jpeg"), b"RIFF": ("webp", "image/webp")}
 JOBS, RUNS, LOCK, LOCK2 = {}, {}, threading.Lock(), threading.Lock()
 
 
@@ -161,6 +166,8 @@ def base():
     if not _base:
         ws = W.default()
         RUNS["default"] = {"flt": {}, "worlds": ws}
+        if os.path.exists(W.CACHE):                              # 미리 계산해 둔 기본 실험도 실제로 돌린 것이니 그 시각으로 남긴다
+            log_experiment(ws, {}, "base-" + W._sig()[:8], time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(os.path.getmtime(W.CACHE))))
         ev = evidence()
         _base.update(products=products(), conditions=W.COND, condLabels={k: list(v) for k, v in W.LABEL.items()}, segments=segments(), cross=W.cross(), population=ev["population"], worlds=lean(ws), run="default",
                      verify=verify(), evidence=ev, concept={"steps": [x for x, _ in STEPS], "results": []}, step_days=13)
@@ -201,10 +208,72 @@ def run_job(flt, n):
             ws = W.default(lambda k: job.update(n=k)) if not flt and n == 1500 else W.run(n, flt, tick=lambda k: job.update(n=k))
         rid = uuid.uuid4().hex[:8]
         RUNS[rid] = {"flt": flt, "worlds": ws}
+        log_experiment(ws, flt)
         for k in list(RUNS)[1:-4]:
             RUNS.pop(k, None)
         return {"run": rid, "worlds": lean(ws)}
     return fn
+
+
+# ---------- 검증 이력 ----------
+def hdb():
+    c = sqlite3.connect(HIST, timeout=10)
+    c.execute("create table if not exists verify(id text primary key, ts text, kind text, name text, info text, photo text, state text, steps text, result text)")
+    return c
+
+
+def put(i, **kw):
+    with hdb() as c:
+        c.execute("insert or ignore into verify(id, ts, state) values(?,?,'진행 중')", (i, time.strftime("%Y-%m-%dT%H:%M:%S")))
+        for k, v in kw.items():                                  # 열 이름은 코드에서만 정해진다
+            c.execute(f"update verify set {k}=? where id=?", (v if isinstance(v, str) else json.dumps(v, ensure_ascii=False), i))
+
+
+def past_runs():
+    with hdb() as c:
+        rs = c.execute("select id, ts, kind, name, info, photo, state, steps, result from verify order by ts desc, rowid desc limit 200").fetchall()
+    live = {v.get("hid") for v in JOBS.values() if v["state"] == "running"}
+    return [{"id": r[0], "ts": r[1][5:16].replace("T", " ").replace("-", "."), "kind": r[2], "name": r[3], "info": r[4] or "", "photo": bool(r[5]), "state": "중단됨" if r[6] == "진행 중" and r[0] not in live else r[6],
+             "steps": json.loads(r[7]) if r[7] else [], "result": r[8] or ""} for r in rs]
+
+
+def log_experiment(ws, flt, i=None, ts=None):
+    """실험 한 번을 이력에 남긴다."""
+    i = i or uuid.uuid4().hex[:10]
+    med = {k: np.quantile([w["buy"][k] for w in ws], [.05, .5, .95]) for k in W.IDS}
+    win = pd.Series([w["winner"] for w in ws]).value_counts(normalize=True)
+    put(i, kind="실험", name=" · ".join(W.IDS.values()), info=f"{', '.join(x for v in flt.values() for x in v) or '19~59세 전체'} · 세상 {len(ws):,}개", state="완료", result=f"{W.IDS[win.index[0]]} 1등 {win.iloc[0]:.0%}",
+        steps=[[W.IDS[k], f"구매경험률 {m:.1%} (90% 범위 {a:.1%}~{b:.1%}), 1등 {win.get(k, 0):.1%}"] for k, (a, m, b) in med.items()])
+    if ts:
+        with hdb() as c:
+            c.execute("update verify set ts=? where id=?", (ts, i))
+
+
+def save_photo(s):
+    """data:image/...;base64 → 파일 이름. 그림이 아니거나 5MB 를 넘으면 거절한다."""
+    if not s:
+        return ""
+    try:
+        raw = base64.b64decode(str(s).split(",", 1)[1], validate=True)
+    except (IndexError, ValueError):
+        raise ValueError("사진을 읽지 못했습니다") from None
+    ext = next((v[0] for k, v in IMG.items() if raw.startswith(k) and (k != b"RIFF" or raw[8:12] == b"WEBP")), None)
+    if not ext or len(raw) > 5 * 1024 * 1024:
+        raise ValueError("PNG, JPG, WEBP 사진만 5MB까지 넣을 수 있습니다")
+    os.makedirs(PHOTOS, exist_ok=True)
+    f = uuid.uuid4().hex + "." + ext
+    with open(os.path.join(PHOTOS, f), "wb") as h:
+        h.write(raw)
+    return f
+
+
+async def photo(req):
+    if not local(req):
+        return PlainTextResponse("forbidden", 403)
+    with hdb() as c:
+        r = c.execute("select photo from verify where id=?", (req.path_params["hid"],)).fetchone()
+    f = os.path.join(PHOTOS, os.path.basename(r[0])) if r and r[0] else ""
+    return FileResponse(f, media_type={v[0]: v[1] for v in IMG.values()}[f.rsplit(".", 1)[1]]) if f and os.path.exists(f) else PlainTextResponse("", 404)
 
 
 # ---------- 새 컨셉 ----------
@@ -283,15 +352,16 @@ def s_report(c, x):
     L = [f"# {c['name']}", "", f"- 설명: {c['desc']}", f"- 가격: {c['price']} · 주 대상: {c['target']}", "", *[f"## {n}\n\n{r or '건너뜀'}\n" for (n, _), r in zip(STEPS, x["results"])], "## 주의\n\n조사하지 않은 컨셉이라 범위가 넓습니다. 실제 설문 50~100명을 받으면 좁힐 수 있습니다."]
     with open(f, "w") as h:
         h.write("\n".join(L))
-    GU.save(f"새 컨셉: {c['name']}", {}, pd.DataFrame([{"컨셉": c["name"][:20], "구매경험률": x["forecast"]["median"], "소매 매출(억)": 0}]))
+    GU.save(f"신제품 검증: {c['name']}", {}, pd.DataFrame([{"컨셉": c["name"][:20], "구매경험률": x["forecast"]["median"], "소매 매출(억)": 0}]))
     return f"보고서를 저장했습니다: {os.path.relpath(f, P.ROOT)}"
 
 
 STEPS = [("비슷한 과거 제품 찾기", s_past), ("소비자 글 찾기", s_posts), ("가상 소비자 인터뷰", s_talk), ("예측", s_forecast), ("보고서", s_report)]
 
 
-def concept_job(c):
+def concept_job(c, hid):
     def fn(job):
+        job["hid"] = hid
         x = {"results": []}
         job.update(steps=[{"state": "wait", "text": ""} for _ in STEPS])
         for k, (_, f) in enumerate(STEPS):
@@ -306,7 +376,11 @@ def concept_job(c):
                 t = f"{type(e).__name__}: {str(e)[:120]}"
                 job["steps"][k] = {"state": "fail", "text": t}
             x["results"].append(t)
-        return {"forecast": x.get("forecast")}
+            put(hid, steps=[[n, r] for (n, _), r in zip(STEPS, x["results"])])
+        f = x.get("forecast")
+        bad = any(y["state"] == "fail" for y in job["steps"])
+        put(hid, state="일부 실패" if bad else "완료", result=f"12개월 구매경험률 {f['median']:.1%} ({f['lo']:.1%}~{f['hi']:.1%})" if f else "예측 실패")
+        return {"forecast": f}
     return fn
 
 
@@ -368,7 +442,9 @@ def a_concept(req, j):
     c = {k: str(j.get(k, "")).strip()[:m] for k, m in (("name", 60), ("desc", 300), ("price", 20), ("target", 40))}
     if not c["name"] or not c["desc"]:
         raise ValueError("제품 이름과 한 줄 설명을 적어 주세요")
-    return {"job": start(concept_job(c))}
+    f, hid = save_photo(j.get("photo")), uuid.uuid4().hex[:10]
+    put(hid, kind="신제품", name=c["name"], info=" · ".join(x for x in (c["desc"], c["price"], c["target"]) if x), photo=f)
+    return {"job": start(concept_job(c, hid)), "id": hid}
 
 
 def a_review(req, j):
@@ -377,15 +453,15 @@ def a_review(req, j):
 
 
 app = Starlette(routes=[Route("/api/data", api(lambda r, j: base())), Route("/api/reactions", api(lambda r, j: react())), Route("/api/posts", api(a_posts)), Route("/observe", observe), Route("/api/run", api(a_run), methods=["POST"]), Route("/api/job/{jid}", api(a_job)), Route("/api/society", api(a_society)),
-                        Route("/api/report", api(a_report)), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", StaticFiles(directory=WEB, html=True, check_dir=False))])
+                        Route("/api/report", api(a_report)), Route("/api/history", api(lambda r, j: {"rows": past_runs()})), Route("/api/photo/{hid}", photo), Route("/api/concept", api(a_concept), methods=["POST"]), Route("/api/review", api(a_review), methods=["POST"]), Mount("/", StaticFiles(directory=WEB, html=True, check_dir=False))])
 
 
 def check():
     import tempfile
     from starlette.testclient import TestClient
     GU.DB = os.path.join(tempfile.mkdtemp(), "h.db")
-    global REPORTS
-    REPORTS = tempfile.mkdtemp()
+    global REPORTS, HIST, PHOTOS
+    REPORTS, PHOTOS, HIST = tempfile.mkdtemp(), tempfile.mkdtemp(), os.path.join(tempfile.mkdtemp(), "v.db")
     c = TestClient(app)
     d = c.get("/api/data").json()
     assert len(d["worlds"]) == 1500 and len(d["verify"]["issues"]) > 15 and d["population"]["people"] > 25e6
@@ -401,7 +477,8 @@ def check():
     old = STEPS[2]
     STEPS[2] = (old[0], lambda c_, x: (_ for _ in ()).throw(PermissionError("시험")))
     try:
-        j = c.post("/api/concept", json={"name": "청귤 제로", "desc": "청귤 향 탄산음료, 당 0g", "price": "1,800원", "target": "20대"}).json()["job"]
+        j = c.post("/api/concept", json={"name": "청귤 제로", "desc": "청귤 향 탄산음료, 당 0g", "price": "1,800원", "target": "20대", "photo": "data:image/png;base64," + base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"0" * 40).decode()}).json()
+        hid, j = j["id"], j["job"]
         for _ in range(100):
             z = c.get("/api/job/" + j).json()
             if z["state"] != "running":
@@ -410,6 +487,10 @@ def check():
     finally:
         STEPS[2] = old
     assert z["state"] == "done" and [x["state"] for x in z["steps"]] == ["done", "done", "skip", "done", "done"], z
+    h = c.get("/api/history").json()["rows"]
+    assert h[0]["id"] == hid and h[0]["state"] == "완료" and len(h[0]["steps"]) == 5 and h[0]["photo"] and any(x["kind"] == "실험" for x in h)
+    assert c.get("/api/photo/" + hid).headers["content-type"] == "image/png" and c.get("/api/photo/x").status_code == 404 and c.get("/api/photo/" + hid, headers={"host": "evil.com"}).status_code == 403
+    assert c.post("/api/concept", json={"name": "a", "desc": "b", "photo": "data:image/png;base64," + base64.b64encode(b"<script>").decode()}).status_code == 400
     try:
         s_talk({"name": "밀키스 화채", "desc": "", "price": ""}, {})
         raise AssertionError("대회 컨셉이 외부로 나갈 수 있음")
