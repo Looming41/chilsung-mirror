@@ -1,11 +1,11 @@
-"""현장 설문 → 즉시 보정: 실제 사람 100명쯤의 1분 설문으로, 사람이 정했던 '마음 가중치'를 바로잡는다.
+"""현장 설문 → 즉시 보정: 실제 사람 100명쯤의 1분 설문으로, 사람이 정했던 '반응 가중치'를 바로잡는다.
 
 1. 묻는 것: 나이·성별·제로 빈도·제로 거부·좋아하는 음료·성향 4문항(모두 KREI 와 같은 문항) + 제품 카드 최대 4장의 구매의향(1~5)
 2. 매칭: 응답자마다 답이 비슷한 KREI 실응답자 30명을 찾아 효용 항목(마음의 재료)을 채운다
-3. 학습: 마음 가중치 9개·가격 민감도·시장 분위기·제품 고유 매력을 순서형 로짓의 사후분포(사전 = multiverse.PRIOR, 라플라스 근사)로 갱신
+3. 학습: 반응 가중치 9개·가격 민감도·시장 분위기·제품 고유 매력을 순서형 로짓의 사후분포(사전 = multiverse.PRIOR, 라플라스 근사)로 갱신
    - 한 사람이 여러 장에 답하면 답끼리 닮으므로 가중을 깎는다(설계효과 ICC=.5)
    - 현장 사람은 들떠 있을 수 있어 '시장 분위기'에 지울 수 없는 흔들림(VENUE)을 남긴다
-4. 다중우주는 세계마다 이 사후분포에서 마음을 뽑는다
+4. 시나리오 비교는 회차마다 이 사후분포에서 마음을 뽑는다
 설문은 '말한 의향'이다. 실제 구매로 얼마나 이어지는지(실구매 전환)는 이 설문으로 배우지 못한다.
 실행: python -m mirror.field check | bench
 """
@@ -123,7 +123,7 @@ def terms(d, scs, concept):
 
 # ---------- 사후분포 ----------
 class Posterior:
-    """θ = [로그 마음 가중치 9, 로그 가격 민감도, 시장 분위기, 제품 매력…] 의 정규 근사."""
+    """θ = [로그 반응 가중치 9, 로그 가격 민감도, 시장 분위기, 제품 매력…] 의 정규 근사."""
 
     def __init__(self, mode, cov, prods, n):
         self.mode, self.cov, self.prods, self.n = mode, cov, prods, n
@@ -137,7 +137,7 @@ class Posterior:
 
 def prior(P_, spread=1.0):
     from . import multiverse as U
-    return np.r_[np.full(9, U.PRIOR["마음 가중치"][0]), U.PRIOR["가격 민감도"][0], U.PRIOR["시장 분위기"][0], np.full(P_, U.PRIOR["제품 고유 매력"][0])] * spread
+    return np.r_[np.full(9, U.PRIOR["반응 가중치"][0]), U.PRIOR["가격 민감도"][0], U.PRIOR["시장 분위기"][0], np.full(P_, U.PRIOR["제품 고유 매력"][0])] * spread
 
 
 def fit(A, rates, scs, concept, d=None, T=None):
@@ -226,7 +226,7 @@ def answers(d, ix):
 
 
 def bench_sim(reps=60, ns=(50, 100, 300), seed=0):
-    """가상의 '진짜 세계'를 하나 정하고 현장 설문을 흉내 내 되찾는지 본다. 진짜 세계에는 모델이 모르는 것도 넣는다(개인차, 여성의 제로 선호)."""
+    """가상의 '진짜 회차'를 하나 정하고 현장 설문을 흉내 내 되찾는지 본다. 진짜 회차에는 모델이 모르는 것도 넣는다(개인차, 여성의 제로 선호)."""
     from . import consumer as C
     from . import multiverse as U
     d, rows = U.base(), []

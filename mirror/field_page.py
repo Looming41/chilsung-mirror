@@ -1,4 +1,4 @@
-"""현장 설문 화면(휴대폰용). 이름·연락처를 묻지 않는다. 실행은 실험실의 '설문 페이지 열기' 또는:
+"""현장 설문 화면(휴대폰용). 이름·연락처를 묻지 않는다. 실행은 설문 보정 탭의 '설문 페이지 열기' 또는:
 streamlit run mirror/field_page.py --server.port 8520 --server.address 0.0.0.0
 """
 import os
@@ -10,7 +10,7 @@ import streamlit as st
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from mirror import field as F  # noqa: E402
 
-st.set_page_config(page_title="1분 음료 설문", page_icon="🥤", layout="centered")
+st.set_page_config(page_title="1분 음료 설문", layout="centered")
 s = F.study()
 if not s:
     st.info("아직 열린 설문이 없습니다.")
@@ -24,7 +24,7 @@ if st.session_state.get("done"):
 if "cards" not in st.session_state:
     st.session_state.cards = random.sample(list(s["scs"]), min(F.MAXCARD, len(s["scs"])))
 
-st.title("🥤 1분 음료 설문")
+st.title("1분 음료 설문")
 st.caption("이름·연락처는 묻지 않으며, 신제품 연구용 통계로만 씁니다. 만 14세 이상만 참여해 주세요. 언제든 그만둘 수 있습니다.")
 with st.form("f"):
     a = {"age": st.number_input("나이(만)", 14, 79, None, placeholder="예: 23"),
