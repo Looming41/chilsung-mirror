@@ -364,81 +364,6 @@ input[type=range]{accent-color:#E60012}
     </sc-if>
   </section>
 
-  <sc-if value="{{ isVerify }}" hint-placeholder-val="{{ false }}">
-    <section data-screen-label="신제품 검증" style="flex:1;background:#F3F2F2;color:#111">
-      <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
-          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">후보 3개 · 대회 제공 가상 데이터</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">신제품 검증</span></div>
-        </div>
-
-        <sc-if value="{{ vBasic }}" hint-placeholder-val="{{ true }}">
-          <div style="display:flex;flex-direction:column;gap:48px">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));border-top:2px solid #111;border-left:2px solid #111">
-              <sc-for list="{{ vCards }}" as="c" hint-placeholder-count="3">
-                <button onClick="{{ c.pick }}" aria-pressed="{{ c.on }}" style="text-align:left;background:{{ c.bg }};color:{{ c.fg }};border:0;border-right:2px solid #111;border-bottom:2px solid #111;padding:22px 22px 24px;display:flex;flex-direction:column;gap:14px;cursor:pointer" style-hover="background:{{ c.hover }}">
-                  <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700"><span style="width:10px;height:10px;display:block;background:{{ c.color }};border:1px solid #111;border-radius:{{ c.radius }};transform:{{ c.rot }}"></span>{{ c.name }}</span>
-                  <span style="font-size:22px;font-weight:800;letter-spacing:-0.02em">{{ c.concept }}</span>
-                  <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:44px;font-weight:800;letter-spacing:-0.03em;line-height:1">{{ c.final }}</span><span style="font-size:14px">12개월 구매경험률</span></span>
-                  <span style="font-size:13px;opacity:0.8">구매의향 {{ c.raw }} → 보정 {{ c.adj }} → 점포 {{ c.store }} → 전환 {{ c.conv }}</span>
-                  <span style="font-size:13px;opacity:0.8">90% 범위 {{ c.range }} · 제시 가격을 낸다는 사람 {{ c.pay }}</span>
-                </button>
-              </sc-for>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:40px">
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매의향 보정 · {{ vName }}</span><span style="font-size:13px;color:#555">단계별</span></div>
-                <sc-for list="{{ vFlow }}" as="f" hint-placeholder-count="5">
-                  <div style="display:grid;grid-template-columns:120px 1fr 64px;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
-                    <span style="font-size:14px;font-weight:700">{{ f.label }}</span>
-                    <span style="display:flex;flex-direction:column;gap:4px"><span style="height:14px;background:rgba(17,17,17,0.08);display:block"><span style="display:block;height:14px;width:{{ f.w }}%;background:{{ f.color }}"></span></span><span style="font-size:12px;color:#555">{{ f.note }}</span></span>
-                    <span style="font-size:16px;font-weight:800;text-align:right">{{ f.v }}</span>
-                  </div>
-                </sc-for>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">가정 조절</span><button onClick="{{ resetAssume }}" style="background:none;border:0;color:#b8000e;font-size:13px;font-weight:700;cursor:pointer;padding:0">처음 값</button></div>
-                <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:700">살 수 있는 점포 비율</span><span style="font-weight:800">{{ vStoreText }}</span></div><input type="range" min="0.05" max="1" step="0.01" value="{{ vStore }}" onChange="{{ setStore }}" aria-label="살 수 있는 점포 비율"></div>
-                <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:700">말-행동 전환율</span><span style="font-weight:800">{{ vConvText }}</span></div><input type="range" min="0.1" max="0.4" step="0.01" value="{{ vConv }}" onChange="{{ setConv }}" aria-label="말-행동 전환율"></div>
-                <div style="font-size:13px;color:#555;line-height:1.6">바꾼 값은 이 화면의 구매경험률에만 반영됩니다. 점포 비율 가정의 근거: {{ vWhy }}</div>
-              </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:40px">
-              <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
-                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid #111;padding-bottom:10px">
-                  <span style="font-size:20px;font-weight:800">데이터에서 찾은 문제 {{ issueCount }}건</span>
-                  <div style="display:flex;border:1px solid #111"><sc-for list="{{ issueFilters }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="height:30px;padding:0 10px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid #111;font-size:12px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
-                </div>
-                <div style="max-height:420px;overflow:auto">
-                  <sc-for list="{{ issues }}" as="i" hint-placeholder-count="8">
-                    <div style="display:grid;grid-template-columns:44px 74px 1fr 60px;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px">
-                      <span style="font-size:12px;font-weight:700;color:{{ i.sevColor }}">{{ i.sev }}</span><span style="font-size:12px;color:#555">{{ i.area }}</span><span>{{ i.text }}</span><span style="font-size:12px;text-align:right;color:{{ i.stColor }}">{{ i.status }}</span>
-                    </div>
-                  </sc-for>
-                </div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:12px">
-                <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">검토 이력</span></div>
-                <div style="display:flex;gap:8px"><input value="{{ memo }}" onChange="{{ setMemo }}" aria-label="검토 메모" placeholder="검토 메모" style="flex:1;min-width:0;height:38px;padding:0 12px;border:1px solid rgba(17,17,17,0.4);background:#fff;font-size:14px;border-radius:0"><button onClick="{{ saveMemo }}" style="height:38px;padding:0 14px;background:#111;color:#fff;border:0;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">지금 결과 저장</button></div>
-                <sc-if value="{{ noReviews }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#555">아직 저장한 검토가 없습니다.</span></sc-if>
-                <sc-for list="{{ reviews }}" as="r" hint-placeholder-count="5">
-                  <div style="display:grid;grid-template-columns:96px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15)">
-                    <span style="font-size:13px;color:#555">{{ r.t }}</span>
-                    <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:700">{{ r.who }}</span><span style="font-size:14px">{{ r.text }}</span></span>
-                  </div>
-                </sc-for>
-              </div>
-            </div>
-          </div>
-        </sc-if>
-        
-        
-        
-      </div>
-    </section>
-  </sc-if>
-
   <sc-if value="{{ isOut }}" hint-placeholder-val="{{ false }}">
     <section data-screen-label="결과" style="flex:1;background:#F3F2F2;color:#111">
       <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
@@ -502,57 +427,15 @@ input[type=range]{accent-color:#E60012}
             </div>
             <div style="display:flex;flex-direction:column;gap:16px">
               <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">모은 글</span><span style="font-size:14px">{{ pHead }}</span></div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pChannels }}" as="o" hint-placeholder-count="6"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:1px solid #111;font-size:13px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center">
-                <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pCons }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:1px solid #111;font-size:13px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pSorts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:1px solid #111;font-size:13px;font-weight:600;cursor:pointer">{{ o.label }}</button></sc-for></div>
-                <input value="{{ pQ }}" onChange="{{ setPQ }}" aria-label="글에서 찾기" placeholder="글에서 찾기" style="flex:1;min-width:160px;height:34px;padding:0 12px;border:1px solid #111;background:#fff;font-size:14px;border-radius:0">
-              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ pChannels }}" as="o" hint-placeholder-count="6"><span style="height:34px;display:flex;align-items:center;padding:0 12px;border:1px solid #111;font-size:13px;font-weight:600">{{ o.label }}</span></sc-for></div>
+              
               <sc-if value="{{ pErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#b8000e">{{ pErr }}</span></sc-if>
-              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));border-top:1px solid rgba(17,17,17,0.2);border-left:1px solid rgba(17,17,17,0.2)">
-                <sc-for list="{{ pRows }}" as="p" hint-placeholder-count="9">
-                  <a href="{{ p.url }}" target="_blank" rel="noopener noreferrer" style="display:flex;flex-direction:column;gap:10px;padding:16px;border-right:1px solid rgba(17,17,17,0.2);border-bottom:1px solid rgba(17,17,17,0.2);color:#111;text-decoration:none;min-width:0" style-hover="background:rgba(17,17,17,0.05)">
-                    <sc-if value="{{ p.thumb }}" hint-placeholder-val="{{ false }}"><img src="{{ p.thumb }}" alt="" loading="lazy" referrerPolicy="no-referrer" onError="{{ p.hide }}" style="width:100%;height:170px;object-fit:cover;display:block;background:#ddd"></sc-if>
-                    <span style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#555"><span style="font-weight:700;color:#111">{{ p.ch }}</span><span>{{ p.at }}</span></span>
-                    <span style="font-size:15px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden">{{ p.text }}</span>
-                    <span style="margin-top:auto;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px"><span style="color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">{{ p.who }}</span><span style="font-weight:700">{{ p.nums }}</span></span>
-                  </a>
-                </sc-for>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ pPrev }}" style="height:38px;padding:0 16px;background:none;border:1px solid #111;font-size:14px;font-weight:700;cursor:pointer">이전</button><span style="font-size:14px">{{ pPage }}</span><button onClick="{{ pNext }}" style="height:38px;padding:0 16px;background:none;border:1px solid #111;font-size:14px;font-weight:700;cursor:pointer">다음</button></div>
+              
+              
             </div>
             <div style="display:flex;flex-direction:column;gap:12px">
               <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">관측 지도</span><button onClick="{{ toggleObs }}" style="background:none;border:0;color:#b8000e;font-size:14px;font-weight:700;cursor:pointer;padding:0">{{ obsLabel }}</button></div>
               <sc-if value="{{ obs }}" hint-placeholder-val="{{ false }}"><iframe src="/observe" title="관측 지도" style="width:100%;height:1400px;border:1px solid rgba(17,17,17,0.3);background:#fff"></iframe></sc-if>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:0">
-              <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">뜨는 음식 · 테마</span><span style="font-size:13px;color:#555">작성자 3명 이상, 최근 글 3건 이상</span></div>
-              <sc-for list="{{ rTrend }}" as="t" hint-placeholder-count="8">
-                <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 104px 80px 90px auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px">
-                  <span style="font-weight:800">{{ t.rank }}</span>
-                  <span style="display:flex;align-items:baseline;gap:8px;min-width:0"><span style="font-size:16px;font-weight:800">{{ t.name }}</span><span style="font-size:12px;color:#555">{{ t.kind }}</span></span>
-                  <span style="font-weight:700;color:{{ t.cColor }}">{{ t.change }}</span>
-                  <span style="color:#333">{{ t.posts }}건</span>
-                  <span style="color:#555">작성자 {{ t.authors }}</span>
-                  <button onClick="{{ t.go }}" style="height:32px;padding:0 12px;background:none;color:#111;border:1px solid #111;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#111;color:#fff">새 컨셉으로 만들기</button>
-                </div>
-              </sc-for>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));border-top:2px solid #111;border-left:2px solid #111">
-              <sc-for list="{{ rProducts }}" as="p" hint-placeholder-count="3">
-                <div style="border-right:2px solid #111;border-bottom:2px solid #111;padding:20px;display:flex;flex-direction:column;gap:12px">
-                  <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700"><span style="width:10px;height:10px;display:block;background:{{ p.color }};border:1px solid #111;border-radius:{{ p.radius }};transform:{{ p.rot }}"></span>{{ p.name }} · 직접 관련 글 {{ p.posts }}건 (최근 30일 {{ p.recent }}건, {{ p.verdict }})</span>
-                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#555;font-weight:600">언급된 걱정</span><sc-for list="{{ p.worries }}" as="w" hint-placeholder-count="2"><span style="font-size:16px;font-weight:700">{{ w }}</span></sc-for></div>
-                  <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid rgba(17,17,17,0.2);padding-top:10px"><sc-for list="{{ p.quotes }}" as="q" hint-placeholder-count="2"><span style="font-size:14px;line-height:1.5">“{{ q.t }}” <span style="font-size:12px;color:#555">· {{ q.s }}</span></span></sc-for></div>
-                </div>
-              </sc-for>
-            </div>
-            <div style="display:flex;flex-direction:column">
-              <div style="border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">수집 상태</span></div>
-              <sc-for list="{{ rChannels }}" as="c" hint-placeholder-count="4">
-                <div style="display:grid;grid-template-columns:1fr 110px 90px;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px"><span style="font-weight:700">{{ c.name }}</span><span style="font-weight:700;color:{{ c.color }}">{{ c.status }}</span><span style="text-align:right">{{ c.n }}건</span></div>
-              </sc-for>
-              <span style="font-size:13px;color:#555;margin-top:10px;line-height:1.6">낱말 규칙으로 찾은 글이라 관련 없는 글이 절반쯤 섞여 있습니다(43건을 읽어 보니 47%만 진짜). 반응량은 예측에 넣지 않습니다.</span>
             </div>
           </div>
         </sc-if>
@@ -650,7 +533,7 @@ class Component extends DCLogic {
     sel: { products: ['화채', '프리즈', '쥬시'], age: ['20대', '30대', '40대', '50대'], sex: ['여자', '남자'], region: ['수도권', '중부', '영남', '호남·제주'] },
     n: 1500, targetOpen: false, prog: null, view: 'theater', sort: '', metric: 'buy', hover: null, table: false, tablePage: 0,
     world: null, dayInfo: null, person: null, compare: null, evid: false, theme: '',
-    vSt: '기본', vProd: '화채', memo: '', R: null, rErr: '', runErr: '', calc: 0, job: null, cErr: '', assume: {}, issueFilter: '전체', rSt: '기본', cSt: '입력', cStep: 0, cPct: 0, eSt: '기본',
+    R: null, rErr: '', runErr: '', calc: 0, job: null, cErr: '', rSt: '기본', cSt: '입력', cStep: 0, cPct: 0, eSt: '기본',
     cName: '', cDesc: '', cPrice: '', cTarget: ''
   };
   cv = React.createRef();
@@ -703,12 +586,12 @@ class Component extends DCLogic {
     const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM);
     const P = ready ? D.products : [], pById = id => P.find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
     const go = scr => () => { this.setState({ screen: scr, targetOpen: false }); window.scrollTo(0, 0); };
-    const navDefs = [['verify', '신제품 검증'], ['exp', '실험'], ['out', '결과'], ['react', '소비자 반응'], ['concept', '새 컨셉'], ['evid', '근거']];
+    const navDefs = [['exp', '실험'], ['out', '결과'], ['react', '소비자 반응'], ['concept', '새 컨셉'], ['evid', '근거']];
     const out = {
       cv: this.cv,
       navItems: navDefs.map(([id, label]) => ({ label, go: go(id), color: s.screen === id ? '#ffffff' : '#a3a3a3', bar: s.screen === id ? '#E60012' : 'transparent' })),
       expDisplay: s.screen === 'exp' ? 'flex' : 'none',
-      isVerify: s.screen === 'verify', isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: go('out'), isConcept: s.screen === 'concept', isEvid: s.screen === 'evid',
+      isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: go('out'), isConcept: s.screen === 'concept', isEvid: s.screen === 'evid',
       goConcept: go('concept'), goExp: go('exp'), theme: s.theme
     };
     const sc = s.scene;
@@ -829,30 +712,6 @@ class Component extends DCLogic {
     } else { out.sumRows = []; out.evidFunnel = []; out.evidStore = []; out.evidConv = []; }
     out.evid = s.evid; out.evidLabel = s.evid ? '근거 접기' : '근거 보기'; out.toggleEvid = () => this.setState({ evid: !s.evid });
 
-    // 신제품 검증
-    const stSeg = (key, opts) => this.seg(opts, s[key], v => this.setState({ [key]: v }), false);
-    out.vBasic = ready;
-    if (ready) {
-      const F = D.verify.funnel, A = id => Object.assign({ store: F[id].store, conv: F[id].conv }, s.assume[id] || {});
-      const pc1 = v => (v * 100).toFixed(1) + '%', pc0 = v => Math.round(v * 100) + '%';
-      out.vCards = P.map(p => { const f = F[p.id], a = A(p.id), on = s.vProd === p.id; return Object.assign(this.glyph(p), { name: p.name, concept: p.concept, final: pc1(f.weighted * f.lead * a.store * a.conv), raw: pc0(f.raw), adj: pc0(f.weighted * f.lead), range: pc1(f.lo) + '~' + pc1(f.hi), pay: pc0(f.pay), store: pc0(a.store), conv: a.conv.toFixed(2), on, bg: on ? '#111' : 'transparent', fg: on ? '#fff' : '#111', hover: on ? '#111' : 'rgba(17,17,17,0.06)', pick: () => this.setState({ vProd: p.id }) }); });
-      const f = F[s.vProd], a = A(s.vProd); out.vName = pById(s.vProd).name;
-      const base = f.weighted * f.lead;
-      const steps = [['원본 의향', f.raw, '5점 중 4~5점 응답, 304명'], ['정제', f.clean, `중복·불성실·나이 모순 ${D.verify.excluded}명 제외`], ['가중', f.weighted, '인구 구성과 제시 순서를 맞춤']].concat(f.lead < 1 ? [['유도 문항', base, `좋게 설명하고 물은 만큼 ${f.lead.toFixed(2)}배 (가정)`]] : []).concat([['살 수 있는 점포', base * a.store, `점포 ${pc0(a.store)}에서 판매`], ['구매경험률', base * a.store * a.conv, `과거 5개 제품의 전환 ${a.conv.toFixed(2)}`]]);
-      out.vFlow = steps.map(([label, v, note], k) => ({ label, note, v: pc1(v), w: (v / f.raw * 100).toFixed(1), color: k === steps.length - 1 ? '#E60012' : '#111' }));
-      out.vWhy = f.why;
-      out.vStore = a.store; out.vConv = a.conv; out.vStoreText = pc0(a.store); out.vConvText = a.conv.toFixed(2);
-      const setA = (k, v) => this.setState({ assume: Object.assign({}, s.assume, { [s.vProd]: Object.assign({}, s.assume[s.vProd] || {}, { [k]: v }) }) });
-      out.setStore = e => setA('store', +e.target.value); out.setConv = e => setA('conv', +e.target.value);
-      out.resetAssume = () => this.setState({ assume: {} });
-      const iss = D.verify.issues.filter(i => s.issueFilter === '전체' || (s.issueFilter === '높음' ? i[0] === '높음' : i[3] === '검토 중'));
-      out.issueCount = D.verify.issues.length;
-      out.issueFilters = stSeg('issueFilter', ['전체', '높음', '검토 중']);
-      out.issues = iss.map(i => ({ sev: i[0], area: i[1], text: i[2], status: i[3], sevColor: i[0] === '높음' ? '#b8000e' : '#111', stColor: i[3] === '해결' ? '#555' : i[3] === '검토 중' ? '#111' : '#b8000e' }));
-      out.reviews = D.verify.reviews.map(r => ({ t: r[0], who: r[1], text: r[2] })); out.noReviews = !D.verify.reviews.length;
-      out.memo = s.memo; out.setMemo = e => this.setState({ memo: e.target.value }); out.saveMemo = () => MM.api('/api/review', { memo: s.memo }).then(r => { D.verify.reviews = r.reviews; this.setState({ memo: '' }); }).catch(e => this.setState({ memo: '저장 실패: ' + e.message }));
-    } else { out.vCards = []; out.vFlow = []; out.issues = []; out.reviews = []; out.issueFilters = []; out.vSteps = []; }
-
     // 결과
     if (s.screen === 'out' && ready && s.oRun !== D.run && !this._ol) { this._ol = true; const rid = D.run; MM.api('/api/report?run=' + encodeURIComponent(rid)).then(O => this.setState({ O, oRun: rid, oErr: '' })).catch(e => this.setState({ oErr: e.message, oRun: rid, O: null })).finally(() => { this._ol = false; }); }
     const O = s.O, oid = s.oProd || '화채', pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%', pc = v => Math.round(v * 100) + '%';
@@ -875,28 +734,17 @@ class Component extends DCLogic {
     // 소비자 반응
     if (s.screen === 'react' && !s.R && !this._rl) { this._rl = true; window.MM.api('/api/reactions').then(R => this.setState({ R, rErr: '' })).catch(e => this.setState({ rErr: e.message })).finally(() => setTimeout(() => { this._rl = false; if (this.state.rErr) this.forceUpdate(); }, 3000)); }
     out.rBasic = !!s.R; out.rLoading = s.R ? '' : s.rErr ? '불러오지 못했습니다: ' + s.rErr : '모은 글을 읽는 중입니다';
-    const PQ = s.pf || { ch: '', con: '', sort: 'recent', q: '', page: 0 };
-    const load = f => { this.setState({ pf: f }); clearTimeout(this._pt); this._pt = setTimeout(() => window.MM.api('/api/posts?' + new URLSearchParams(f)).then(r => this.setState({ PO: r, pErr: '' })).catch(e => this.setState({ pErr: '글을 불러오지 못했습니다: ' + e.message })), 250); };
-    if (s.screen === 'react' && !s.PO && !this._pl) { this._pl = true; load(PQ); }
-    const pick = (k, v) => () => load(Object.assign({}, PQ, { [k]: v, page: 0 })), chip = (k, opts) => opts.map(([v, label]) => ({ label, on: PQ[k] === v, pick: pick(k, v), bg: PQ[k] === v ? '#111' : 'transparent', fg: PQ[k] === v ? '#fff' : '#111' }));
-    const PO = s.PO, fm = v => v >= 10000 ? (v / 10000).toFixed(1) + '만' : Math.round(v).toLocaleString();
-    out.pChannels = PO ? chip('ch', [['', `전체 ${PO.total.toLocaleString()}`]].concat(PO.channels.map(c => [c[0], `${c[0]} ${c[1].toLocaleString()}`]))) : [];
-    out.pCons = chip('con', [['', '모든 글'], ['롯데칠성', '롯데칠성 브랜드']].concat(P.map(p => [p.id, p.name + ' 관련'])));
-    out.pSorts = chip('sort', [['recent', '최신순'], ['likes', '좋아요순'], ['views', '조회순'], ['comments', '댓글순']]);
-    out.pQ = PQ.q; out.setPQ = e => load(Object.assign({}, PQ, { q: e.target.value, page: 0 })); out.pErr = s.pErr || '';
-    out.pHead = PO ? `${PO.count.toLocaleString()}건 · 누르면 원문이 열립니다` : '불러오는 중';
-    out.pRows = PO ? PO.rows.map(r => Object.assign({}, r, { hide: e => { e.target.style.display = 'none'; }, nums: [['조회', r.views], ['좋아요', r.likes], ['댓글', r.comments]].filter(x => x[1] != null).map(x => x[0] + ' ' + fm(x[1])).join(' · ') })) : [];
-    out.pPage = PO ? `${PO.page + 1} / ${PO.pages}` : ''; out.pPrev = () => PO && PO.page > 0 && load(Object.assign({}, PQ, { page: PO.page - 1 })); out.pNext = () => PO && PO.page + 1 < PO.pages && load(Object.assign({}, PQ, { page: PO.page + 1 }));
+    if (s.screen === 'react' && !s.PO && !this._pl) { this._pl = true; window.MM.api('/api/posts').then(r => this.setState({ PO: r, pErr: '' })).catch(e => { this._pl = false; this.setState({ pErr: '글을 불러오지 못했습니다: ' + e.message }); }); }
+    const PO = s.PO;
+    out.pChannels = PO ? PO.channels.map(c => ({ label: `${c[0]} ${c[1].toLocaleString()}` })) : []; out.pErr = s.pErr || '';
+    out.pHead = PO ? `식음료 글 ${PO.total.toLocaleString()}건` : '불러오는 중';
     out.obs = !!s.obs; out.obsLabel = s.obs ? '닫기' : '열기'; out.toggleObs = () => this.setState({ obs: !s.obs });
     out.rHead = s.R ? `실제 공개 글 ${s.R.total.toLocaleString()}건 · ${s.R.at} 기준` : '실제 공개 글';
     if (ready && s.R) {
       const R = s.R, mx = Math.max(1, ...R.daily), tot = R.daily.reduce((a, b) => a + b, 0), w1 = R.daily.slice(-7).reduce((a, b) => a + b, 0), w0 = R.daily.slice(-14, -7).reduce((a, b) => a + b, 0);
       out.rTotal = tot.toLocaleString(); out.rWeek = w0 ? (w1 >= w0 ? '+' : '') + Math.round((w1 / w0 - 1) * 100) + '%' : '비교 불가';
       out.rDaily = R.daily.map((v, k) => ({ h: (v / mx * 100).toFixed(1), c: k >= 21 ? '#111' : 'rgba(17,17,17,0.35)', t: `${28 - k}일 전 · ${v}건` }));
-      out.rTrend = R.trending.map((t, k) => ({ rank: k + 1, name: t.name, kind: t.kind, change: t.status, cColor: t.status === '증가 확인' ? '#b8000e' : '#111', posts: t.posts.toLocaleString(), authors: t.authors.toLocaleString(), go: () => { this.setState({ cName: t.name + ' 음료', cDesc: t.name + '을(를) 살린 음료', cPrice: '1,800원', cTarget: '20~30대', screen: 'concept', cSt: '입력', job: null }); window.scrollTo(0, 0); } }));
-      out.rProducts = P.map(p => { const r = R.products[p.id]; return Object.assign(this.glyph(p), { name: p.name, posts: r.posts, recent: r.recent, verdict: r.verdict, worries: r.worries, quotes: r.quotes.map(q => ({ s: q[0], t: q[1] })) }); });
-      out.rChannels = R.channels.map(c => ({ name: c[0], status: c[1], n: c[2], color: c[1] === '완료' ? '#111' : c[1] === '대기' ? '#767676' : '#b8000e' }));
-    } else { out.rDaily = []; out.rTrend = []; out.rProducts = []; out.rChannels = []; }
+    } else out.rDaily = [];
 
     // 새 컨셉
     out.cName = s.cName; out.cDesc = s.cDesc; out.cPrice = s.cPrice; out.cTarget = s.cTarget;
