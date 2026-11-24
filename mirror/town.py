@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import time
+import uuid
 from functools import lru_cache
 
 import numpy as np
@@ -52,7 +53,7 @@ def load(k, model):
 
 def _save(k, d):
     os.makedirs(DIR, exist_ok=True)
-    f = _file(k, d["model"])
+    f = os.path.join(DIR, f"{k}-{d['model']}-{d['experiment']}.json") if d.get("experiment") else _file(k, d["model"])
     with open(f + ".tmp", "w") as h:
         json.dump(d, h, ensure_ascii=False)
     os.replace(f + ".tmp", f)
@@ -133,32 +134,52 @@ def read(m):
     return {"buy": b, "post": S._s(m.get("post") or "", 60), "r": r, "why": S._s(m["why"], 60)}
 
 
-def play(k, model, n, tick=None):
-    """세상 0..n-1 을 굴린다. 끝난 세상은 저장된 것을 쓴다. tick(단계 이름, 끝난 수, 전체)."""
+def play(k, model, n, tick=None, *, fresh=False, observe=None):
+    """fresh 는 소비자에게 새로 묻고 별도 저장한다. 환경·인물은 같은 조건으로 비교한다."""
     tick = tick or (lambda *a: None)
-    d = load(k, model)
+    d = {"sig": _sig(k), "model": model, "at": "", "worlds": {}, "experiment": uuid.uuid4().hex} if fresh else load(k, model)
+    live = {"round": 0, "rounds": STEPS, "decisions": 0, "posts": 0, "failed": 0, "events": []}
+
+    def publish():
+        if observe:
+            observe(live.copy())
+
+    def received(key, a):
+        w, p = key
+        live["decisions"] += 1
+        live["posts"] += bool(a["post"])
+        live["events"] = ([{"world": w.i + 1, "person": p + 1, "who": w.label(p), "round": live["round"],
+                           "buy": bool(a["buy"] and w.ok[p]), "why": a["why"], "post": a["post"]}] + live["events"])[:6]
+        publish()
+
+    publish()
     sc = S.worlds(k, model, n, tick)
     todo = [Town(k, i, sc["worlds"][str(i)]) for i in range(n) if str(i) in sc["worlds"] and str(i) not in d["worlds"]]
     bad = 0
     for t in range(STEPS if todo else 0):
-        jobs = [((w, p), lambda w=w, p=p, q=q: S._ask(A.SYS + "\n".join(P.memory(A.cast().iloc[w.who[p]])), q, model, read)) for w in todo for p, q in w.asks(t)]
+        live["round"] = t + 1
+        publish()
+        jobs = [((w, p), lambda w=w, p=p, q=q: S._ask(A.SYS + "\n".join(P.memory(A.cast().iloc[w.who[p]])), q, model, read, **({"fresh": True} if fresh else {}))) for w in todo for p, q in w.asks(t)]
         if not jobs:
             continue
-        got = S._all(jobs, lambda v: tick("town", t * 100 + int(100 * v / len(jobs)), STEPS * 100), f"{t + 1}단계 AI 의 판단")
+        got = S._all(jobs, lambda v: tick("town", t * 100 + int(100 * v / len(jobs)), STEPS * 100), f"{t + 1}단계 AI 의 판단", on_result=received)
         bad += len(jobs) - len(got)
+        live["failed"] = bad
         for (w, p), _ in jobs:                                        # 끝난 순서가 아니라 정해진 순서로 반영해야 다시 돌려도 같다
             if (w, p) in got:
                 w.apply(t, p, got[(w, p)])
+        publish()
     if todo:
         for w in todo:
             d["worlds"][str(w.i)] = pack(w)
         d["at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+        d["failed"] = bad
         _save(k, d)
     if bad:
         print(f"AI 사회: 답을 못 읽은 {bad}건은 아무것도 안 한 것으로 둠", flush=True)
     out = [i for i in range(n) if str(i) in d["worlds"]]
     if len(out) < .9 * n:
-        raise RuntimeError(f"세상 {n}개 가운데 {len(out)}개만 끝났습니다. 다시 실행하면 이어서 합니다")
+        raise RuntimeError(f"세상 {n}개 가운데 {len(out)}개만 끝났습니다.")
     return d, sc, out
 
 
@@ -240,6 +261,7 @@ def summary(d, ids):
     b = np.array([np.mean(np.array(x["bought"]) >= 0) for x in X])
     fr = [x["via"][p] == "friend" for x in X for p in range(M) if x["bought"][p] >= 0]
     return {"worlds": len(ids), "people": M, "steps": STEPS, "calls": sum(len(x["log"]) for x in X), "posts": sum(bool(e["post"]) for x in X for e in x["log"]), "mean": float(b.mean()), "lo": float(np.quantile(b, .05)), "hi": float(np.quantile(b, .95)),
+            "fresh": bool(d.get("experiment")), "failed": d.get("failed", 0),
             "friend": float(np.mean(fr)) if fr else 0.0, "model": d["model"], "at": d["at"], "said": [{n: sum(1 for x in X for e in x["log"] if e["buy"] == f and e["r"] == i) for i, n in enumerate(names)} for f, names in ((1, A.BUY), (0, A.HOLD))]}
 
 
@@ -253,7 +275,7 @@ def check():
     seen = []
 
     def fake(spread):
-        def f(system, q, model, read_):
+        def f(system, q, model, read_, **kw):
             seen.append(q)
             hit = "의 글: “" in q or "진열대" in q
             return read_({"buy": int(spread and hit), "post": "맛있다" if spread and hit else "", "r": 1, "why": "그냥"})
@@ -278,6 +300,31 @@ def check():
         s, v = summary(d, ids), said(ws, [d["worlds"][str(i)] for i in ids], "화채")
         assert v["buy"] and v["posts"][0]["t"] == "맛있다"
         assert s["friend"] > 0
+        events = []
+        S._ask = fake(False)
+        fresh, _, fresh_ids = play("화채", "m1", 1, fresh=True, observe=events.append)
+        assert max(fresh["worlds"]["0"]["bought"]) < 0 and summary(fresh, fresh_ids)["fresh"]
+        assert load("화채", "m1")["worlds"] == d["worlds"]     # 새 실험이 원래 저장본을 덮어쓰지 않는다
+        assert events[0]["decisions"] == 0 and events[-1]["decisions"] == len(fresh["worlds"]["0"]["log"])
+        assert any(e["round"] == 1 and e["decisions"] == 1 for e in events) and len(events[-1]["events"]) == 6
+        again, _, _ = play("화채", "m1", 1, fresh=True)
+        assert again["experiment"] != fresh["experiment"] and len(os.listdir(DIR)) == 4
+
+        from unittest.mock import patch
+        from . import consumer as C
+        answer = '{"buy":1,"post":"친구에게 추천","r":1,"why":"친구 글을 보고"}'
+        with patch.object(C, "_chat_raw", return_value=answer) as raw:
+            for _ in range(2):
+                assert ask("합성 인물", "동일한 질문", "m1", read, fresh=True)["buy"] == 1
+            assert raw.call_count == 2                        # 프롬프트가 같아도 새 판단은 LLM 호출
+        with patch.object(S, "WORKERS", 1):
+            got = S._all([(i, (lambda i=i: 1 / i)) for i in range(10)], None, "부분 응답")
+            assert len(got) == 9
+            try:
+                S._all([(0, lambda: 1 / 0)], None, "실패")
+                raise AssertionError("AI 실패를 결과로 처리함")
+            except RuntimeError:
+                pass
         print("town ok · 세상당 호출", round(s["calls"] / 3), "글", s["posts"], "친구 글로 처음 안 구매자", round(s["friend"], 2), "구매", round(s["mean"], 2))
     finally:
         S.worlds, S._ask, DIR = old, ask, dir_

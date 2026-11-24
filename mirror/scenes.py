@@ -67,11 +67,11 @@ def _json(t):
     return json.loads(re.search(r"\{.*\}", t, re.S).group(0))
 
 
-def _ask(system, q, model, read):
+def _ask(system, q, model, read, *, fresh=False):
     """못 읽는 답도 저장되므로 질문을 바꿔 한 번 더."""
     for more in ("", "\n다른 글 없이 올바른 JSON 하나만, 개수와 형식을 정확히 지켜 출력하세요."):
         try:
-            return read(_json(C.chat(system, q + more, model)))
+            return read(_json(C.chat(system, q + more, model, **({"cache": False} if fresh else {}))))
         except (AttributeError, KeyError, TypeError, ValueError) as e:
             if more:
                 raise ValueError("답을 읽지 못함") from e
@@ -130,10 +130,10 @@ def _live(k, w, p, model):
     return r | {"i": p}
 
 
-def _all(jobs, tick, what, need=.9):
+def _all(jobs, tick, what, need=.9, on_result=None, workers=WORKERS):
     """jobs: (이름, 함수). 잔액이 없으면 바로 멈추고, 90% 를 못 채우면 쓰지 않는다."""
     out, err = {}, ""
-    with ThreadPoolExecutor(WORKERS) as ex:
+    with ThreadPoolExecutor(workers) as ex:
         fs = {ex.submit(f): n for n, f in jobs}
         for f in as_completed(fs):
             try:
@@ -143,10 +143,13 @@ def _all(jobs, tick, what, need=.9):
                 if "잔액" in err:
                     ex.shutdown(cancel_futures=True)
                     raise RuntimeError(err) from None
+            else:
+                if on_result:
+                    on_result(fs[f], out[fs[f]])
             if tick:
                 tick(len(out))
     if len(out) < need * len(jobs):
-        raise RuntimeError(f"{what} {len(jobs)}개 가운데 {len(out)}개만 됐습니다({err}). 다시 실행하면 된 것은 건너뜁니다")
+        raise RuntimeError(f"{what} {len(jobs)}개 가운데 {len(out)}개만 됐습니다({err}).")
     return out
 
 

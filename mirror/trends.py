@@ -275,6 +275,7 @@ def watch(once=False, collect_sources=True):
 
 
 def snapshot(hours=24):
+    """hours=None이면 관측 저장소의 식음료 전체를 집계한다."""
     from . import trend_discovery, trend_insights
     cfg = config()
     d = D.load(CAMPAIGN, cfg)
@@ -308,7 +309,9 @@ def snapshot(hours=24):
     for platform, label in Social.PLATFORMS.items():
         on, mode, reason = Social.connection(platform)
         status = next((r for r in sources if r["id"] == "social:" + platform), {})
-        group = d[(d.platform == platform) & (pd.to_datetime(d.observed, utc=True, format="mixed", errors="coerce") >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours))] if not d.empty else d
+        group = d[d.platform == platform] if not d.empty else d
+        if hours is not None and not group.empty:
+            group = group[pd.to_datetime(group.observed, utc=True, format="mixed", errors="coerce") >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours)]
         result["channels"].append(dict(platform=platform, label=label, mode=mode, count=len(group),
             measured=int(group.views.notna().sum()) if not group.empty else 0,
             reactions=int(group.likes.notna().sum()) if not group.empty else 0,
@@ -324,7 +327,8 @@ def snapshot(hours=24):
     timestamps = pd.to_datetime(d.first_seen, utc=True, format="mixed", errors="coerce")
     observed = pd.to_datetime(d.observed, utc=True, format="mixed", errors="coerce")
     result["new_hour"] = int((timestamps >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=1)).sum())
-    d = d[observed >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours)].copy()
+    if hours is not None:
+        d = d[observed >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours)].copy()
     # 신규 발견 시각과 게시 시각은 구분하며, 재관측된 오래된 글도 화면에서 찾을 수 있다.
     d["age_hours"] = ((pd.Timestamp.now(tz="UTC") - pd.to_datetime(d.published, utc=True, format="mixed", errors="coerce")).dt.total_seconds() / 3600).clip(lower=0)
     members = {r["id"]: members[r["id"]] for r in d.to_dict("records") if r["id"] in members and members[r["id"]].get("input_hash") == D.digest(D.state(r))}

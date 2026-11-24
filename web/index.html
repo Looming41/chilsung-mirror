@@ -22,6 +22,18 @@ body,button,input,select,textarea{font-family:"Pretendard Variable",Pretendard,-
 h1,h2,h3,h4{font-family:inherit}
 a{color:#E60012;text-underline-offset:3px}a:hover{color:#b8000e}
 input[type=range]{accent-color:#E60012}
+.exp-controls button{min-height:44px}.exp-controls button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,a:focus-visible{outline:2px solid #51bce8;outline-offset:4px}
+.ai-live{position:relative;z-index:1;margin:24px clamp(16px,2.4vw,32px);padding:24px;background:#111;border:1px solid #363636;display:grid;grid-template-columns:minmax(210px,.8fr) minmax(0,1.2fr);gap:32px}
+.ai-live h2{font-size:25px;letter-spacing:-.03em;margin:12px 0;line-height:1.4}.ai-live p{color:#bcbcbc;font-size:14px;line-height:1.65;margin:8px 0}
+.ai-counts{display:flex;gap:28px;margin:24px 0}.ai-counts strong{display:block;font-size:32px;font-weight:750;margin-bottom:6px}.ai-counts div>span{font-size:12px;color:#bcbcbc}
+.ai-rounds{display:flex;gap:5px;margin:18px 0}.ai-rounds span{flex:1;height:5px}
+.ai-feed{border-left:1px solid #363636;padding-left:28px;min-width:0}.ai-feed article{border-top:1px solid #303030;padding:12px 0}.ai-feed article:first-child{border-top:0}.ai-feed small{color:#bcbcbc;font-size:12px}.ai-feed p{color:#f2f2f2;font-size:14px;margin:6px 0 0}.ai-feed blockquote{border-left:2px solid #757575;padding-left:10px;margin:8px 0 0;color:#bcbcbc;font-size:13px;line-height:1.6}
+.ai-result{padding:12px clamp(16px,2.4vw,32px);border-top:1px solid #363636;color:#ccc;font-size:13px;line-height:1.6}
+.comparison{padding:18px clamp(16px,2.4vw,32px);border-top:1px solid #363636;background:#151515;color:#f2f2f2;font-size:14px;line-height:1.7}.comparison-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin:12px 0}.comparison-grid strong{font-size:28px;display:block}.comparison small{color:#bcbcbc}.trend-sources summary{cursor:pointer;min-height:44px;line-height:44px}.trend-sources a{display:block;min-height:44px;padding:8px 0;color:inherit;border-top:1px solid #555;font-size:13px;line-height:1.6}
+.evidence-panel{padding-top:28px;padding-bottom:32px}.evidence-panel h2{font-size:24px;margin:0 0 8px}.evidence-panel h3{font-size:19px;margin:24px 0 12px}.evidence-panel p{color:#ccc}.evidence-panel input,.evidence-panel select,.evidence-panel button{min-height:44px;max-width:100%;box-sizing:border-box;background:#181818;color:#f2f2f2;border:1px solid #777;padding:8px 12px;font-size:14px}.evidence-panel input:focus-visible,.evidence-panel select:focus-visible{outline:2px solid #51bce8;outline-offset:3px}.evidence-filters{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}.evidence-filters label{display:grid;gap:6px;min-width:0}.trace-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px}.trace-card{min-width:0;border:1px solid #444;padding:20px}.trace-card header{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}.trace-card blockquote{margin:12px 0;padding:10px 14px;border-left:2px solid #777;background:#202020}.trace-card a{color:#b7dbff;display:inline-block;padding:10px 0;min-height:44px;box-sizing:border-box}.trace-score{font-size:26px;font-weight:750;margin:12px 0}.trace-tracks{height:13px;margin:8px 0}.trace-tracks i{display:block;height:4px;margin-bottom:5px;background:#999}.trace-tracks i:last-child{background:#88d8aa}.catalog-row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;border-top:1px solid #444;padding:12px 0}.catalog-row small{display:block}.evidence-panel summary{cursor:pointer;min-height:44px;padding:8px 0;box-sizing:border-box}
+@media(max-width:700px){.ai-live{grid-template-columns:minmax(0,1fr);padding:18px;gap:10px;margin-top:16px}.ai-live h2{font-size:22px}.ai-counts{margin:16px 0}.ai-feed{border-left:0;border-top:1px solid #363636;padding:8px 0 0}}
+.deep-report{border-top:3px solid #b8000e;padding-top:20px}.deep-report h2{font-size:28px;margin:12px 0 24px;line-height:1.4}.deep-report h3{font-size:20px;margin:8px 0}.deep-report article{padding:20px 0;border-bottom:1px solid #bbb;line-height:1.8}.deep-report p{margin:10px 0}.deep-report small{font-size:13px;color:#555}.deep-report blockquote{margin:12px 0;padding:12px 16px;background:#e8e7e7;border-left:3px solid #777;font-size:14px}.deep-report a{color:#b8000e;display:inline-block;min-height:44px;padding:10px 0;box-sizing:border-box}.deep-fact{padding:10px 14px;margin:8px 0;background:#e4e3e3;font-size:14px}.deep-report summary{cursor:pointer;min-height:44px;padding:10px 0;box-sizing:border-box}.deep-budget{color:#88d8aa!important}.analysis-item{border-top:1px solid #444;padding:8px 0}.analysis-item p{margin:10px 0}.analysis-item blockquote{margin:8px 0;padding-left:14px;border-left:2px solid #777}.analysis-item a{display:inline-block;color:#b7dbff;min-height:44px;padding:8px 0;box-sizing:border-box}.response-scores{display:flex;flex-wrap:wrap;gap:6px 16px;margin:14px 0;font-size:13px}
 @keyframes mmwait{from{opacity:.15}to{opacity:1}}@media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </helmet>
@@ -43,6 +55,37 @@ input[type=range]{accent-color:#E60012}
   <section data-screen-label="실험" style="display:{{ expDisplay }};flex:1;flex-direction:column;background:#0a0a0a;color:#f2f2f2;min-height:calc(100vh - 56px)">
     <div style="position:relative;flex:1;min-height:380px;overflow:hidden">
       <canvas ref="{{ cv }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;outline:none;touch-action:none"></canvas>
+
+      <sc-if value="{{ showLive }}" hint-placeholder-val="{{ false }}">
+        <section class="ai-live" aria-label="AI 소비자 실험 진행">
+          <div>
+            <span style="font-size:12px;color:#88d8aa;font-weight:700;letter-spacing:.04em">{{ liveBadge }}</span>
+            <h2>{{ liveTitle }}</h2>
+            <p>{{ liveDetail }}</p>
+            <div class="ai-counts">
+              <div><strong>{{ liveDecisions }}</strong><span>전후 해석 완료 소비자</span></div>
+              <div><strong>{{ livePosts }}</strong><span>전체 집계 콘텐츠</span></div>
+            </div>
+            <div class="ai-rounds" aria-hidden="true"><sc-for list="{{ liveRounds }}" as="r" hint-placeholder-count="10"><span style="background:{{ r.bg }}"></span></sc-for></div>
+            <p role="status">{{ liveRoundText }}</p>
+            <p class="deep-budget" role="status">{{ liveCost }}</p>
+            <p>AI는 관심·거부 이유를 해석하고, 구매는 패널·과거 출시 자료로 보정한 통계 엔진에서 계산합니다.</p>
+            <p>{{ liveContext }}</p>
+            <sc-if value="{{ liveMissing }}" hint-placeholder-val="{{ false }}"><p style="color:#ffce81">{{ liveMissing }}</p></sc-if>
+          </div>
+          <div class="ai-feed" aria-label="최근 AI 응답">
+            <sc-if value="{{ liveEmpty }}" hint-placeholder-val="{{ false }}"><p>첫 응답을 기다리고 있습니다. 도착한 판단과 글이 여기에 표시됩니다.</p></sc-if>
+            <sc-for list="{{ liveEvents }}" as="e" hint-placeholder-count="0">
+              <article>
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><small>{{ e.label }}</small><strong style="font-size:12px;color:{{ e.color }}">{{ e.action }}</strong></div>
+                <p>{{ e.why }}</p>
+                <blockquote>{{ e.post }}</blockquote>
+                <small>{{ e.note }}</small>
+              </article>
+            </sc-for>
+          </div>
+        </section>
+      </sc-if>
 
       <sc-if value="{{ showCounter }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute;left:clamp(16px,2.4vw,32px);top:clamp(16px,2.4vw,28px);display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px 32px;pointer-events:none;max-width:calc(100% - 32px)">
@@ -199,7 +242,8 @@ input[type=range]{accent-color:#E60012}
     </div>
 
     <sc-if value="{{ showSetupBar }}" hint-placeholder-val="{{ true }}">
-      <div style="position:relative;flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:14px clamp(16px,2.4vw,32px) 16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px clamp(20px,3vw,44px)">
+      <div class="exp-controls" style="position:relative;flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:14px clamp(16px,2.4vw,32px) 16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px clamp(20px,3vw,44px)">
+        <div style="flex-basis:100%;font-size:13px;color:#bcbcbc;line-height:1.6">{{ flowHint }} <sc-if value="{{ needsAI }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openAI }}" style="background:none;color:#fff;border:1px solid #757575;padding:0 12px;margin-left:8px;cursor:pointer">AI 연결하기</button></sc-if></div>
         <div style="display:flex;flex-direction:column;gap:7px;min-width:0">
           <div style="font-size:12px;color:#a3a3a3;font-weight:600">제품</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -211,56 +255,27 @@ input[type=range]{accent-color:#E60012}
             <button onClick="{{ goConcept }}" style="height:38px;padding:0 12px;background:none;color:#d0d0d0;border:1px dashed rgba(255,255,255,0.35);font-size:14px;cursor:pointer" style-hover="color:#ffffff;border-color:#ffffff">+ 추가</button>
           </div>
         </div>
-        <div style="position:relative;display:flex;flex-direction:column;gap:7px;min-width:0">
+        <div style="display:flex;flex-direction:column;gap:7px">
           <div style="font-size:12px;color:#a3a3a3;font-weight:600">대상 소비자</div>
-          <button onClick="{{ toggleTarget }}" aria-expanded="{{ targetOpen }}" style="height:38px;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 12px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer;max-width:340px;text-align:left" style-hover="border-color:#ffffff">
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ targetLabel }}</span><span style="color:#a3a3a3">▾</span>
-          </button>
-          <sc-if value="{{ targetOpen }}" hint-placeholder-val="{{ false }}">
-            <div style="position:absolute;left:0;bottom:calc(100% + 12px);width:min(520px,calc(100vw - 32px));background:#111111;border:1px solid rgba(255,255,255,0.25);padding:16px;display:flex;flex-direction:column;gap:14px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,0.5)">
-              <sc-for list="{{ segGroups }}" as="g" hint-placeholder-count="3">
-                <div style="display:flex;flex-direction:column;gap:7px">
-                  <span style="font-size:12px;color:#a3a3a3;font-weight:600">{{ g.label }}</span>
-                  <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="5">
-                      <button onClick="{{ it.toggle }}" aria-pressed="{{ it.on }}" style="height:34px;padding:0 12px;background:{{ it.bg }};color:{{ it.fg }};border:1px solid rgba(255,255,255,0.35);font-size:13px;font-weight:600;cursor:pointer">{{ it.id }}</button>
-                    </sc-for>
-                  </div>
-                </div>
-              </sc-for>
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:2px solid rgba(255,255,255,0.2);padding-top:12px">
-                <span></span>
-                <div style="display:flex;gap:6px">
-                  <button onClick="{{ selectAll }}" style="height:32px;padding:0 12px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:13px;cursor:pointer">전체</button>
-                  <button onClick="{{ toggleTarget }}" style="height:32px;padding:0 12px;background:#f2f2f2;color:#0a0a0a;border:0;font-size:13px;font-weight:700;cursor:pointer">확인</button>
-                </div>
-              </div>
-            </div>
-          </sc-if>
+          <div style="min-height:44px;display:flex;align-items:center;font-size:14px">19~59세 전체</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <div style="font-size:12px;color:#a3a3a3;font-weight:600">방식</div>
-          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
-            <sc-for list="{{ modeOpts }}" as="o" hint-placeholder-count="2">
-              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
-            </sc-for>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <div style="font-size:12px;color:#a3a3a3;font-weight:600">세상 개수</div>
-          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
-            <sc-for list="{{ nOpts }}" as="o" hint-placeholder-count="4">
-              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
-            </sc-for>
-          </div>
-        </div>
-        <button onClick="{{ run }}" disabled="{{ running }}" style="height:46px;min-width:180px;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 18px;background:#E60012;color:#ffffff;border:0;font-size:16px;font-weight:800;cursor:pointer;margin-left:auto" style-hover="background:#c4000f">
+        <button onClick="{{ run }}" disabled="{{ runDisabled }}" style="height:46px;min-width:180px;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 18px;background:#E60012;color:#ffffff;border:0;font-size:16px;font-weight:800;cursor:pointer;margin-left:auto" style-hover="background:#c4000f">
           <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 1 L13 7 L2 13 Z" fill="#ffffff"></path></svg>{{ runLabel }}
         </button>
-        <sc-if value="{{ runErr }}" hint-placeholder-val="{{ false }}"><div style="flex-basis:100%;font-size:14px;font-weight:600;color:#ff8a8a">{{ runErr }}</div></sc-if>
+        <sc-if value="{{ runErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="flex-basis:100%;font-size:14px;font-weight:600;color:#ff8a8a">{{ runErr }}</div></sc-if>
       </div>
     </sc-if>
 
+    <sc-if value="{{ showComparison }}" hint-placeholder-val="{{ false }}">
+      <section class="comparison" aria-label="통계와 AI 반영 결과 비교">
+        <b>같은 조건에서 비교한 12개월 구매경험률</b>
+        <div class="comparison-grid"><div><small>통계 기준</small><strong>{{ baseMedian }}</strong><span>{{ baseRange }}</span></div><div><small>AI · 트렌드 제시 전</small><strong>{{ controlMedian }}</strong><span>{{ controlRange }}</span></div><div><small>AI · 트렌드 제시 후</small><strong>{{ adjustedMedian }}</strong><span>{{ adjustedRange }}</span></div></div>
+        <p>트렌드 전후 변화 <b>{{ pairedDelta }}</b> · 같은 난수·소비자 조건 비교 · 실제 시장 인과 효과 아님</p>
+        <div>{{ comparisonNote }}</div>
+        <div>{{ contextLine }}</div><a href="#trend-evidence" style="display:inline-block;padding:12px 0;color:#b7dbff">트렌드별 반응 변화와 원문 확인 ↓</a>
+      </section>
+    </sc-if>
+    <sc-if value="{{ aiResult }}" hint-placeholder-val="{{ false }}"><div class="ai-result" role="status">{{ aiResult }}</div></sc-if>
     <sc-if value="{{ showExploreBar }}" hint-placeholder-val="{{ false }}">
       <div style="flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:12px clamp(16px,2.4vw,32px);display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px clamp(16px,2.4vw,32px)">
         <div style="display:flex;flex-direction:column;gap:6px">
@@ -363,12 +378,23 @@ input[type=range]{accent-color:#E60012}
     <section data-screen-label="결과" style="flex:1;background:#F3F2F2;color:#111">
       <div style="max-width:1280px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(16px,3vw,40px) 80px;display:flex;flex-direction:column;gap:40px">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #111;padding-bottom:18px">
-          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">{{ oHead }}</span><span style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">보고서</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#b8000e">{{ oHead }}</span><h1 id="experiment-report" tabindex="-1" style="margin:0;font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.1">보고서</h1></div>
           <div style="display:flex;flex-wrap:wrap;border:1px solid #111"><sc-for list="{{ oTabs }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:40px;padding:0 16px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid #111;font-size:15px;font-weight:700;cursor:pointer">{{ o.label }}</button></sc-for></div>
         </div>
-        <sc-if value="{{ oMsg }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px;font-weight:700">{{ oMsg }}</span></sc-if>
+        <sc-if value="{{ oMsg }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:16px;font-weight:700">{{ oMsg }}</span></sc-if>
+        <sc-if value="{{ oRetry }}" hint-placeholder-val="{{ false }}"><button onClick="{{ retryReport }}" style="align-self:flex-start;min-height:44px;padding:8px 16px;background:#111;color:#fff;border:0;font-size:14px;cursor:pointer">보고서 다시 불러오기</button></sc-if>
         <sc-if value="{{ oReady }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;flex-direction:column;gap:56px">
+            <sc-if value="{{ oDeep }}" hint-placeholder-val="{{ false }}">
+              <section class="deep-report" aria-label="AI 심층 보고서">
+                <small>AI 분석 · 독립 검토 · 통계 보정</small><h2>{{ deepTitle }}</h2>
+                <p>{{ deepUsage }}</p><p>아래 문장은 AI의 해석입니다. 통계 수치는 계산 결과를 그대로 표시하며, 원문 인용은 실제 수집 자료와 대조했습니다.</p>
+                <details><summary>단계별 호출·추론·비용 확인</summary><sc-for list="{{ deepCosts }}" as="c" hint-placeholder-count="0"><p>{{ c.text }}</p></sc-for><small>{{ deepCostBasis }}</small></details>
+                <sc-for list="{{ deepBlocks }}" as="b" hint-placeholder-count="0"><article><small>{{ b.kind }}</small><h3>{{ b.heading }}</h3><p>{{ b.text }}</p><sc-for list="{{ b.numbers }}" as="f" hint-placeholder-count="0"><div class="deep-fact">{{ f.text }}</div></sc-for><sc-for list="{{ b.peopleRows }}" as="p" hint-placeholder-count="0"><a href="{{ p.href }}" onClick="{{ p.go }}" style="margin-right:16px">{{ p.label }}</a></sc-for><sc-for list="{{ b.evidence }}" as="e" hint-placeholder-count="0"><blockquote>“{{ e.quote }}”</blockquote><a href="{{ e.url }}" target="_blank" rel="noopener noreferrer">{{ e.label }} ↗</a></sc-for><p><b>해석의 한계</b> · {{ b.caveat }}</p></article></sc-for>
+                <a href="#trend-evidence">트렌드 분석과 전체 소비자 검토 확인 ↓</a>
+              </section>
+            </sc-if>
+            <sc-if value="{{ oDeep }}" hint-placeholder-val="{{ false }}"><h2 style="font-size:22px;margin:0">통계 상세 · 패널과 보정 실험</h2></sc-if>
             <div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ oLines }}" as="l" hint-placeholder-count="5"><span style="font-size:clamp(18px,1.9vw,26px);font-weight:{{ l.fw }};line-height:1.45;letter-spacing:-0.02em">{{ l.t }}</span></sc-for></div>
             <div style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매층</span><span style="font-size:13px;color:#555">{{ oSegNote }}</span></div>
               <sc-for list="{{ oSeg }}" as="g" hint-placeholder-count="8">
@@ -381,7 +407,7 @@ input[type=range]{accent-color:#E60012}
               </sc-for>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 32px"><sc-for list="{{ oTrait }}" as="t" hint-placeholder-count="4"><span style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:14px"><span style="font-weight:700">{{ t.name }}</span><span>{{ t.text }}</span></span></sc-for></div>
             </div>
-            <sc-if value="{{ oAI }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:16px"><span style="font-size:14px;color:#333;line-height:1.6">{{ oAILine }}</span><div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:800;border-bottom:2px solid #111;padding-bottom:10px">AI들이 주고받은 글</span><sc-for list="{{ oPosts }}" as="p" hint-placeholder-count="6"><span style="display:grid;grid-template-columns:80px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:15px"><b>{{ p.who }}</b><span>“{{ p.t }}”</span><span style="color:#555;font-size:13px">친구 {{ p.friends }}명</span></span></sc-for></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px"><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI가 산 이유</span><span style="font-size:13px;color:#555">세상 속에서 산 사람</span></div><sc-for list="{{ oAIBuy }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI가 안 산 이유</span><span style="font-size:13px;color:#555">보고도 안 산 사람</span></div><sc-for list="{{ oAIHold }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div></div></div></sc-if>
+            <sc-if value="{{ oAI }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:16px"><span style="font-size:14px;color:#333;line-height:1.6">{{ oAILine }}</span><sc-if value="{{ oHybrid }}" hint-placeholder-val="{{ false }}"><details class="trend-sources"><summary>이번 실험의 트렌드 근거 {{ sourceCount }}건</summary><div>{{ contextLine }}</div><sc-for list="{{ trendSources }}" as="x" hint-placeholder-count="0"><a href="{{ x.url }}" target="_blank" rel="noopener noreferrer">{{ x.label }}</a></sc-for></details></sc-if><sc-if value="{{ oHasPosts }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:800;border-bottom:2px solid #111;padding-bottom:10px">AI들이 주고받은 글</span><sc-for list="{{ oPosts }}" as="p" hint-placeholder-count="6"><span style="display:grid;grid-template-columns:80px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,17,17,0.15);font-size:15px"><b>{{ p.who }}</b><span>“{{ p.t }}”</span><span style="color:#555;font-size:13px">친구 {{ p.friends }}명</span></span></sc-for></div></sc-if><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px"><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI가 산 이유</span><span style="font-size:13px;color:#555">세상 속에서 산 사람</span></div><sc-for list="{{ oAIBuy }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div><div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">AI가 안 산 이유</span><span style="font-size:13px;color:#555">보고도 안 산 사람</span></div><sc-for list="{{ oAIHold }}" as="y" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}”</span></div></sc-for></div></div></div></sc-if>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px">
               <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매 요인</span><span style="font-size:13px;color:#555">살 사람이 직접 쓴 이유</span></div><sc-for list="{{ oYes }}" as="y" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#E60012"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}” <span style="color:#555;font-size:12px">· {{ y.n }}명</span></span></div></sc-for></div>
               <div style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px"><span style="font-size:20px;font-weight:800">구매 망설이는 요인</span><span style="font-size:13px;color:#555">안 살 사람이 직접 쓴 이유</span></div><sc-for list="{{ oNo }}" as="y" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid rgba(17,17,17,0.15)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:17px;font-weight:800">{{ y.why }}</span><span style="font-size:17px;font-weight:800">{{ y.pct }}</span></span><span style="height:8px;background:rgba(17,17,17,0.1);display:block"><span style="display:block;height:8px;width:{{ y.w }}%;background:#111"></span></span><span style="font-size:14px;color:#333;line-height:1.5">“{{ y.say }}” <span style="color:#555;font-size:12px">· {{ y.n }}명</span></span></div></sc-for></div>
@@ -401,6 +427,37 @@ input[type=range]{accent-color:#E60012}
                     </div>
         </sc-if>
       </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ showEvidence }}" hint-placeholder-val="{{ false }}">
+    <section id="trend-evidence" class="comparison evidence-panel" aria-label="트렌드와 소비자 반응 근거">
+      <h2>어떤 관측이 반응을 바꿨을까</h2>
+      <p>같은 합성 소비자의 트렌드 제시 전·후를 비교합니다. 점수는 100점 기준 상대 성향이며, 원문은 AI 해석의 근거입니다. 실제 소비자에게 확인한 인과 효과는 아닙니다.</p>
+      <div class="comparison-grid"><div><small>식음료 전체 집계</small><strong>{{ coverageTotal }}</strong></div><div><small>현재성 기준 통과</small><strong>{{ coverageCurrent }}</strong></div><div><small>AI에 전달한 대표 원문</small><strong>{{ sourceCount }}건</strong></div></div>
+      <p>{{ coverageLine }}</p><p>{{ coverageExcluded }}</p><p>{{ contextLine }}</p>
+      <details class="trend-sources"><summary>대표 원문 {{ sourceCount }}건 확인</summary><sc-for list="{{ trendSources }}" as="x" hint-placeholder-count="0"><a href="{{ x.url }}" target="_blank" rel="noopener noreferrer">{{ x.label }}</a></sc-for></details>
+      <details class="trend-catalog"><summary>전체 주제 집계 확인 · {{ catalogCount }}개</summary>
+        <div class="evidence-filters"><label for="topic-search">주제 검색<input id="topic-search" type="search" value="{{ topicQuery }}" onChange="{{ searchTopics }}" placeholder="음식·장르·테마 검색"></label></div>
+        <p>{{ catalogNote }}</p>
+        <sc-for list="{{ catalogRows }}" as="t" hint-placeholder-count="0"><div class="catalog-row"><div><b>{{ t.label }}</b><small>{{ t.detail }}</small></div><div>{{ t.status }}<small>{{ t.selection }}</small></div></div></sc-for>
+        <sc-if value="{{ moreTopics }}" hint-placeholder-val="{{ false }}"><button onClick="{{ loadTopics }}">주제 더 보기</button></sc-if>
+      </details>
+      <h3>트렌드 → 소비자 → 반응 변화</h3>
+      <p>{{ traceSummary }}</p>
+      <div class="evidence-filters"><label for="trace-trend">트렌드<select id="trace-trend" aria-label="트렌드" value="{{ traceTrend }}" onChange="{{ pickTraceTrend }}"><option value="">전체 트렌드</option><sc-for list="{{ traceOptions }}" as="t" hint-placeholder-count="0"><option value="{{ t.id }}">{{ t.label }}</option></sc-for></select></label><label for="trace-direction">변화 방향<select id="trace-direction" aria-label="변화 방향" value="{{ traceDirection }}" onChange="{{ pickTraceDirection }}"><option value="">증가·감소 모두</option><option value="up">점수 증가</option><option value="down">점수 감소</option></select></label></div>
+      <sc-if value="{{ traceEmpty }}" hint-placeholder-val="{{ false }}"><p role="status">{{ traceEmpty }}</p></sc-if>
+      <div class="trace-grid"><sc-for list="{{ traceRows }}" as="r" hint-placeholder-count="0"><article class="trace-card"><header><b>{{ r.trend_label }}</b><small>{{ r.who }} · 소비자 {{ r.person }}</small></header><small>{{ r.traits }}</small><div class="trace-score">{{ r.metric }} {{ r.before }} → {{ r.after }} <small>{{ r.deltaLabel }}</small></div><div class="trace-tracks" aria-hidden="true"><i style="width:{{ r.before }}%"></i><i style="width:{{ r.after }}%"></i></div><p>{{ r.reason }}</p><sc-for list="{{ r.evidence }}" as="e" hint-placeholder-count="0"><blockquote>“{{ e.quote }}”</blockquote><a href="{{ e.url }}" target="_blank" rel="noopener noreferrer">{{ e.label }} ↗</a></sc-for></article></sc-for></div>
+      <sc-if value="{{ moreTraces }}" hint-placeholder-val="{{ false }}"><button onClick="{{ loadTraces }}" style="margin-top:16px">반응 더 보기</button></sc-if>
+      <sc-if value="{{ hasDeepEvidence }}" hint-placeholder-val="{{ false }}">
+        <h3>AI가 읽은 트렌드의 의미</h3><p>관측된 사실과 제품에 적용할 수 있다는 가설, 반대 설명을 함께 확인합니다. 적용 연관성과 확신은 AI의 판단이며, 원문에 제품이 직접 언급됐다는 뜻은 아닙니다.</p>
+        <sc-for list="{{ analysisRows }}" as="a" hint-placeholder-count="0"><details class="analysis-item"><summary><b>{{ a.label }}</b> · {{ a.meta }}</summary><p><b>관측</b> · {{ a.reading }}</p><p><b>소비자에게 작용할 가능성</b> · {{ a.mechanism }}</p><p><b>반대 설명</b> · {{ a.counterpoint }}</p><sc-for list="{{ a.evidence }}" as="e" hint-placeholder-count="0"><blockquote>“{{ e.quote }}”</blockquote><a href="{{ e.url }}" target="_blank" rel="noopener noreferrer">{{ e.label }} ↗</a></sc-for></details></sc-for>
+        <h3>전체 소비자 반응 검토</h3><p>점수를 유지한 경우도 이유와 대안 해석을 남깁니다. 검토 의견은 별도 AI 호출에서 확인한 내용입니다.</p>
+        <div class="evidence-filters"><label for="response-filter">검토할 반응<select id="response-filter" aria-label="검토할 반응" value="{{ responseFilter }}" onChange="{{ pickResponseFilter }}"><option value="all">전체 소비자</option><option value="changed">점수가 바뀐 소비자</option><option value="unchanged">점수를 유지한 소비자</option></select></label></div>
+        <p role="status">{{ responseCount }}</p>
+        <div class="trace-grid"><sc-for list="{{ responseRows }}" as="r" hint-placeholder-count="0"><article class="trace-card" id="{{ r.anchor }}" tabindex="-1"><header><b>{{ r.who }} · 소비자 {{ r.person }}</b><small>{{ r.status }}</small></header><small>{{ r.traits }}</small><div class="response-scores"><sc-for list="{{ r.scores }}" as="v" hint-placeholder-count="0"><span>{{ v.text }}</span></sc-for></div><p><b>판단 이유</b> · {{ r.reason }}</p><p><b>다른 해석</b> · {{ r.alternative }}</p><p><b>독립 검토</b> · {{ r.review }}</p><sc-for list="{{ r.evidence }}" as="e" hint-placeholder-count="0"><blockquote>“{{ e.quote }}”</blockquote><a href="{{ e.url }}" target="_blank" rel="noopener noreferrer">{{ e.label }} ↗</a></sc-for></article></sc-for></div>
+        <sc-if value="{{ moreResponses }}" hint-placeholder-val="{{ false }}"><button onClick="{{ loadResponses }}" style="margin-top:16px">소비자 검토 더 보기</button></sc-if>
+      </sc-if>
     </section>
   </sc-if>
 
@@ -513,9 +570,9 @@ input[type=range]{accent-color:#E60012}
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = {
-    screen: 'exp', scene: 'setup', ready: false,
+    screen: 'exp', scene: 'setup', ready: false, usage: null, responseFilter: 'all', responseLimit: 8, topicQuery: '', topicLimit: 24, traceTrend: '', traceDirection: '', traceLimit: 12,
     cur: '화채', sel: { age: ['20대', '30대', '40대', '50대'], sex: ['여자', '남자'], region: ['수도권', '중부', '영남', '호남·제주'] },
-    n: 1500, mode: 'stat', targetOpen: false, prog: null, view: 'theater', sort: '', hover: null, table: false, tablePage: 0,
+    live: null, prog: null, view: 'theater', sort: '', hover: null, table: false, tablePage: 0,
     world: null, dayInfo: null, person: null, evid: false, theme: '',
     R: null, rErr: '', runErr: '', calc: 0, job: null, cErr: '', rSt: '기본', cSt: '입력', cStep: 0, cPct: 0, eSt: '기본',
     cName: '', cDesc: '', cPrice: '', cTarget: ''
@@ -567,15 +624,15 @@ class Component extends DCLogic {
     return opts.map(o => { const v = typeof o === 'object' ? o.v : o, label = typeof o === 'object' ? o.l : o, on = v === cur; return { label, on, pick: () => pick(v), bg: on ? (dark ? '#f2f2f2' : '#111') : 'transparent', fg: on ? (dark ? '#0a0a0a' : '#fff') : (dark ? '#f2f2f2' : '#111') }; });
   }
   renderVals() {
-    const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM);
+    const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM), n = 200;
     const P = ready ? D.items : [], T = ready ? D.products : [], pById = id => P.concat(T).find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
-    const go = scr => () => { this.setState({ screen: scr, targetOpen: false }); window.scrollTo(0, 0); };
+    const go = scr => () => { this.setState({ screen: scr }); window.scrollTo(0, 0); };
     const navDefs = [['exp', '실험'], ['out', '결과'], ['react', '트렌드 분석'], ['concept', '신제품 검증']];
     const out = {
       cv: this.cv,
       navItems: navDefs.map(([id, label]) => ({ label, go: go(id), color: s.screen === id ? '#ffffff' : '#a3a3a3', bar: s.screen === id ? '#E60012' : 'transparent' })),
       expDisplay: s.screen === 'exp' ? 'flex' : 'none',
-      isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: () => { this.setState({ screen: 'out', targetOpen: false, oProd: window.DATA && window.DATA.cur }); window.scrollTo(0, 0); }, isConcept: s.screen === 'concept',
+      isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: () => { this.setState({ screen: 'out', oProd: window.DATA && window.DATA.cur }); window.scrollTo(0, 0); }, isConcept: s.screen === 'concept',
       goConcept: go('concept'), goExp: go('exp'), theme: s.theme
     };
     const AI = s.AI || { on: false, model: '', models: [] }, aiPost = (b, ok) => { this.setState({ aiBusy: true, aiMsg: '' }); return MM.api('/api/openai', b).then(r => this.setState({ AI: r, aiKey: '', aiMsg: ok, aiBad: false })).catch(e => this.setState({ aiMsg: e.message, aiBad: true, aiKey: '' })).finally(() => this.setState({ aiBusy: false })); };
@@ -592,29 +649,79 @@ class Component extends DCLogic {
     const sc = s.scene;
     out.isSetup = sc === 'setup'; out.isWorld = sc === 'world'; out.isConclusion = sc === 'conclusion';
     out.showSetupBar = sc === 'setup' || sc === 'running'; out.showExploreBar = sc === 'explore';
-    out.running = sc === 'running'; out.runLabel = sc !== 'running' ? (ready ? '실행' : '준비 중') : s.calc >= 0 ? (s.phase === 'axes' ? 'AI가 세상의 축을 설계하는 중' : s.phase === 'design' ? `AI가 세상 설계 ${s.calc} / ${s.total || 0}` : s.phase === 'town' ? `AI 사회 ${Math.round(100 * s.calc / (s.total || 1))}%` : `계산 중 ${s.calc.toLocaleString()} / ${s.n.toLocaleString()}`) : '세상을 만드는 중';
+    out.running = sc === 'running'; out.runLabel = out.running ? '실험 진행 중' : ready ? '실험 시작' : '준비 중';
+    out.needsAI = !AI.on;
+    out.runDisabled = out.running || !ready || !s.ready || out.needsAI;
+    out.flowHint = '최신 트렌드 분석 → 소비자 전후 해석·검토 → 통계 보정 → AI 보고서. 추론을 사용하며 실험당 비용 상한은 $10입니다.';
+    const live = s.live || { decisions: 0, events: [] }, ctx = live.context;
+    const phases = ['trend', 'analysis', 'interpret', 'review', 'calibrate', 'baseline', 'control', 'compare', 'report'], phase = phases.indexOf(s.phase);
+    out.showLive = (sc === 'running' && s.calc >= 0) || !!s.runErr && !!s.live;
+    out.liveBadge = s.runErr ? '실험 중단 · 받은 응답' : 'LIVE · AI 소비자 실험';
+    out.liveTitle = s.runErr ? '실험을 완료하지 못했습니다' : s.phase === 'queued' ? '앞선 실험을 기다리는 중' : ['최신 트렌드를 집계하고 있습니다', '트렌드의 의미와 반대 근거를 분석합니다', '소비자별 전후 반응을 추론합니다', '원문과 반응의 일관성을 검토합니다', '패널 자료에 맞춰 보정합니다', '통계 기준을 계산합니다', '트렌드 제시 전 결과를 계산합니다', '트렌드 제시 후 결과와 비교합니다', '검토된 근거로 AI 보고서를 작성합니다'][phase] || '실험을 준비합니다';
+    out.liveDetail = `${pById(s.cur).name} · 대표 소비자 48명의 트렌드 전후 비교`;
+    out.liveDecisions = live.decisions.toLocaleString(); out.livePosts = ctx ? (ctx.coverage ? ctx.coverage.total : ctx.sources.length) : 0;
+    out.liveRoundText = s.phase === 'analysis' ? `트렌드 분석 ${s.calc} / ${s.total || 0}개` : s.phase === 'interpret' ? `AI 해석 ${live.decisions} / 48명` : s.phase === 'review' ? `소비자 검토 ${live.reviewed || 0} / ${live.decisions}명` : ['baseline','control','compare'].includes(s.phase) ? `통계 계산 ${Math.min(100, Math.round(s.calc / n * 100))}%` : s.phase === 'report' ? '통계 수치·원문·소비자 반응을 연결하는 중' : '자료 집계 → 추론·검토 → 통계 보정 → AI 보고서';
+    const usage = s.usage; out.liveCost = usage ? `보수적 비용 추정 $${usage.estimated_usd.toFixed(3)} / 상한 $${usage.limit} · 완료 호출 ${usage.calls}회 · 추론 ${nf(usage.reasoning_tokens)}토큰${usage.uncertain ? ' · 응답 유실 비용은 예약 상한으로 반영' : ''}` : '비용 상한 $10 · 추론 호출 준비';
+    out.liveRounds = phases.map((_, i) => ({ bg: i <= phase ? '#88d8aa' : '#333' }));
+    out.liveContext = ctx ? (ctx.sources.length ? `현재성 기준 ${ctx.coverage ? ctx.coverage.current : '—'}건 · ${ctx.trends ? ctx.trends.length : '—'}개 주제 · 대표 원문 ${ctx.sources.length}건. ${ctx.status}.` : '최근 관련 근거가 없습니다. 트렌드가 있다고 가정하지 않습니다.') : '트렌드 분석 탭과 같은 저장소의 최신 관측을 확인합니다.';
+    out.liveMissing = live.decisions < 48 && phase >= 3 ? `${48 - live.decisions}명 해석 누락 · 완료된 응답만 반영합니다.` : '';
+    out.liveEmpty = !live.events.length;
+    out.liveEvents = live.events.map(e => ({ label: e.who, action: e.changes ? `점수 변화 ${e.changes.length}건` : `근거 ${(e.refs || []).length}건 참고`, color: '#bcbcbc', why: '관심: ' + e.yes, post: '거부·망설임: ' + e.no, note: e.note }));
+    const hybrid = ready && D.ai && D.ai.kind === 'hybrid', info = hybrid ? D.ai : null;
+    out.aiResult = info && s.calc < 0 && sc !== 'setup' ? `통계 + 트렌드 AI 완료 · 대표 소비자 ${info.respondents || info.calls}명 전후 해석${info.failed ? ` · ${info.failed}명 누락` : ''} · 세상당 600명. 그래프에서 소비자의 반응을 볼 수 있습니다.` : '';
+    out.showComparison = !!info && s.calc < 0 && sc !== 'setup';
+    out.showEvidence = !!info && s.screen === 'exp' && out.showComparison;
+    out.hasDeepEvidence = !!(info && info.deep);
+    const sourceLinks = (rows,t) => rows.map(e => { const x = e.source ? t.sources.find(x=>x.id===e.source) || e : e; return {...x,quote:e.quote,label:`${x.platform || ''} · ${x.creator || '작성자 미상'} · ${(x.published || '시점 미확인').slice(0,10)} · 원문 보기`}; });
+    if (info) {
+      const c = info.comparison, t = info.context, cov = t.coverage || {}, control = c.without_trends;
+      out.baseMedian = this.fmt(c.baseline.median); out.adjustedMedian = this.fmt(c.adjusted.median);
+      const range = v => v ? `세상 간 90% 범위 ${this.fmt(v.lo)}~${this.fmt(v.hi)}` : '이전 실험에는 전후 비교가 없습니다';
+      out.baseRange = range(c.baseline); out.adjustedRange = range(c.adjusted); out.controlRange = range(control);
+      out.controlMedian = control ? this.fmt(control.median) : '미측정';
+      out.pairedDelta = control ? `${c.trend_delta > 0 ? '+' : ''}${(c.trend_delta * 100).toFixed(2)}%p` : '미측정';
+      out.comparisonNote = '전체 구매의향 수준은 패널에 맞춥니다. AI는 상대적인 성향·입소문 반응을 바꾸며, 조회수를 구매율로 환산하지 않습니다. 실제 시장 예측으로 검증된 값은 아닙니다.';
+      out.sourceCount = t.sources.length;
+      out.contextLine = `실행 시점 ${new Date(t.at).toLocaleString('ko-KR')} · 제품 직접 관련 ${t.direct}건 · ${t.status}. ` + Object.entries(cov.platforms || {}).map(([p,n]) => `${p} ${n}건`).join(' · ');
+      out.trendSources = t.sources.map(x => ({ url: x.url, label: `[${x.platform}] ${x.caption.slice(0, 180)} · 게시 ${(x.published || '시점 미확인').slice(0, 10)}${x.period === 'resurfacing' ? ' · 과거 게시물의 최근 반응 증가' : ''}` }));
+      out.coverageTotal = cov.total == null ? '이전 실험 미집계' : nf(cov.total) + '건'; out.coverageCurrent = cov.current == null ? '미집계' : nf(cov.current) + '건';
+      out.coverageLine = cov.total == null ? '범위 집계와 반응 추적은 새 AI 실험에서 생성됩니다.' : `최근 30일 게시·7일 내 관측 ${cov.recent || 0}건 + 과거 게시물의 최근 반응 증가 ${cov.resurfacing || 0}건. 전체를 주제별로 집계하고 ${(t.trends || []).length}개 주제와 대표 원문을 AI에 전달했습니다.`;
+      out.coverageExcluded = cov.total == null ? '' : `과거·최근 미관측 ${cov.historical || 0} · 게시 시점 미확인 ${cov.unknown || 0} · 광고·뉴스 ${cov.promotion_news || 0} · 중복 ${cov.duplicates || 0} · 날짜·링크 등 검증 제외 ${cov.invalid || 0}건. 주제는 서로 겹칠 수 있고, 조회수 합계를 시장 점유율로 해석하지 않습니다.`;
+      const catalog = t.catalog || [], matches = catalog.filter(g => g.label.toLowerCase().includes(s.topicQuery.trim().toLowerCase()));
+      out.catalogCount = catalog.length; out.topicQuery = s.topicQuery; out.searchTopics = e => this.setState({topicQuery:e.target.value,topicLimit:24});
+      out.catalogNote = `${matches.length}개 검색됨 · ${Math.min(matches.length,s.topicLimit)}개 표시. 현재 관측·작성자 수와 실제 반응 증가를 함께 봅니다. 표본 부족 주제는 유행으로 단정하지 않습니다.`;
+      out.catalogRows = matches.slice(0,s.topicLimit).map(g => ({...g,detail:`전체 ${g.count}건 · 현재 ${g.current}건 · 작성자 ${g.authors}명 · 증가 확인 ${g.growing}건`,selection:g.selected ? 'AI 해석에 포함' : '집계만 포함'}));
+      out.moreTopics = matches.length > s.topicLimit; out.loadTopics = () => this.setState({topicLimit:s.topicLimit+24});
+      const traces = info.attribution || [], filtered = traces.filter(r => (!s.traceTrend || r.trend === s.traceTrend) && (!s.traceDirection || (s.traceDirection === 'up' ? r.delta > 0 : r.delta < 0)));
+      out.traceSummary = `변화가 있는 소비자 ${new Set(traces.map(r=>r.person)).size}명 · 변화 항목 ${traces.length}건 · 점수 유지 ${info.unchanged == null ? '미측정' : info.unchanged}명. 아래는 모델이 설명한 반응 변화이며, 트렌드별 매출 기여도가 아닙니다.`;
+      out.traceTrend = s.traceTrend; out.traceDirection = s.traceDirection; out.traceOptions = (t.trends || []).filter(g=>traces.some(r=>r.trend===g.id));
+      out.pickTraceTrend = e => this.setState({traceTrend:e.target.value,traceLimit:12}); out.pickTraceDirection = e => this.setState({traceDirection:e.target.value,traceLimit:12});
+      out.traceEmpty = filtered.length ? '' : traces.length ? '이 조건에 맞는 반응 변화가 없습니다.' : info.attribution ? '검증된 점수 변화가 없습니다. 근거가 부족하거나 소비자가 기존 성향을 유지했습니다.' : '이전 실험에는 반응 추적이 없습니다. 새 AI 실험에서 확인할 수 있습니다.';
+      out.traceRows = filtered.slice(0,s.traceLimit).map(r=>({...r,deltaLabel:`(${r.delta>0?'+':''}${r.delta}점)`,evidence:r.evidence.map(e=>({...e,label:`${e.platform} · ${e.creator || '작성자 미상'} · ${(e.published || '시점 미확인').slice(0,10)}${e.period==='resurfacing'?' · 최근 재확산':''} · 원문 보기`}))}));
+      out.moreTraces = filtered.length > s.traceLimit; out.loadTraces = () => this.setState({traceLimit:s.traceLimit+12});
+      out.analysisRows = (info.analysis || []).map(a=>({...a,meta:`${a.status} · 적용 연관성 ${{direct:'직접',adjacent:'인접',weak:'약함'}[a.relevance]} · 확신 ${{high:'높음',medium:'보통',low:'낮음'}[a.confidence]}`,evidence:sourceLinks(a.evidence,t)}));
+      const reviewed = (info.responses || []).filter(r=>s.responseFilter === 'all' || (s.responseFilter === 'changed' ? r.changed : !r.changed));
+      out.responseFilter = s.responseFilter; out.pickResponseFilter = e=>this.setState({responseFilter:e.target.value,responseLimit:8});
+      out.responseCount = `${reviewed.length}명 중 ${Math.min(reviewed.length,s.responseLimit)}명 표시`;
+      out.responseRows = reviewed.slice(0,s.responseLimit).map(r=>({...r,anchor:'consumer-'+r.person,status:r.changed?'점수 변화':'점수 유지',scores:Object.entries({first:'첫 관심',friend:'추천 후',bad:'악평 후',post:'게시 성향',like:'기대 만족'}).map(([k,label])=>({text:`${label} ${r.before[k]} → ${r.after[k]}`})),evidence:sourceLinks(r.evidence,t)}));
+      out.moreResponses = reviewed.length>s.responseLimit; out.loadResponses = ()=>this.setState({responseLimit:s.responseLimit+8});
+    } else { out.trendSources = []; out.sourceCount = 0; out.catalogRows = []; out.traceRows = []; out.traceOptions = []; out.analysisRows = []; out.responseRows = []; }
 
     // 설정 막대
     out.prodChips = P.map(p => { const on = s.cur === p.id; return { color: on ? '#E60012' : 'transparent', radius: '50%', rot: 'none', name: p.name, on, bg: on ? 'rgba(255,255,255,0.06)' : 'transparent', fg: on ? '#ffffff' : '#a3a3a3', border: on ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', toggle: () => { if (sc === 'setup') this.setState({ cur: p.id }, () => this.applySel()); } }; });
-    const segLabels = { age: '연령', sex: '성별', region: '지역' };
-    out.segGroups = ready ? ['age', 'sex', 'region'].map(g => ({ label: segLabels[g], items: D.segments[g].map(x => { const on = s.sel[g].includes(x.id); return { id: x.id, on, bg: on ? '#f2f2f2' : 'transparent', fg: on ? '#0a0a0a' : '#d0d0d0', toggle: () => { const cur = s.sel[g]; const next = on ? (cur.length > 1 ? cur.filter(v => v !== x.id) : cur) : cur.concat(x.id); this.setState({ sel: Object.assign({}, s.sel, { [g]: D.segments[g].map(v => v.id).filter(v => next.includes(v)) }) }, () => this.applySel()); } }; }) })) : [];
-    const allSel = ready && ['age', 'sex', 'region'].every(g => s.sel[g].length === D.segments[g].length);
-    out.targetLabel = allSel ? '19~59세 전체' : ['age', 'sex', 'region'].map(g => ready && s.sel[g].length === D.segments[g].length ? (g === 'age' ? '전 연령' : g === 'sex' ? '남녀' : '전국') : s.sel[g].join('·')).join(' · ');
-    out.targetOpen = s.targetOpen; out.toggleTarget = () => this.setState({ targetOpen: !s.targetOpen });
-    out.selectAll = () => this.setState({ sel: Object.assign({}, s.sel, { age: D.segments.age.map(x => x.id), sex: D.segments.sex.map(x => x.id), region: D.segments.region.map(x => x.id) }) }, () => this.applySel());
-    out.modeOpts = this.seg([{ v: 'stat', l: '통계' }, { v: 'ai', l: 'AI 사회' }], s.mode, v => { if (sc === 'setup' && v !== s.mode) this.setState({ mode: v, n: v === 'ai' ? 3 : 1500, runErr: '' }); }, true);
-    out.nOpts = this.seg(s.mode === 'ai' ? [{ v: 3, l: '3' }, { v: 10, l: '10' }, { v: 30, l: '30' }] : [{ v: 200, l: '200' }, { v: 500, l: '500' }, { v: 1000, l: '1,000' }, { v: 1500, l: '1,500' }], s.n, v => { if (sc === 'setup') this.setState({ n: v }); }, true);
     out.runErr = s.runErr || (!ready && window.BOOT && window.BOOT.error ? '서버를 기다리는 중 · ' + window.BOOT.error : '');
     out.run = async () => {
-      if (!this.stage || sc !== 'setup') return;
-      this.setState({ scene: 'running', targetOpen: false, hover: null, runErr: '', calc: 0, phase: 'run', prog: null });
+      if (!this.stage || sc !== 'setup' || out.runDisabled) return;
+      this.setState({ scene: 'running', hover: null, runErr: '', calc: 0, phase: 'run', prog: null, live: null, usage: null, responseFilter: 'all', responseLimit: 8, traceTrend: '', traceDirection: '', traceLimit: 12, topicQuery: '', topicLimit: 24 });
       try {
-        const j = await MM.api('/api/run', { product: s.cur, n: s.n, mode: s.mode, age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
-        const r = await MM.job(j.job, x => this.setState({ calc: x.n || 0, phase: x.phase, total: x.total }));
+        const j = await MM.api('/api/run', { product: s.cur, n, mode: 'ai', age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
+        const r = await MM.job(j.job, x => this.setState({ calc: x.n || 0, phase: x.phase, total: x.total, live: x.live, usage: x.usage }));
         const D = window.DATA; D.worlds = r.worlds; D.run = r.run; D.ai = r.ai;
-        D.cur = s.cur; this.stage.setData(D, s.n); this.applySel(); this.stage.run();
-        this.setState({ calc: -1, scene: this.stage.reduced ? 'explore' : 'running' });
-        this.cv.current && this.cv.current.focus({ preventScroll: true });
+        D.cur = s.cur; this.stage.setData(D, n); this.applySel(); this.stage.run();
+        this.setState({ calc: -1, scene: 'explore', screen: 'out', oProd: s.cur }, () => {
+          const heading = document.getElementById('experiment-report');
+          if (heading) { heading.focus({ preventScroll: true }); heading.scrollIntoView({ block: 'start' }); }
+        });
       } catch (e) { this.setState({ scene: 'setup', runErr: e.message, calc: -1 }); }
     };
 
@@ -622,7 +729,7 @@ class Component extends DCLogic {
     const pr = s.prog, showCounter = !!pr && (sc === 'running' || sc === 'explore');
     out.showCounter = showCounter;
     if (pr) {
-      out.counterKicker = pById(s.cur).name + (D.ai ? ` · AI 사회 ${D.ai.worlds}개(보정 전)` : ' · 통계');
+      out.counterKicker = pById(s.cur).name + (hybrid ? ' · 통계 + 트렌드 AI' : D.ai ? ` · AI 사회 ${D.ai.worlds}개(보정 전)` : ' · 통계');
       out.counterN = pr.n.toLocaleString();
       out.tallyList = Object.keys(pr.tallies).filter(k => pr.tallies[k] > 0).map(k => Object.assign(this.glyph(pById(k)), { id: pById(k).name, count: pr.tallies[k].toLocaleString() }));
       const h = pr.hist || [], last = h[h.length - 1], N = pr.N || 1;
@@ -640,7 +747,7 @@ class Component extends DCLogic {
     out.showSortAxis = sc === 'explore' && s.view === 'theater' && !!s.sort;
     out.sortLo = s.sort && ready ? D.condLabels[s.sort][0] : ''; out.sortHi = s.sort && ready ? D.condLabels[s.sort][1] : '';
     out.exploreHint = s.view === 'theater' ? '끌어서 둘러보기 · 휠로 다가가기 · 화살표와 Enter로 좌석 이동' : s.view === 'graph' ? '조건이 비슷한 세상끼리 이어집니다 · 점을 끌어 보세요' : '구역의 크기가 그 성적을 낸 세상의 비율입니다';
-    out.resetRun = () => { this.stage.reset(); this.setState({ scene: 'setup', prog: null, view: 'theater', sort: '', table: false, hover: null }); };
+    out.resetRun = () => { this.stage.reset(); this.setState({ scene: 'setup', prog: null, live: null, runErr: '', view: 'theater', sort: '', table: false, hover: null }); };
     out.conclude = () => { this.stage.setView('bars'); this.stage.focus = -1; this.setState({ scene: 'conclusion', view: 'bars', table: false, hover: null }); };
     out.backToExplore = () => this.setState({ scene: 'explore', evid: false });
 
@@ -675,7 +782,7 @@ class Component extends DCLogic {
     const wd = s.world, di = s.dayInfo;
     const dtOf = d => `${d * (ready ? D.step_days : 13)}일`, ws0 = wd && wd.scene; out.worldStory = ws0 ? ws0.story + ' ' + ws0.events.map(e => e.m + '달째 ' + e.t).join(', ') : ''; out.worldTitle = ws0 ? ws0.title : ''; out.worldTalk = wd && wd.nodes ? wd.nodes.reduce((a, n) => a.concat((n.posts || []).map(x => ({ who: n.age + ' ' + n.sex, p: dtOf(x.d), say: x.t, f: n.friends, d: x.d }))), []).sort((a, b) => b.f - a.f).slice(0, 8).sort((a, b) => a.d - b.d) : [];
     out.worldNum = wd ? wd.worldId + 1 : ''; out.back = () => this.back();
-    if (wd && ready) { const wv = D.worlds[wd.worldId]; out.worldSub = `${MM.eul(pById(wd.product).name)} 냈을 때 · ${D.ai ? 100 : 600}명 · 12개월 구매경험률 ${(wv.buy[wd.product] * 100).toFixed(1)}%`; }
+    if (wd && ready) { const wv = D.worlds[wd.worldId]; out.worldSub = `${MM.eul(pById(wd.product).name)} 냈을 때 · ${D.ai && D.ai.town ? 100 : 600}명 · 12개월 구매경험률 ${(wv.buy[wd.product] * 100).toFixed(1)}%`; }
     out.day = di ? di.day : 1; const SD = ready ? D.step_days : 13, dt = d => `${d * SD}일째`; out.dayText = dt(out.day); out.playIcon = di && di.playing ? 'Ⅱ' : '▶'; out.playLabel = di && di.playing ? '멈춤' : '재생';
     out.togglePlay = () => { if (!this.stage) return; di && di.playing ? this.stage.pause() : this.stage.play(); };
     out.pickDay = e => this.stage && this.stage.setDay(+e.target.value);
@@ -690,7 +797,7 @@ class Component extends DCLogic {
     // 결론
     if (sc === 'conclusion' && ready && this.stage) {
       const x = MM.summarize(D.worlds.slice(0, this.stage.N)), nm = pById(D.cur).name, b1 = Math.round(D.bench[1] * 100);
-      out.conclusionLine = (D.ai ? '보정 전 값입니다. ' : '') + `${x.n.toLocaleString()}개 세상 중 ${x.over.toLocaleString()}개에서 ${nm}의 구매경험률이 과거 출시 평균(${b1}%)을 넘었습니다.`;
+      out.conclusionLine = (hybrid ? '통계에 AI 해석을 반영한 모의 결과입니다. ' : D.ai ? '보정 전 값입니다. ' : '') + `${x.n.toLocaleString()}개 세상 중 ${x.over.toLocaleString()}개에서 ${nm}의 구매경험률이 과거 출시 평균(${b1}%)을 넘었습니다.`;
       out.sumHead = '12개월 구매경험률';
       const hiMax = Math.max(x.hi, D.bench[2]) * 1.05;
       out.sumRows = [{ color: '#E60012', radius: '50%', rot: 'none', name: nm, median: this.fmt(x.median), range: `${this.fmt(x.lo)}~${this.fmt(x.hi)}`, lo: (x.lo / hiMax * 100).toFixed(1), w: ((x.hi - x.lo) / hiMax * 100).toFixed(1), mid: (x.median / hiMax * 100).toFixed(1), barColor: '#E60012', share: (x.over / x.n * 100).toFixed(1) + '%', regret: (x.under / x.n * 100).toFixed(1) + '%', lose: x.good.join(', ') || '뚜렷하지 않음' }];
@@ -702,10 +809,12 @@ class Component extends DCLogic {
     out.evid = s.evid; out.evidLabel = s.evid ? '근거 접기' : '근거 보기'; out.toggleEvid = () => this.setState({ evid: !s.evid });
 
     // 결과
-    if (s.screen === 'out' && ready && s.oRun !== D.run && !this._ol) { this._ol = true; const rid = D.run; MM.api('/api/report?run=' + encodeURIComponent(rid)).then(O => this.setState({ O, oRun: rid, oErr: '' })).catch(e => this.setState({ oErr: e.message, oRun: rid, O: null })).finally(() => { this._ol = false; }); }
+    if (s.screen === 'out' && ready && s.oRun !== D.run && !this._ol) { this._ol = true; const rid = D.run; MM.api('/api/report?run=' + encodeURIComponent(rid)).then(O => this.setState({ O, oRun: rid, oErr: '' })).catch(e => this.setState({ oErr: e.message, oRun: rid, O: null })).finally(() => { this._ol = false; this.forceUpdate(); }); }
     const O = s.O, oid = O && s.oRun === (D && D.run) && !O.products[s.oProd] ? D.cur : s.oProd || (ready ? D.cur : '화채'), pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%', pc = v => Math.round(v * 100) + '%';
     out.oTabs = P.filter(p => !O || s.oRun !== (D && D.run) || O.products[p.id]).map(p => { const on = p.id === oid; return { label: p.name, on, bg: on ? '#111' : 'transparent', fg: on ? '#fff' : '#111', pick: () => this.setState({ oProd: p.id }) }; });
-    out.oReady = !!O && s.oRun === (D && D.run); out.oMsg = out.oReady ? '' : s.oErr ? '불러오지 못했습니다: ' + s.oErr : '세상들을 모으는 중입니다';
+    out.oReady = !!O && s.oRun === (D && D.run); out.oMsg = out.oReady ? '' : s.oErr ? '불러오지 못했습니다: ' + s.oErr : '실험 결과를 보고서로 정리하고 있습니다';
+    out.oRetry = !!s.oErr && s.oRun === (D && D.run); out.retryReport = () => this.setState({ oRun: null, oErr: '' });
+    out.oDeep = false; out.deepBlocks = []; out.deepCosts = [];
     if (out.oReady) {
       const o = O.products[oid], mx = Math.max(...o.seg.map(g => g.hi)) || 1;
       out.oHead = `${O.target} · 세상 ${O.worlds.toLocaleString()}개와 패널 ${O.panel}명`; out.oWorlds = O.worlds.toLocaleString(); out.oPanel = O.panel;
@@ -715,7 +824,14 @@ class Component extends DCLogic {
       out.oTrait = o.trait.map(t => ({ name: t.trait, text: `높은 쪽 ${pct(t.hi)} · 낮은 쪽 ${pct(t.lo)}` }));
       const lst = a => { const m = Math.max(0.01, ...a.map(y => y.share)); return a.map(y => ({ why: y.why, say: y.say, n: y.n, pct: pc(y.share), w: (y.share / m * 100).toFixed(1) })); };
       out.oYes = lst(o.yes); out.oNo = lst(o.no); out.oNot = o.not.map(y => ({ why: y.why, pct: pc(y.share), w: (y.share * 100).toFixed(1) }));
-      out.oAI = !!o.ai; if (o.ai) { const a = o.ai, f = a.info; out.oAIBuy = lst(a.buy); out.oAIHold = lst(a.hold); out.oPosts = a.posts; out.oAILine = `AI(${f.model})가 설계한 세상 ${f.worlds}개에서 AI ${f.people}명씩 ${f.steps}단계를 살았습니다. 판단 ${f.calls.toLocaleString()}번, 글 ${f.posts.toLocaleString()}개. 산 사람의 ${pc(f.friend)}는 친구 글로 처음 알았습니다. 구매경험률 ${pct(f.mean)}(${pct(f.lo)}~${pct(f.hi)})은 과거 실적에 맞추기 전의 값이라 예측으로 쓰지 않습니다. 상황 축: ${a.axes.join(', ')}.`; }
+      out.oAI = !!o.ai && o.ai.info.kind !== 'hybrid'; if (o.ai) { const a = o.ai, f = a.info; out.oAIBuy = lst(a.buy); out.oAIHold = lst(a.hold); out.oPosts = a.posts; out.oHasPosts = !!a.posts.length; out.oHybrid = f.kind === 'hybrid'; out.oAILine = out.oHybrid ? `통계 기준 중앙값 ${this.fmt(f.comparison.baseline.median)} · AI 트렌드 제시 전 ${f.comparison.without_trends ? this.fmt(f.comparison.without_trends.median) : "미측정"} → 제시 후 ${this.fmt(f.comparison.adjusted.median)}. 전체 ${f.context.coverage ? f.context.coverage.total : "미집계"}건을 집계하고 대표 원문 ${f.context.sources.length}건을 소비자 ${f.respondents || f.calls}명이 해석했고 전체 구매의향 수준은 패널에 맞췄습니다. ${f.context.status}. 이 차이는 실제 시장의 인과 효과로 검증된 값이 아닙니다.` : `AI(${f.model})가 설계한 세상 ${f.worlds}개에서 AI ${f.people}명씩 ${f.steps}단계를 살았습니다. 판단 ${f.calls.toLocaleString()}번, 글 ${f.posts.toLocaleString()}개. 산 사람의 ${pc(f.friend)}는 친구 글로 처음 알았습니다. 구매경험률 ${pct(f.mean)}(${pct(f.lo)}~${pct(f.hi)})은 과거 실적에 맞추기 전의 값이라 예측으로 쓰지 않습니다. 상황 축: ${a.axes.join(', ')}.`; }
+      if (o.ai && o.ai.info.deep && o.ai.info.report) {
+        const f=o.ai.info, r=f.report, u=f.usage, people=new Map(f.responses.map(p=>[p.person,p]));
+        out.oDeep=false; out.deepTitle=r.title; out.deepUsage=`${f.model} · 추론 사용 · AI ${u.calls}회 · 추론 ${nf(u.reasoning_tokens)}토큰 · 보수적 비용 추정 $${u.estimated_usd.toFixed(3)} / 상한 $${u.limit}`; out.deepCostBasis=u.basis;
+        const totals={}; (u.records || []).forEach(x=>{const v=totals[x.stage] || (totals[x.stage]={calls:0,usd:0,reason:0});v.calls++;v.usd+=x.usd;v.reason+=x.reasoning_tokens;});
+        out.deepCosts=Object.entries(totals).map(([k,v])=>({text:`${{analysis:'트렌드 분석',before:'소비자 사전 해석',after:'트렌드 후 해석',review:'독립 검토',report:'보고서 작성'}[k] || k} · ${v.calls}회 · 추론 ${nf(v.reason)}토큰 · $${v.usd.toFixed(3)}`}));
+        out.deepBlocks=r.sections.map(b=>({...b,kind:'분석'})).concat(r.next_steps.map(b=>({...b,kind:'후속 검증 제안'}))).map(b=>({...b,numbers:b.facts.map(id=>({text:r.facts[id]})),peopleRows:b.people.map(id=>({label:`소비자 ${id} · ${people.get(id)?.who || ''}의 검토 보기`,href:'#consumer-'+id,go:e=>{e.preventDefault();this.setState({responseFilter:'all',responseLimit:f.responses.length},()=>{const row=document.getElementById('consumer-'+id);if(row){row.focus({preventScroll:true});row.scrollIntoView({block:'start'});}});}})),evidence:sourceLinks(b.evidence,f.context)}));
+      }
       out.oFr = Math.round(o.friend * 100); out.oAd = 100 - out.oFr; out.oHalf = o.half; out.oIntent = pc(o.intent);
       out.oLift = o.lift.map(u => ({ do: u.do, say: u.say, share: pc(u.share), gain: (u.gain * 100).toFixed(1) }));
       out.oCards = o.good.map(p => Object.assign({ kind: '살 사람', kc: '#b8000e' }, p)).concat(o.bad.map(p => Object.assign({ kind: '망설이는 사람', kc: '#555' }, p)));

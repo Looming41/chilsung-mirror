@@ -224,23 +224,21 @@ def run_job(flt, n, only):
 
 
 def town_job(n, only):
-    """AI 사회: AI 가 설계한 세상마다 AI 100명이 서로의 글을 읽고 산다."""
+    """통계 기준과 최신 트렌드를 읽은 AI 해석을 같은 조건에서 비교한다."""
+    model = AI["model"]
     def fn(job):
-        from . import scenes as S
-        from . import town as T
+        from . import experiment as E
+        job.update(phase="queued")
         with LOCK:
-            d, sc, ids = T.play(only, AI["model"], n, lambda p, k, t: job.update(phase=p, n=min(k, t), total=t))
-            ws = T.to_worlds(only, d, sc, ids)
-        text = [{q: sc["worlds"][str(i)][q] for q in ("title", "story", "events", "pick")} for i in ids]
-        info = T.summary(d, ids)
-        rid = keep({}, ws, only, town=[d["worlds"][str(i)] for i in ids], text=text, info=info, axis=sc["axes"])
-        return {"run": rid, "worlds": [w | {"scene": {q: t[q] for q in ("title", "story", "events")}} for w, t in zip(lean(ws), text)], "ai": info | {"town": True}}
+            ws, ai, info = E.run(only, model, n, job)
+        rid = keep({}, ws, only, ai=ai, info=info)
+        return {"run": rid, "worlds": lean(ws), "ai": info}
     return fn
 
 
 # ---------- OpenAI 연결 ----------
-MODELS = {"gpt-6-luna": (.10, .50), "gpt-6.1-terra": (1.0, 5.0), "gpt-6.2-sol": (2.0, 10.0)}      # $/100만 토큰 (입력, 출력), developers.openai.com 2026-11-24 확인
-AI = {"on": False, "model": "gpt-6-luna"}
+from .consumer import PRICES as MODELS
+AI = {"on": False, "model": "gpt-6.2-sol"}
 
 
 def connect(key):
@@ -510,7 +508,7 @@ def api(fn):
 
 def a_run(req, j):
     n, ai = int(j.get("n", 1500)), j.get("mode") == "ai"
-    if n not in ((3, 10, 30) if ai else (200, 500, 1000, 1500)):
+    if n not in (200, 500, 1000, 1500):
         raise ValueError("세상 개수가 맞지 않습니다")
     if j.get("product") not in W.IDS:
         raise ValueError("제품을 하나 고르세요")
@@ -518,9 +516,9 @@ def a_run(req, j):
     if not ai:
         return {"job": start(run_job(flt, n, j["product"]))}
     if not AI["on"]:
-        raise ValueError("AI 사회는 OpenAI 연결이 필요합니다")
+        raise ValueError("통계 + 트렌드 AI는 OpenAI 연결이 필요합니다")
     if flt:
-        raise ValueError("AI 사회는 전체 소비자로만 돌립니다")
+        raise ValueError("통계 + 트렌드 AI는 전체 소비자로만 돌립니다")
     return {"job": start(town_job(n, j["product"]))}
 
 
@@ -528,7 +526,7 @@ def a_job(req, j):
     x = JOBS.get(req.path_params["jid"])
     if not x:
         raise ValueError("없는 작업입니다")
-    return {k: x.get(k) for k in ("state", "n", "result", "error", "steps", "phase", "total")}
+    return {k: x.get(k) for k in ("state", "n", "result", "error", "steps", "phase", "total", "live", "usage")}
 
 
 def a_society(req, j):
@@ -540,7 +538,7 @@ def a_society(req, j):
         from . import town as T
         L = T.society(r["town"][i])
     else:
-        L = W.one(i, r["flt"], log=p)["log"]
+        L = W.one(i, r["flt"], log=p, ai=r.get("ai"))["log"]
     days = [{"d": d, "exposed": [x["id"] for x in L["nodes"] if x["exposed"] == d], "bought": [x["id"] for x in L["nodes"] if x["bought"] == d], "positive": [x["id"] for x in L["nodes"] if x["posted"] == d and x["positive"]], "negative": [x["id"] for x in L["nodes"] if x["posted"] == d and not x["positive"]]} for d in range(1, W.STEPS + 1)]
     t = r["text"][i] if r.get("text") else None
     return {"worldId": i, "product": p, "days": days, "scene": {q: t[q] for q in ("title", "story", "events")} if t else None, **L}
@@ -607,6 +605,30 @@ def check():
     assert c.post("/api/openai", json={"model": "gpt-6.1-terra"}).json()["model"] == "gpt-6.1-terra" and c.post("/api/openai", json={"model": "아무거나"}).status_code == 400
     assert c.post("/api/openai", json={"off": True}, headers={"origin": "https://evil.com"}).status_code == 403
     assert c.post("/api/run", json={"product": "화채", "n": 3, "mode": "ai", "age": W.AGES, "sex": W.SEXES, "region": W.REGS}).status_code == 400      # 연결 없이는 AI 사회를 돌리지 않는다
+    from unittest.mock import patch
+    from . import experiment as E
+    payload = {"product": "화채", "n": 200, "mode": "ai", "age": W.AGES, "sex": W.SEXES, "region": W.REGS}
+    with patch.dict(AI, {"on": True}):
+        with patch(__name__ + ".start", return_value="test-ai") as launch:
+            assert c.post("/api/run", json=payload).json() == {"job": "test-ai"} and launch.call_count == 1
+            assert c.post("/api/run", json=payload | {"n": 2}).status_code == 400
+            assert c.post("/api/run", json=payload | {"age": [W.AGES[0]]}).status_code == 400
+        model, job = AI["model"], {}
+        fn = town_job(200, "화채")
+        AI["model"] = "gpt-6-luna"
+        def fail(k, chosen, n, job):
+            assert chosen == model and n == 200
+            job.update(live={"decisions": 1, "events": [{"note": "관측 해석"}]})
+            raise RuntimeError("AI 연결 실패")
+        with patch.object(E, "run", side_effect=fail):
+            try:
+                fn(job)
+                raise AssertionError("실패를 통계로 대체함")
+            except RuntimeError as e:
+                assert str(e) == "AI 연결 실패"
+        JOBS["test-ai"] = job | {"state": "error"}
+        assert c.get("/api/job/test-ai").json()["live"]["decisions"] == 1
+        JOBS.pop("test-ai")
     old = STEPS[2]
     STEPS[2] = (old[0], lambda c_, x: (_ for _ in ()).throw(PermissionError("시험")))
     try:

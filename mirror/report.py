@@ -118,7 +118,7 @@ def crowd(ws, k):
 def build(run):
     ws, flt, out = run["worlds"], run["flt"], {}
     for k, con in W.IDS.items():
-        if run.get("town") and k != run["only"]:                    # AI 가 이 제품을 위해 설계한 세상이라 다른 제품에는 쓰지 않는다
+        if (run.get("town") or run.get("ai")) and k != run["only"]:
             continue
         c = crowd(ws, k)
         yes, no, n = words(con, flt)
@@ -136,6 +136,9 @@ def build(run):
     if run.get("town"):
         from . import town as T
         out[run["only"]]["ai"] = T.said(ws, run["town"], run["only"]) | {"info": run["info"], "axes": [a["name"] for a in run["axis"]]}
+    elif run.get("ai"):
+        from . import agents as A
+        out[run["only"]]["ai"] = A.said(ws, run["ai"]) | {"info": run["info"], "posts": [], "axes": []}
     return out
 
 

@@ -193,8 +193,10 @@ CACHE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "llm_cache.js
 _cache = None
 
 
-def chat(system, user, model):
+def chat(system, user, model, *, cache=True):
     """디스크 캐시를 거친 페르소나 응답. 같은 (모델, 프롬프트)는 다시 호출하지 않아 무료 한도를 아낀다."""
+    if not cache:
+        return _chat_raw(system, user, model)
     import hashlib
     global _cache
     key = hashlib.sha1(f"{model}\x00{system}\x00{user}".encode()).hexdigest()
@@ -224,13 +226,17 @@ def gateway(key):
     return OpenAI(base_url=GATEWAY_URL, api_key=key, timeout=60, max_retries=0)
 
 
-def ask_openai(cl, model, system, user, **kw):
+def ask_openai(cl, model, system, user, *, on_usage=None, audit=None, **kw):
     """→ (답, 입력 토큰, 출력 토큰). 생각 끄기를 받는 모델은 끈다."""
-    r = cl.responses.create(model=model, instructions=system, input=user, store=False, **({"reasoning": {"effort": "none"}} if model in NO_THINK else {}), **kw)
+    if model in NO_THINK:
+        kw.setdefault("reasoning", {"effort": "none"})
+    r = cl.responses.create(model=model, instructions=system, input=user, store=False, **kw)
     tin, tout = (r.usage.input_tokens, r.usage.output_tokens) if r.usage else (0, 0)
     with _lock:                                             # 사용량 장부: 때·모델·토큰만(질문·답·키는 적지 않는다)
         with open(LEDGER, "a") as f:
-            f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "m": model, "in": tin, "out": tout}) + "\n")
+            f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "m": model, "in": tin, "out": tout, **(audit or {})}) + "\n")
+    if on_usage:
+        on_usage(r)
     return (r.output_text or "").strip(), tin, tout
 
 
@@ -249,6 +255,7 @@ def ledger():
 
 
 NO_THINK = {"gpt-6-luna", "gpt-6.1-terra"}      # 생각 토큰도 출력 요금이라 끈다. gpt-6.2-sol 은 none 을 거부해서 기본값(공식 문서 2026-11-24)
+PRICES = {"gpt-6-luna": (.10, .50), "gpt-6.1-terra": (1.0, 5.0), "gpt-6.2-sol": (2.0, 10.0)}  # Standard $/1M, 2026-11-25
 
 
 def _chat_raw(system, user, model):
