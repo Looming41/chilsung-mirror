@@ -156,16 +156,13 @@
     setProducts(ids) { this.pIds = ids.slice(); this.computeWinners(); }
     setMods(m) { this.mods = m || {}; this.computeWinners(); }
     setMetric(m) { this.metric = m; this.computeWinners(); }
-    val(w, p) { return window.MM.value(w, p, this.metric, this.mods); }
+    val(w) { return window.MM.value(w); }
     computeWinners() {
       const N = this.N, W = this.D.worlds;
       this.win = new Int8Array(N); this.bright = new Float32Array(N); this.clar = new Uint8Array(N); this.margin = new Float32Array(N);
       const bests = [];
       for (let i = 0; i < N; i++) {
-        let b = -1, s = -1, bp = null;
-        this.pIds.forEach(p => { const v = this.val(W[i], p); if (v > b) { s = b; b = v; bp = p; } else if (v > s) s = v; });
-        this.win[i] = this.prodIdx[bp]; bests.push(b); const m = s > 0 ? (b - s) / b : 1; this.margin[i] = m;
-        this.clar[i] = m < 0.12 ? 0 : m < 0.35 ? 1 : 2;
+        const b = this.val(W[i]); this.win[i] = window.MM.tier(W[i]); bests.push(b); this.margin[i] = b; this.clar[i] = 2;
       }
       const sorted = bests.slice().sort((a, b) => a - b), lo = sorted[Math.floor(N * 0.05)], hi = sorted[Math.floor(N * 0.95)] || 1;
       for (let i = 0; i < N; i++) this.bright[i] = clamp((bests[i] - lo) / (hi - lo || 1), 0, 1);
@@ -267,7 +264,7 @@
     }
     _layoutBars() {
       const N = this.N, A = this.area(), ids = this.pIds.slice();
-      const tal = this.tallies(N); ids.sort((a, b) => tal[b] - tal[a]);
+      const tal = this.tallies(N);
       const n = ids.length, colW = Math.min(300, A.w / n * 0.62), gapX = Math.min(120, (A.w - colW * n) / (n + 1));
       const C = 24, maxR = Math.ceil(Math.max(1, ...ids.map(p => tal[p])) / C);
       const pitch = Math.max(2, Math.min(colW / C, (A.h - 96) / maxR)), cw = pitch * C;
@@ -282,7 +279,7 @@
     // ---------- 장면 4: 세상 안으로 ----------
     enterWorld(i, pid) {
       if (i < 0 || i >= this.N || this.fly) return;
-      pid = pid || this.D.products[this.win[i]].id;
+      pid = pid || this.D.cur;
       this.visited = i; this.hover = -1; this.focus = i;
       const done = () => this._openSociety(i, pid);
       if (this.reduced || this.view !== 'theater') { done(); return; }
@@ -356,17 +353,17 @@
       const w = this.D.worlds[i], C = this.D.conditions, L = this.D.condLabels;
       const diffs = C.map(c => ({ c, p: this.pct[c][i] })).sort((a, b) => Math.abs(b.p - .5) - Math.abs(a.p - .5)).slice(0, 3)
         .map(d => ({ label: L[d.c][d.p < .5 ? 0 : 1], pct: d.p < .5 ? `하위 ${Math.max(1, Math.round(d.p * 100))}%` : `상위 ${Math.max(1, Math.round((1 - d.p) * 100))}%` }));
-      const vals = this.pIds.map(p => ({ id: p, v: this.val(w, p) }));
+      const cur = this.D.cur, v0 = this.val(w), vals = [{ id: cur, v: v0 }];
       // 이 세상에서 실제로 계산된 누적 구매경험률(한 구간 = 13일)
-      const SD = this.D.step_days, curves = this.pIds.map(p => ({ id: p, pts: w.curve[p] }));
-      const wp = this.D.products[this.win[i]], wc = w.curve[wp.id]; let peak = 1, pv = -1; for (let d = 1; d <= 28; d++) { const dv = wc[d] - wc[d - 1]; if (dv > pv) { pv = dv; peak = d; } }
-      const sortedV = vals.slice().sort((a, b) => b.v - a.v);
+      const SD = this.D.step_days, curves = [{ id: cur, pts: w.curve[cur] }];
+      const wp = this.D.products[this.win[i]], wc = w.curve[cur], nm = this.D.items.find(p => p.id === cur).name; let peak = 1, pv = -1; for (let d = 1; d <= 28; d++) { const dv = wc[d] - wc[d - 1]; if (dv > pv) { pv = dv; peak = d; } }
       const events = [
-        { d: '12개월', t: window.MM.eul(wp.name) + ' 알게 된 사람 ' + Math.round(100 * w.seen[wp.id]) + '%' },
+        { d: '12개월', t: window.MM.eul(nm) + ' 알게 된 사람 ' + Math.round(100 * w.seen[cur]) + '%' },
         { d: peak * SD + '일째', t: '처음 산 사람이 가장 많았던 때' },
-        { d: '결과', t: wp.name + ' 승, 2등보다 ' + (sortedV[1] && sortedV[1].v > 0 ? (sortedV[0].v / sortedV[1].v).toFixed(1) + '배' : '크게 앞섬') }
+        { d: '결과', t: '600명 중 ' + Math.round(v0 * 600) + '명이 삼' }
       ];
-      return { id: i, winner: wp.id, vals, diffs, margin: this.margin[i], curves, events };
+      let above = 0; for (let j = 0; j < this.N; j++) if (this.margin[j] > v0) above++;
+      return { id: i, winner: wp.id, vals, diffs, top: Math.max(1, Math.round(100 * (above + 1) / this.N)), curves, events };
     }
     _emitHover(force) {
       const i = this.focus >= 0 && this.hover < 0 ? this.focus : this.hover;
@@ -525,10 +522,10 @@
       this._emitHover();
     }
     _codeLine(i) {
-      this.codeCache = this.codeCache || {}; const key = i + this.metric + this.pIds.join('');
+      this.codeCache = this.codeCache || {}; const key = i + this.D.cur;
       if (this.codeCache[key]) return this.codeCache[key];
       const w = this.D.worlds[i], c = w.cond, f = v => v.toFixed(2).slice(1), h = ((Math.imul(i + 1, 2654435761)) >>> 0).toString(16).padStart(8, '0').slice(0, 4);
-      const vals = this.pIds.map(p => { const v = this.val(w, p); return p + ' ' + (this.metric === 'rev' ? String(Math.round(v)).padStart(3, ' ') : v.toFixed(3).slice(1)); }).join('  ');
+      const vals = this.D.cur + ' ' + this.val(w).toFixed(3).slice(1);
       const out = { t: 'w' + String(i + 1).padStart(4, '0') + ' ' + h + '  ad' + f(c['광고 도달']) + ' fad' + f(c['유행 지속']) + ' sns' + f(c['SNS 전파력']) + ' px' + f(c['가격 민감도']) + '  ->  ' + vals + '  ', win: this.win[i] };
       return this.codeCache[key] = out;
     }
@@ -619,7 +616,7 @@
         for (let i = 0; i < N; i++) { const tx = m.cx + L.x[i] * m.s, ty = m.cy + L.y[i] * m.s, r = Math.hypot(L.x[i], L.y[i]), k = easeOut(clamp(appear * 1.6 - r * 0.6, 0, 1)); px[i] = lerp(ccx, tx, k); py[i] = lerp(ccy, ty, k); }
         ctx.strokeStyle = 'rgba(255,255,255,0.075)'; ctx.lineWidth = 1; ctx.beginPath();
         soc.links.forEach(([a, b]) => { ctx.moveTo(px[a], py[a]); ctx.lineTo(px[b], py[b]); }); ctx.stroke();
-        const color = this.D.products[this.prodIdx[soc.product]].color;
+        const color = '#E60012';
         // 추천·불만이 선을 타고 번진다
         if (!this.reduced) soc.nodes.forEach(n => {
           if (!n.posted || t < n.posted || t >= n.posted + 1) return;
@@ -641,7 +638,6 @@
         ctx.fillStyle = '#9a9a9a'; ctx.beginPath(); neg.forEach(i => shapePath(ctx, 'square', px[i], py[i], this._nodeR(soc.nodes[i]) * 1.05)); ctx.fill();
         ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.5; ctx.beginPath(); neg.forEach(i => { const r = this._nodeR(soc.nodes[i]) * 0.55; ctx.moveTo(px[i] - r, py[i] - r); ctx.lineTo(px[i] + r, py[i] + r); ctx.moveTo(px[i] + r, py[i] - r); ctx.lineTo(px[i] - r, py[i] + r); }); ctx.stroke();
         if (this.person) { const i = this.person.id, r = this._nodeR(soc.nodes[i]) + 7; ctx.strokeStyle = '#E60012'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px[i], py[i], r, 0, Math.PI * 2); ctx.stroke(); }
-        if (this.soc2) { ctx.fillStyle = '#ffffff'; ctx.font = `700 15px ${FONT}`; ctx.textBaseline = 'top'; const A = this.area(); ctx.fillText(`${window.MM.eul(this.D.products[this.prodIdx[soc.product]].name)} 냈을 때`, A.x + h * A.w / 2 + 16, A.y + 8); }
       });
       if (this.soc2) { const A = this.area(); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(A.x + A.w / 2 - 1, A.y, 2, A.h); }
     }

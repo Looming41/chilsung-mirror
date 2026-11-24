@@ -24,26 +24,22 @@
     const e = q ? p * p / q : 0;
     return { people: p, respondents: n, effective: Math.round(e), margin: e ? Math.round(980 / Math.sqrt(e)) / 10 : 0 };
   }
-  const price = id => window.DATA.products.find(p => p.id === id).price;
-  const value = (w, pid, metric) => metric === 'rev' ? w.buy[pid] * price(pid) : w.buy[pid];
-  function summarize(ws, pids, metric) {
-    const n = ws.length, wins = {}, short = {}, D = window.DATA; pids.forEach(p => { wins[p] = 0; short[p] = []; });
-    const winOf = ws.map(w => {
-      let best = -1, bp = null; pids.forEach(p => { const v = value(w, p, metric); if (v > best) { best = v; bp = p; } });
-      wins[bp]++; pids.forEach(p => short[p].push(best - value(w, p, metric))); return bp;
-    });
-    const q = (a, t) => a[Math.min(a.length - 1, Math.floor(t * a.length))];
-    return pids.map(p => {
-      const vals = ws.map(w => value(w, p, metric)).sort((a, b) => a - b);
-      const worst = short[p].slice().sort((a, b) => b - a).slice(0, Math.max(1, Math.round(n * 0.1)));
-      const losing = ws.filter((w, i) => winOf[i] !== p);
-      let loseWhen = [];
-      if (losing.length >= 3 && losing.length < n) loseWhen = D.conditions.map(c => {
-        const all = ws.map(w => w.cond[c]), m = all.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(all.reduce((a, b) => a + (b - m) * (b - m), 0) / n) || 1;
-        return { c, z: (losing.reduce((a, w) => a + w.cond[c], 0) / losing.length - m) / sd };
-      }).sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 3).filter(x => Math.abs(x.z) > 0.3).map(x => D.condLabels[x.c][x.z < 0 ? 0 : 1]);
-      return { id: p, median: q(vals, .5), lo: q(vals, .05), hi: q(vals, .95), share: wins[p] / n, wins: wins[p], regret: worst.reduce((a, b) => a + b, 0) / worst.length, loseWhen };
-    });
+  // 제품 하나의 성적: 과거 출시 5개 제품의 실제 구매경험률(최저·평균·최고)과 비교한 네 등급
+  const value = w => w.buy[window.DATA.cur];
+  const tier = w => { const v = value(w), b = window.DATA.bench; return v >= b[2] ? 0 : v >= b[1] ? 1 : v >= b[0] ? 2 : 3; };
+  function tiers(b) {
+    const p = v => Math.round(v * 100) + '%';
+    return [{ id: `${p(b[2])} 이상`, name: `과거 최고(${p(b[2])}) 이상`, color: '#FF2B3D', shape: 'circle' }, { id: `${p(b[1])}~`, name: `과거 평균~최고 (${p(b[1])}~${p(b[2])})`, color: '#F5A3A8', shape: 'circle' },
+      { id: `${p(b[0])}~`, name: `과거 최저~평균 (${p(b[0])}~${p(b[1])})`, color: '#EFEBE4', shape: 'square' }, { id: `${p(b[0])} 미만`, name: `과거 최저(${p(b[0])}) 미만`, color: '#7C8894', shape: 'diamond' }];
+  }
+  // 한 제품의 요약과 구매율을 좌우하는 조건
+  function summarize(ws) {
+    const D = window.DATA, n = ws.length, v = ws.map(value), s = v.slice().sort((a, b) => a - b), q = t => s[Math.min(n - 1, Math.floor(t * n))];
+    // 구매경험률 순위와 조건 순위의 상관이 0.09 를 넘는 것만(작은 상관은 조건끼리 얽힌 착시일 수 있다)
+    const rk = v.map((x, i) => [x, i]).sort((a, b) => a[0] - b[0]).reduce((r, x, k) => { r[x[1]] = (k + .5) / n - .5; return r; }, new Array(n));
+    const top = D.conditions.map(c => ({ c, r: 12 * ws.reduce((a, w, i) => a + (w.cond[c] - .5) * rk[i], 0) / n })).filter(x => Math.abs(x.r) > 0.09).sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 3);
+    const good = top.map(x => D.condLabels[x.c][x.r > 0 ? 1 : 0]), bad = top.map(x => D.condLabels[x.c][x.r > 0 ? 0 : 1]);
+    return { median: q(.5), lo: q(.05), hi: q(.95), over: v.filter(x => x >= D.bench[1]).length, under: v.filter(x => x < D.bench[0]).length, n, good, bad };
   }
   const cache = new Map(), key = (w, p) => window.DATA.run + '/' + w + '/' + p;
   async function loadSociety(w, p) {
@@ -52,9 +48,9 @@
     return cache.get(k);
   }
   const eul = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c <= 11171 && c % 28 ? '을' : '를'); };
-  window.MM = { eul, mulberry, summarize, population, value, api, job, loadSociety, modifiers: () => ({}), society: (w, p) => cache.get(key(w, p)) };
+  window.MM = { eul, mulberry, summarize, tier, population, value, api, job, loadSociety, modifiers: () => ({}), society: (w, p) => cache.get(key(w, p)) };
   window.BOOT = { error: '' };
   (function load() {
-    api('/api/data').then(d => { d.society = null; d.summary = null; d.all = d.worlds; window.DATA = d; }).catch(e => { window.BOOT.error = e.message; setTimeout(load, 2500); });
+    api('/api/data').then(d => { d.society = null; d.summary = null; d.all = d.worlds; d.items = d.products; d.products = tiers(d.bench); d.cur = d.items[0].id; window.DATA = d; }).catch(e => { window.BOOT.error = e.message; setTimeout(load, 2500); });
   })();
 })();

@@ -12,8 +12,8 @@
 <helmet>
 <link rel="stylesheet" href="ds/styles.css">
 
-<script src="data.js"></script>
-<script src="stage.js"></script>
+<script src="data.js?v=4"></script>
+<script src="stage.js?v=2"></script>
 <style>
 @font-face{font-family:"Pretendard Variable";src:url(vendor/PretendardVariable.woff2) format("woff2");font-weight:45 920;font-display:swap}
 html,body{margin:0;background:#0a0a0a;overflow-x:hidden}
@@ -86,7 +86,7 @@ input[type=range]{accent-color:#E60012}
             <span style="font-size:12px;color:#a3a3a3">{{ hoverCard.clarity }}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700">
-            <span style="width:10px;height:10px;display:block;background:{{ hoverCard.wColor }};border-radius:{{ hoverCard.wRadius }};transform:{{ hoverCard.wRot }}"></span>{{ hoverCard.wName }} 승
+            <span style="width:10px;height:10px;display:block;background:{{ hoverCard.wColor }};border-radius:{{ hoverCard.wRadius }};transform:{{ hoverCard.wRot }}"></span>{{ hoverCard.wName }}
           </div>
           <div style="display:flex;flex-direction:column;gap:4px">
             <sc-for list="{{ hoverCard.vals }}" as="v" hint-placeholder-count="3">
@@ -172,9 +172,9 @@ input[type=range]{accent-color:#E60012}
             <table style="width:100%;border-collapse:collapse;font-size:13px">
               <thead><tr style="text-align:left;color:#a3a3a3;font-size:12px">
                 <th style="padding:8px 18px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">세상</th>
-                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">이긴 제품</th>
+                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">성적</th>
                 <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">{{ tableMetric }}</th>
-                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">2등과 차이</th>
+                <th style="padding:8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">순위</th>
                 <th style="padding:8px 18px 8px 8px;border-bottom:2px solid rgba(255,255,255,0.25);font-weight:600">가장 다른 조건</th>
               </tr></thead>
               <tbody>
@@ -197,7 +197,7 @@ input[type=range]{accent-color:#E60012}
     <sc-if value="{{ showSetupBar }}" hint-placeholder-val="{{ true }}">
       <div style="position:relative;flex:none;border-top:2px solid rgba(255,255,255,0.22);background:#0a0a0a;padding:14px clamp(16px,2.4vw,32px) 16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px clamp(20px,3vw,44px)">
         <div style="display:flex;flex-direction:column;gap:7px;min-width:0">
-          <div style="font-size:12px;color:#a3a3a3;font-weight:600">비교할 제품 · {{ prodCount }} / 8</div>
+          <div style="font-size:12px;color:#a3a3a3;font-weight:600">제품</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
             <sc-for list="{{ prodChips }}" as="p" hint-placeholder-count="3">
               <button onClick="{{ p.toggle }}" aria-pressed="{{ p.on }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;background:{{ p.bg }};color:{{ p.fg }};border:1px solid {{ p.border }};font-size:14px;font-weight:700;cursor:pointer" style-hover="border-color:#ffffff">
@@ -267,14 +267,6 @@ input[type=range]{accent-color:#E60012}
             <sc-for list="{{ condOpts }}" as="c" hint-placeholder-count="11"><option value="{{ c }}">{{ c }} 순</option></sc-for>
           </select>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:12px;color:#a3a3a3;font-weight:600">이긴 기준</div>
-          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
-            <sc-for list="{{ metricOpts }}" as="o" hint-placeholder-count="2">
-              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:36px;padding:0 14px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
-            </sc-for>
-          </div>
-        </div>
         <div style="font-size:12px;color:#a3a3a3;line-height:1.5;max-width:260px;padding-bottom:2px">{{ exploreHint }}</div>
         <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
           <button onClick="{{ toggleTable }}" style="height:38px;padding:0 14px;background:none;color:#f2f2f2;border:1px solid rgba(255,255,255,0.35);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,0.08)">표로 보기</button>
@@ -298,14 +290,6 @@ input[type=range]{accent-color:#E60012}
             <span style="font-weight:700">{{ l.a }}</span><span style="font-weight:700;color:#d0d0d0">{{ l.b }}</span>
           </sc-for>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:12px;color:#a3a3a3;font-weight:600">같은 세상에서 다른 제품을 냈다면</div>
-          <div style="display:flex;border:1px solid rgba(255,255,255,0.35)">
-            <sc-for list="{{ compareOpts }}" as="o" hint-placeholder-count="3">
-              <button onClick="{{ o.pick }}" aria-pressed="{{ o.on }}" style="height:34px;padding:0 12px;background:{{ o.bg }};color:{{ o.fg }};border:0;border-right:1px solid rgba(255,255,255,0.2);font-size:13px;font-weight:700;cursor:pointer">{{ o.label }}</button>
-            </sc-for>
-          </div>
-        </div>
       </div>
     </sc-if>
 
@@ -315,9 +299,9 @@ input[type=range]{accent-color:#E60012}
           <div style="min-width:760px;display:grid;grid-template-columns:150px minmax(200px,1.6fr) 110px 150px minmax(180px,1.4fr);font-size:14px">
             <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">제품</span>
             <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">{{ sumHead }} · 중앙값과 90% 범위</span>
-            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">1등 비율</span>
-            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">나쁜 세상에서 손실</span>
-            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">지는 세상들의 공통점</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">과거 평균 이상</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">과거 최저 미만</span>
+            <span style="font-size:12px;color:#a3a3a3;font-weight:600;padding:0 0 8px;border-bottom:2px solid rgba(255,255,255,0.3)">잘 팔리는 조건</span>
             <sc-for list="{{ sumRows }}" as="s" hint-placeholder-count="3">
               <span style="display:flex;align-items:center;gap:8px;font-weight:700;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.12)"><span style="width:10px;height:10px;display:block;background:{{ s.color }};border-radius:{{ s.radius }};transform:{{ s.rot }}"></span>{{ s.name }}</span>
               <span style="display:flex;align-items:center;gap:12px;padding:10px 16px 10px 0;border-bottom:1px solid rgba(255,255,255,0.12)">
@@ -505,9 +489,9 @@ input[type=range]{accent-color:#E60012}
 class Component extends DCLogic {
   state = {
     screen: 'exp', scene: 'setup', ready: false,
-    sel: { products: ['화채', '프리즈', '쥬시'], age: ['20대', '30대', '40대', '50대'], sex: ['여자', '남자'], region: ['수도권', '중부', '영남', '호남·제주'] },
-    n: 1500, targetOpen: false, prog: null, view: 'theater', sort: '', metric: 'buy', hover: null, table: false, tablePage: 0,
-    world: null, dayInfo: null, person: null, compare: null, evid: false, theme: '',
+    cur: '화채', sel: { age: ['20대', '30대', '40대', '50대'], sex: ['여자', '남자'], region: ['수도권', '중부', '영남', '호남·제주'] },
+    n: 1500, targetOpen: false, prog: null, view: 'theater', sort: '', hover: null, table: false, tablePage: 0,
+    world: null, dayInfo: null, person: null, evid: false, theme: '',
     R: null, rErr: '', runErr: '', calc: 0, job: null, cErr: '', rSt: '기본', cSt: '입력', cStep: 0, cPct: 0, eSt: '기본',
     cName: '', cDesc: '', cPrice: '', cTarget: ''
   };
@@ -530,7 +514,7 @@ class Component extends DCLogic {
       onProgress: p => this.setState(s => ({ prog: p, scene: p.done && s.scene === 'running' ? 'explore' : s.scene })),
       onHover: h => this.setState({ hover: h }),
       onSelect: i => this.enter(i),
-      onEnter: w => this.setState({ scene: 'world', world: w, hover: null, person: null, compare: null, table: false }),
+      onEnter: w => this.setState({ scene: 'world', world: w, hover: null, person: null, table: false }),
       onDay: d => this.setState({ dayInfo: d }),
       onPerson: p => this.setState({ person: p }),
       onExit: () => this.back()
@@ -547,26 +531,26 @@ class Component extends DCLogic {
       const key = JSON.stringify(ins); if (key !== this._insKey) { this._insKey = key; this.stage.setInsets(ins); }
     }
   }
-  applySel() { if (!this.stage) return; const sel = this.state.sel; this.stage.setProducts(sel.products); this.stage.setMods(window.MM.modifiers(sel)); }
+  applySel() { if (!this.stage) return; window.DATA.cur = this.state.cur; this.stage.codeCache = {}; this.stage.computeWinners(); }
   enter(i) { const sc = this.state.scene; if (!this.stage || !(sc === 'explore' || sc === 'conclusion')) return; this.setState({ table: false, runErr: '' });
-    const pid = window.DATA.products[this.stage.win[i]].id; if (this._busy) return; this._busy = true;
+    const pid = window.DATA.cur; if (this._busy) return; this._busy = true;
     window.MM.loadSociety(i, pid).then(() => this.stage.enterWorld(i)).catch(e => this.setState({ runErr: e.message })).finally(() => { this._busy = false; }); }
-  back() { if (!this.stage) return; this.stage.exitWorld(); this.setState({ scene: 'explore', person: null, compare: null, view: this.stage.view }); }
-  fmt(v) { return this.state.metric === 'rev' ? Math.round(v).toLocaleString() + '원' : (v * 100).toFixed(1) + '%'; }
+  back() { if (!this.stage) return; this.stage.exitWorld(); this.setState({ scene: 'explore', person: null, view: this.stage.view }); }
+  fmt(v) { return (v * 100).toFixed(1) + '%'; }
   glyph(p) { return { color: p.color, radius: p.shape === 'circle' ? '50%' : '0', rot: p.shape === 'diamond' ? 'rotate(45deg) scale(0.85)' : 'none' }; }
   seg(opts, cur, pick, dark) {
     return opts.map(o => { const v = typeof o === 'object' ? o.v : o, label = typeof o === 'object' ? o.l : o, on = v === cur; return { label, on, pick: () => pick(v), bg: on ? (dark ? '#f2f2f2' : '#111') : 'transparent', fg: on ? (dark ? '#0a0a0a' : '#fff') : (dark ? '#f2f2f2' : '#111') }; });
   }
   renderVals() {
     const s = this.state, D = window.DATA, MM = window.MM, ready = !!(D && MM);
-    const P = ready ? D.products : [], pById = id => P.find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
+    const P = ready ? D.items : [], T = ready ? D.products : [], pById = id => P.concat(T).find(p => p.id === id) || { id, name: id, color: '#888', shape: 'circle' };
     const go = scr => () => { this.setState({ screen: scr, targetOpen: false }); window.scrollTo(0, 0); };
     const navDefs = [['exp', '실험'], ['out', '결과'], ['react', '트렌드 분석'], ['concept', '신제품 검증']];
     const out = {
       cv: this.cv,
       navItems: navDefs.map(([id, label]) => ({ label, go: go(id), color: s.screen === id ? '#ffffff' : '#a3a3a3', bar: s.screen === id ? '#E60012' : 'transparent' })),
       expDisplay: s.screen === 'exp' ? 'flex' : 'none',
-      isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: go('out'), isConcept: s.screen === 'concept',
+      isReact: s.screen === 'react', isOut: s.screen === 'out', goOut: () => { this.setState({ screen: 'out', targetOpen: false, oProd: window.DATA && window.DATA.cur }); window.scrollTo(0, 0); }, isConcept: s.screen === 'concept',
       goConcept: go('concept'), goExp: go('exp'), theme: s.theme
     };
     const sc = s.scene;
@@ -575,8 +559,7 @@ class Component extends DCLogic {
     out.running = sc === 'running'; out.runLabel = sc !== 'running' ? (ready ? '실행' : '준비 중') : s.calc >= 0 ? `계산 중 ${s.calc.toLocaleString()} / ${s.n.toLocaleString()}` : '세상을 만드는 중';
 
     // 설정 막대
-    out.prodCount = s.sel.products.length;
-    out.prodChips = P.map(p => { const on = s.sel.products.includes(p.id); return Object.assign(this.glyph(p), { name: p.name, on, bg: on ? 'rgba(255,255,255,0.06)' : 'transparent', fg: on ? '#ffffff' : '#7a7a7a', border: on ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', toggle: () => { if (sc !== 'setup') return; const cur = s.sel.products; const next = on ? (cur.length > 2 ? cur.filter(x => x !== p.id) : cur) : cur.concat(p.id); this.setState({ sel: Object.assign({}, s.sel, { products: P.map(x => x.id).filter(x => next.includes(x)) }) }, () => this.applySel()); } }); });
+    out.prodChips = P.map(p => { const on = s.cur === p.id; return { color: on ? '#E60012' : 'transparent', radius: '50%', rot: 'none', name: p.name, on, bg: on ? 'rgba(255,255,255,0.06)' : 'transparent', fg: on ? '#ffffff' : '#a3a3a3', border: on ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', toggle: () => { if (sc === 'setup') this.setState({ cur: p.id }, () => this.applySel()); } }; });
     const segLabels = { age: '연령', sex: '성별', region: '지역' };
     out.segGroups = ready ? ['age', 'sex', 'region'].map(g => ({ label: segLabels[g], items: D.segments[g].map(x => { const on = s.sel[g].includes(x.id); return { id: x.id, on, bg: on ? '#f2f2f2' : 'transparent', fg: on ? '#0a0a0a' : '#d0d0d0', toggle: () => { const cur = s.sel[g]; const next = on ? (cur.length > 1 ? cur.filter(v => v !== x.id) : cur) : cur.concat(x.id); this.setState({ sel: Object.assign({}, s.sel, { [g]: D.segments[g].map(v => v.id).filter(v => next.includes(v)) }) }, () => this.applySel()); } }; }) })) : [];
     const allSel = ready && ['age', 'sex', 'region'].every(g => s.sel[g].length === D.segments[g].length);
@@ -593,11 +576,11 @@ class Component extends DCLogic {
       try {
         if (allSel) { D.worlds = D.all; D.run = 'default'; }
         else {
-          const j = await MM.api('/api/run', { n: s.n, age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
+          const j = await MM.api('/api/run', { product: s.cur, n: s.n, age: s.sel.age, sex: s.sel.sex, region: s.sel.region });
           const r = await MM.job(j.job, x => this.setState({ calc: x.n }));
           D.worlds = r.worlds; D.run = r.run;
         }
-        this.stage.setData(D, s.n); this.applySel(); this.stage.setMetric(s.metric); this.stage.run();
+        D.cur = s.cur; this.stage.setData(D, s.n); this.applySel(); this.stage.run();
         this.setState({ calc: -1, scene: this.stage.reduced ? 'explore' : 'running' });
         this.cv.current && this.cv.current.focus({ preventScroll: true });
       } catch (e) { this.setState({ scene: 'setup', runErr: e.message, calc: -1 }); }
@@ -607,25 +590,24 @@ class Component extends DCLogic {
     const pr = s.prog, showCounter = !!pr && (sc === 'running' || sc === 'explore');
     out.showCounter = showCounter;
     if (pr) {
-      out.counterKicker = sc === 'running' ? '지금까지' : (s.metric === 'rev' ? '매출 기준' : '구매경험률 기준');
+      out.counterKicker = pById(s.cur).name;
       out.counterN = pr.n.toLocaleString();
-      out.tallyList = Object.keys(pr.tallies).filter(k => pr.tallies[k] > 0).sort((a, b) => pr.tallies[b] - pr.tallies[a]).map(k => Object.assign(this.glyph(pById(k)), { id: k, count: pr.tallies[k].toLocaleString() }));
+      out.tallyList = Object.keys(pr.tallies).filter(k => pr.tallies[k] > 0).map(k => Object.assign(this.glyph(pById(k)), { id: pById(k).name, count: pr.tallies[k].toLocaleString() }));
       const h = pr.hist || [], last = h[h.length - 1], N = pr.N || 1;
       const X = n => (n / N * 240).toFixed(1), Y = v => (56 - v * 56).toFixed(1);
       out.linePath = h.length ? 'M' + h.map(p => X(p.n) + ' ' + Y(p.p)).join(' L') : '';
       out.bandPath = h.length ? 'M' + h.map(p => X(p.n) + ' ' + Y(p.hi)).join(' L') + ' L' + h.slice().reverse().map(p => X(p.n) + ' ' + Y(p.lo)).join(' L') + ' Z' : '';
-      out.leadLabel = last ? `${pById(last.lead).name}의 1등 비율과 범위` : '1등 비율';
+      out.leadLabel = last ? `${pById(last.lead).name} 비율` : '';
       out.leadValue = last ? `${(last.p * 100).toFixed(1)}% · ${(last.lo * 100).toFixed(1)}~${(last.hi * 100).toFixed(1)}%` : '';
     } else { out.tallyList = []; out.linePath = ''; out.bandPath = ''; }
 
     // 둘러보기
-    out.viewOpts = this.seg([{ v: 'theater', l: '객석' }, { v: 'graph', l: '연결' }, { v: 'bars', l: '비교' }], s.view, v => { this.stage.setView(v); this.setState({ view: v }); }, true);
-    out.metricOpts = this.seg([{ v: 'buy', l: '구매경험률' }, { v: 'rev', l: '매출' }], s.metric, v => { this.stage.setMetric(v); this.setState({ metric: v }); }, true);
+    out.viewOpts = this.seg([{ v: 'theater', l: '객석' }, { v: 'graph', l: '연결' }, { v: 'bars', l: '성적별' }], s.view, v => { this.stage.setView(v); this.setState({ view: v }); }, true);
     out.condOpts = ready ? D.conditions : []; out.sort = s.sort; out.sortDisabled = s.view !== 'theater';
     out.pickSort = e => { const v = e.target.value; this.stage.setSort(v || null); this.setState({ sort: v }); };
     out.showSortAxis = sc === 'explore' && s.view === 'theater' && !!s.sort;
     out.sortLo = s.sort && ready ? D.condLabels[s.sort][0] : ''; out.sortHi = s.sort && ready ? D.condLabels[s.sort][1] : '';
-    out.exploreHint = s.view === 'theater' ? '끌어서 둘러보기 · 휠로 다가가기 · 화살표와 Enter로 좌석 이동' : s.view === 'graph' ? '조건이 비슷한 세상끼리 이어집니다 · 점을 끌어 보세요' : '구역의 크기가 1등 비율입니다';
+    out.exploreHint = s.view === 'theater' ? '끌어서 둘러보기 · 휠로 다가가기 · 화살표와 Enter로 좌석 이동' : s.view === 'graph' ? '조건이 비슷한 세상끼리 이어집니다 · 점을 끌어 보세요' : '구역의 크기가 그 성적을 낸 세상의 비율입니다';
     out.resetRun = () => { this.stage.reset(); this.setState({ scene: 'setup', prog: null, view: 'theater', sort: '', table: false, hover: null }); };
     out.conclude = () => { this.stage.setView('bars'); this.stage.focus = -1; this.setState({ scene: 'conclusion', view: 'bars', table: false, hover: null }); };
     out.backToExplore = () => this.setState({ scene: 'explore', evid: false });
@@ -638,9 +620,9 @@ class Component extends DCLogic {
       const top = Math.max(8, Math.min(H - 470, hv.y - hv.r));
       const cmax = Math.max(...hv.curves.map(c => c.pts[28])) || 1;
       out.hoverCard = Object.assign({ left: Math.round(left), top: Math.round(top), num: hv.id + 1, wName: wp.name, wColor: wp.color, wRadius: this.glyph(wp).radius, wRot: this.glyph(wp).rot,
-        clarity: hv.margin < 0.12 ? '2등과 차이 작음' : hv.margin < 0.35 ? '2등과 차이 보통' : '2등과 차이 큼',
-        vals: hv.vals.map(v => ({ id: v.id, w: Math.round(v.v / max * 100), color: pById(v.id).color, text: this.fmt(v.v) })),
-        curves: hv.curves.map(c => ({ color: pById(c.id).color, dash: c.id === hv.winner ? 'none' : '3 3', d: 'M' + c.pts.map((v, d) => (d / 28 * 256).toFixed(1) + ' ' + (62 - v / cmax * 58).toFixed(1)).join(' L') })),
+        clarity: `상위 ${hv.top}%`,
+        vals: hv.vals.map(v => ({ id: v.id, w: Math.min(100, Math.round(v.v / 0.2 * 100)), color: wp.color, text: this.fmt(v.v) })),
+        curves: hv.curves.map(c => ({ color: wp.color, dash: 'none', d: 'M' + c.pts.map((v, d) => (d / 28 * 256).toFixed(1) + ' ' + (62 - v / cmax * 58).toFixed(1)).join(' L') })),
         events: hv.events, diffs: hv.diffs, hint: hv.keyboard ? 'Enter를 누르면 이 세상 안으로 들어갑니다' : '클릭하면 이 세상 안으로 들어갑니다' });
     } else out.hoverCard = null;
 
@@ -651,9 +633,9 @@ class Component extends DCLogic {
       if (s.sort) ids.sort((a, b) => D.worlds[a].cond[s.sort] - D.worlds[b].cond[s.sort]);
       const pages = Math.ceil(N / 50), pg = Math.min(s.tablePage, pages - 1);
       out.tableSub = `${N.toLocaleString()}개 세상 · ${s.sort ? s.sort + ' 순' : '계산 순서'} · ${pg + 1} / ${pages}쪽`;
-      out.tableMetric = (s.metric === 'rev' ? '1인당 매출 ' : '구매경험률 ') + this.stage.pIds.join(' / ');
+      out.tableMetric = '구매경험률';
       out.tablePrev = () => this.setState({ tablePage: Math.max(0, pg - 1) }); out.tableNext = () => this.setState({ tablePage: Math.min(pages - 1, pg + 1) });
-      out.tableRows = ids.slice(pg * 50, pg * 50 + 50).map(i => { const inf = this.stage.info(i); return { num: i + 1, winner: pById(inf.winner).name, vals: inf.vals.map(v => this.fmt(v.v)).join(' / '), margin: Math.round(inf.margin * 100) + '%', diff: inf.diffs[0].label, go: () => this.enter(i), key: e => { if (e.key === 'Enter') this.enter(i); } }; });
+      out.tableRows = ids.slice(pg * 50, pg * 50 + 50).map(i => { const inf = this.stage.info(i); return { num: i + 1, winner: pById(inf.winner).name, vals: inf.vals.map(v => this.fmt(v.v)).join(' / '), margin: '상위 ' + inf.top + '%', diff: inf.diffs[0].label, go: () => this.enter(i), key: e => { if (e.key === 'Enter') this.enter(i); } }; });
     } else out.tableRows = [];
 
     // 한 세상 안
@@ -663,33 +645,31 @@ class Component extends DCLogic {
     out.day = di ? di.day : 1; const SD = ready ? D.step_days : 13, dt = d => `${d * SD}일째`; out.dayText = dt(out.day); out.playIcon = di && di.playing ? 'Ⅱ' : '▶'; out.playLabel = di && di.playing ? '멈춤' : '재생';
     out.togglePlay = () => { if (!this.stage) return; di && di.playing ? this.stage.pause() : this.stage.play(); };
     out.pickDay = e => this.stage && this.stage.setDay(+e.target.value);
-    const aP = wd ? pById(wd.product) : null, bP = s.compare ? pById(s.compare) : null;
-    out.legendA = aP ? aP.name : ''; out.legendB = bP ? bP.name : '';
-    const lg = [['exposed', '광고·추천을 본 사람', 'transparent', '1.5px solid #d6d6d6', '50%', 'none'], ['bought', '산 사람', aP ? aP.color : '#E60012', '0', '50%', 'none'], ['positive', '추천 글을 올린 사람', aP ? aP.color : '#E60012', '0', '50%', '0 0 0 2px #0a0a0a, 0 0 0 3.5px #ffffff'], ['negative', '불만 글을 올린 사람', '#9a9a9a', '0', '0', 'none']];
+    const aP = wd ? pById(wd.product) : null;
+    out.legendA = aP ? aP.name : ''; out.legendB = '';
+    const lg = [['exposed', '광고·추천을 본 사람', 'transparent', '1.5px solid #d6d6d6', '50%', 'none'], ['bought', '산 사람', '#E60012', '0', '50%', 'none'], ['positive', '추천 글을 올린 사람', '#E60012', '0', '50%', '0 0 0 2px #0a0a0a, 0 0 0 3.5px #ffffff'], ['negative', '불만 글을 올린 사람', '#9a9a9a', '0', '0', 'none']];
     out.legend = lg.map(([k, label, fill, border, radius, shadow]) => ({ label, fill, border, radius, shadow, a: di && di.a ? di.a[k] : 0, b: di && di.b ? di.b[k] : '' }));
-    out.compareOpts = wd ? [{ v: null, l: '끄기' }].concat(P.filter(p => p.id !== wd.product).map(p => ({ v: p.id, l: p.name }))).map(o => { const on = o.v === s.compare; return { label: o.l, on, bg: on ? '#f2f2f2' : 'transparent', fg: on ? '#0a0a0a' : '#f2f2f2', pick: () => { (o.v ? window.MM.loadSociety(wd.worldId, o.v) : Promise.resolve()).then(() => { this.stage.setCompare(o.v); this.setState({ compare: o.v, person: null }); }).catch(e => this.setState({ runErr: e.message })); } }; }) : [];
     const pe = s.person;
     out.person = pe ? { num: pe.id + 1, who: `${pe.age} ${pe.sex}`, trait: pe.trait, friends: pe.friends, access: pe.access ? '있음' : '없음', seen: pe.exposed ? `${dt(pe.exposed)} · ${pe.via === 'friend' ? '친구 추천 글' : '광고'}` : '보지 못함', bought: pe.bought ? dt(pe.bought) : '사지 않음', posted: pe.posted ? `${dt(pe.posted)} · ${pe.positive ? '추천 글' : '불만 글'}` : '없음', whyLabel: pe.bought ? '산 이유 (모델이 본 것)' : '안 산 이유 (모델이 본 것)', why: pe.why } : null;
     out.closePerson = () => { this.stage.person = null; this.setState({ person: null }); };
 
     // 결론
     if (sc === 'conclusion' && ready && this.stage) {
-      const N = this.stage.N, sum = MM.summarize(D.worlds.slice(0, N), this.stage.pIds, s.metric, this.stage.mods).sort((a, b) => b.share - a.share);
-      const top = sum[0], tp = pById(top.id);
-      out.conclusionLine = `${N.toLocaleString()}개 세상 중 ${top.wins.toLocaleString()}개에서 ${tp.name}의 ${s.metric === 'rev' ? '매출이' : '구매경험률이'} 가장 높았습니다.`;
-      out.sumHead = s.metric === 'rev' ? '1인당 매출(가격 × 구매경험률)' : '12개월 구매경험률';
-      const hiMax = Math.max(...sum.map(x => x.hi)) * 1.05;
-      out.sumRows = sum.map(x => { const p = pById(x.id); return Object.assign(this.glyph(p), { name: p.name, median: this.fmt(x.median), range: `${this.fmt(x.lo)}~${this.fmt(x.hi)}`, lo: (x.lo / hiMax * 100).toFixed(1), w: ((x.hi - x.lo) / hiMax * 100).toFixed(1), mid: (x.median / hiMax * 100).toFixed(1), barColor: p.color === '#EFEBE4' ? '#EFEBE4' : p.color, share: (x.share * 100).toFixed(1) + '%', regret: x.regret < 5e-4 ? '없음' : (s.metric === 'rev' ? '−' + Math.round(x.regret) + '원' : '−' + (x.regret * 100).toFixed(1) + '%p'), lose: x.wins === N ? '지는 세상 없음' : x.wins === 0 ? '이긴 세상 없음' : (x.loseWhen.length ? x.loseWhen.join(' · ') : '뚜렷한 공통점 없음') }); });
+      const x = MM.summarize(D.worlds.slice(0, this.stage.N)), nm = pById(D.cur).name, b1 = Math.round(D.bench[1] * 100);
+      out.conclusionLine = `${x.n.toLocaleString()}개 세상 중 ${x.over.toLocaleString()}개에서 ${nm}의 구매경험률이 과거 출시 평균(${b1}%)을 넘었습니다.`;
+      out.sumHead = '12개월 구매경험률';
+      const hiMax = Math.max(x.hi, D.bench[2]) * 1.05;
+      out.sumRows = [{ color: '#E60012', radius: '50%', rot: 'none', name: nm, median: this.fmt(x.median), range: `${this.fmt(x.lo)}~${this.fmt(x.hi)}`, lo: (x.lo / hiMax * 100).toFixed(1), w: ((x.hi - x.lo) / hiMax * 100).toFixed(1), mid: (x.median / hiMax * 100).toFixed(1), barColor: '#E60012', share: (x.over / x.n * 100).toFixed(1) + '%', regret: (x.under / x.n * 100).toFixed(1) + '%', lose: x.good.join(', ') || '뚜렷하지 않음' }];
       const F = D.verify.funnel, pc = v => Math.round(v * 100) + '%';
-      out.evidFunnel = this.stage.pIds.map(id => ({ name: pById(id).name, steps: `${pc(F[id].raw)} → ${pc(F[id].clean)} → ${pc(F[id].weighted)}` + (F[id].lead < 1 ? ` → ${pc(F[id].weighted * F[id].lead)}` : '') }));
-      out.evidStore = this.stage.pIds.map(id => ({ name: pById(id).name, v: pc(F[id].store) }));
-      out.evidConv = this.stage.pIds.map(id => ({ name: pById(id).name, v: F[id].conv.toFixed(2) }));
+      out.evidFunnel = [D.cur].map(id => ({ name: pById(id).name, steps: `${pc(F[id].raw)} → ${pc(F[id].clean)} → ${pc(F[id].weighted)}` + (F[id].lead < 1 ? ` → ${pc(F[id].weighted * F[id].lead)}` : '') }));
+      out.evidStore = [D.cur].map(id => ({ name: pById(id).name, v: pc(F[id].store) }));
+      out.evidConv = [D.cur].map(id => ({ name: pById(id).name, v: F[id].conv.toFixed(2) }));
     } else { out.sumRows = []; out.evidFunnel = []; out.evidStore = []; out.evidConv = []; }
     out.evid = s.evid; out.evidLabel = s.evid ? '근거 접기' : '근거 보기'; out.toggleEvid = () => this.setState({ evid: !s.evid });
 
     // 결과
     if (s.screen === 'out' && ready && s.oRun !== D.run && !this._ol) { this._ol = true; const rid = D.run; MM.api('/api/report?run=' + encodeURIComponent(rid)).then(O => this.setState({ O, oRun: rid, oErr: '' })).catch(e => this.setState({ oErr: e.message, oRun: rid, O: null })).finally(() => { this._ol = false; }); }
-    const O = s.O, oid = s.oProd || '화채', pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%', pc = v => Math.round(v * 100) + '%';
+    const O = s.O, oid = s.oProd || (ready ? D.cur : '화채'), pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%', pc = v => Math.round(v * 100) + '%';
     out.oTabs = P.map(p => { const on = p.id === oid; return { label: p.name, on, bg: on ? '#111' : 'transparent', fg: on ? '#fff' : '#111', pick: () => this.setState({ oProd: p.id }) }; });
     out.oReady = !!O && s.oRun === (D && D.run); out.oMsg = out.oReady ? '' : s.oErr ? '불러오지 못했습니다: ' + s.oErr : '세상들을 모으는 중입니다';
     if (out.oReady) {
